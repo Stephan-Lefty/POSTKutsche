@@ -438,7 +438,31 @@ button { font: inherit; cursor: pointer; }
 .rollbereich {
   max-height: calc(100vh - 150px);
   overflow-y: auto;
-  scrollbar-width: thin;
+  /* Breiter als üblich: An diesem Balken wird gearbeitet, nicht nur
+     gelegentlich gescrollt - und ein schmaler Streifen ist schwer zu
+     treffen. Zwei Angaben, weil die Browser sich nicht einig sind:
+     scrollbar-width kennen Firefox und neuere Chromium-Fassungen,
+     ::-webkit-scrollbar die älteren. */
+  scrollbar-width: auto;
+  scrollbar-color: var(--linie) transparent;
+}
+.rollbereich::-webkit-scrollbar { width: 16px; }
+.rollbereich::-webkit-scrollbar-track { background: transparent; }
+.rollbereich::-webkit-scrollbar-thumb {
+  background: var(--linie);
+  border-radius: 8px;
+  /* Der Rand in der Hintergrundfarbe lässt den Griff schmaler wirken, als
+     die Trefferfläche ist - anfassen kann man die vollen 16 Pixel. */
+  border: 3px solid var(--grund);
+}
+.rollbereich::-webkit-scrollbar-thumb:hover { background: var(--text-leise); }
+
+/* Auch im Beitragsblatt und in der Kategorienliste wird gescrollt. */
+.blatt::-webkit-scrollbar, .kategorienliste::-webkit-scrollbar { width: 14px; }
+.blatt::-webkit-scrollbar-thumb, .kategorienliste::-webkit-scrollbar-thumb {
+  background: var(--linie);
+  border-radius: 7px;
+  border: 3px solid var(--flaeche);
 }
 .wochenkopf {
   grid-column: 1 / -1;
