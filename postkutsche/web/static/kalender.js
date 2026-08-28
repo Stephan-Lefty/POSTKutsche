@@ -513,8 +513,11 @@ function rasterZeichnen(beitraege) {
     const schluessel = tagesschluessel(tag);
     const eigen = tag.getMonth() === stand.monat - 1;
 
-    // Die sechste Woche nur zeichnen, wenn der Monat sie braucht.
-    if (i >= 35 && !eigen) break;
+    // Angefangene Wochen werden zu Ende gezeichnet. Vorher brach das Raster
+    // nach dem letzten Tag des Monats ab - der 31. August stand allein in
+    // seiner Zeile, während oben die Juli-Tage vollständig dastanden. Was
+    // vor dem Monat gezeigt wird, gehört auch danach gezeigt.
+    if (i >= 35 && tag.getDay() === 1 && !eigen) break;
 
     const kasten = document.createElement("div");
     kasten.className = "tag" + (eigen ? "" : " fremd") + (schluessel === heute ? " heute" : "");
