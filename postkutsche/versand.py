@@ -19,11 +19,17 @@ man soll es sehen können.
 
 from __future__ import annotations
 
+import contextlib
+
 from typing import Any
+
+import tempfile
+from pathlib import Path
 
 from . import ablage as ablage_modul
 from . import zeiten, zugaenge
 from .netzwerke import mastodon
+from .quellen.abrufen import AbrufFehler, holen as netz_holen
 
 #: Ab wann eine Verspätung erwähnenswert ist.
 VERSPAETUNG_MELDEN = 3600
@@ -126,17 +132,58 @@ def _eine_fassung(eintrag: dict[str, Any],
         schlagworte = " ".join(f"#{w}" for w in eintrag["schlagworte"].split())
         text = f"{text}\n\n{schlagworte}"
 
-    return mastodon.senden(
-        instanz=konto["instanz"],
-        token=zugaenge.holen(konto["kennung"]),
-        text=text,
-        bild=eintrag.get("bild_pfad"),
-        bildbeschreibung=konto.get("bildbeschreibung", ""),
-        # Derselbe Schlüssel über Wiederholungen hinweg: Bricht die Verbindung
-        # nach dem Anlegen ab, erzeugt der zweite Versuch keinen zweiten
-        # Beitrag.
-        schluessel=f"postkutsche-fassung-{eintrag['fassung']}",
-    )
+    with _bild_bereitstellen(eintrag.get("bild_pfad")) as bild:
+        return mastodon.senden(
+            instanz=konto["instanz"],
+            token=zugaenge.holen(konto["kennung"]),
+            text=text,
+            bild=bild,
+            bildbeschreibung=konto.get("bildbeschreibung", ""),
+            # Derselbe Schlüssel über Wiederholungen hinweg: Bricht die
+            # Verbindung nach dem Anlegen ab, erzeugt der zweite Versuch
+            # keinen zweiten Beitrag.
+            schluessel=f"postkutsche-fassung-{eintrag['fassung']}",
+        )
+
+
+@contextlib.contextmanager
+def _bild_bereitstellen(bild: str | None):
+    """Sorgt dafür, dass das Bild als Datei vorliegt.
+
+    Im Feld kann beides stehen: ein Pfad auf der Platte oder eine Adresse im
+    Netz. Beim Entwerfen wird die Adresse aus der Quelle eingetragen - das
+    Herunterladen und Zuschneiden ist eine eigene Etappe und noch nicht
+    gebaut. Bis dahin wird hier geholt, was gebraucht wird.
+
+    Mastodon lädt die Datei hoch; eine Adresse hilft ihm nicht. (Instagram ist
+    genau umgekehrt - dort holt Meta sich das Bild selbst von einer
+    öffentlichen Adresse.)
+    """
+    if not bild:
+        yield None
+        return
+
+    if not str(bild).startswith(("http://", "https://")):
+        yield bild
+        return
+
+    endung = Path(str(bild).split("?")[0]).suffix or ".jpg"
+    ziel = None
+    try:
+        roh = netz_holen(str(bild))
+    except AbrufFehler as fehler:
+        raise VersandFehler(f"Das Bild ließ sich nicht holen: {fehler}") from fehler
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix="postkutsche-bild-", suffix=endung, delete=False
+        ) as datei:
+            datei.write(roh)
+            ziel = datei.name
+        yield ziel
+    finally:
+        if ziel:
+            Path(ziel).unlink(missing_ok=True)
 
 
 def _beitrag_abschliessen(ablage, beitrag_id: int) -> None:
