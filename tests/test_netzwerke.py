@@ -50,18 +50,19 @@ class Farben(unittest.TestCase):
         # hält fest, dass wenigstens die Helligkeit deutlich verschieden ist.
         fb = netzwerke.netzwerk(netzwerke.FACEBOOK).farbe
         li = netzwerke.netzwerk(netzwerke.LINKEDIN).farbe
-        # Nur 45 - mehr geben die Markenfarben nicht her. Facebook und
-        # LinkedIn sind beide blau, und beide sollen ihre eigene Farbe
-        # tragen. Auseinandergehalten werden sie am Kürzel; die Farbe ist
-        # hier Beiwerk, nicht Kennzeichen.
-        self.assertGreater(_abstand(fb, li), 40)
+        # LinkedIn trägt ein mittleres Grau statt seines Markenblaus: Die
+        # beiden Blautöne waren an einem schmalen Rahmen nicht zu
+        # unterscheiden. Grau ist die ehrlichere Lösung als ein leicht
+        # abgewandeltes Blau - es sieht nicht nach Marke aus und wird
+        # deshalb auch nicht mit einer verwechselt.
+        self.assertGreater(_abstand(fb, li), 100)
 
     def test_alle_paare_haben_abstand(self):
         farben = [(n.kennung, n.farbe) for n in netzwerke.alle()]
         for i, (name_a, farbe_a) in enumerate(farben):
             for name_b, farbe_b in farben[i + 1:]:
                 with self.subTest(paar=f"{name_a}/{name_b}"):
-                    self.assertGreater(_abstand(farbe_a, farbe_b), 40)
+                    self.assertGreater(_abstand(farbe_a, farbe_b), 60)
 
 
 class Kuerzel(unittest.TestCase):

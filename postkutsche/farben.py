@@ -176,6 +176,23 @@ def farbton(farbe: str) -> float:
     return colorsys.rgb_to_hsv(r, g, b)[0] * 360
 
 
+def saettigung(farbe: str) -> float:
+    """Wie bunt eine Farbe ist, 0 bis 1.
+
+    Braucht man, um Graustufen zu erkennen: Ein Grau hat keinen Farbton, mit
+    dem sich vergleichen ließe - dort entscheidet allein die Helligkeit.
+    """
+    import colorsys
+
+    r, g, b = (k / 255 for k in rgb(farbe))
+    return colorsys.rgb_to_hsv(r, g, b)[1]
+
+
+def ist_unbunt(farbe: str) -> bool:
+    """Grau, Schwarz oder Weiß – alles mit sehr wenig Sättigung."""
+    return saettigung(farbe) < 0.12
+
+
 def tonabstand(eine: str, andere: str) -> float:
     """Abstand zweier Farbtöne auf dem Kreis, 0 bis 180 Grad."""
     unterschied = abs(farbton(eine) - farbton(andere))

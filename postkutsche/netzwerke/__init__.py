@@ -28,7 +28,8 @@ class Netzwerk:
     kennung: str
     name: str
     kuerzel: str      # zwei Zeichen, steht im Kärtchen neben der Farbe
-    farbe: str        # Rahmen des Kärtchens im Kalender
+    farbe: str        # Rahmen des Kärtchens im hellen Thema
+    farbe_dunkel: str  # dasselbe im dunklen - meist gleich, siehe LinkedIn
     zeichen_max: int  # harte Grenze des Netzwerks
     zeichen_ziel: int  # was Claude anpeilen soll – deutlich darunter
     schlagworte_max: int
@@ -43,6 +44,7 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         name="Mastodon",
         kuerzel="MA",
         farbe="#563ACC",
+        farbe_dunkel="#563ACC",
         # 500 ist die Voreinstellung; einzelne Instanzen erlauben mehr. Wir
         # rechnen mit 500, dann passt es überall.
         zeichen_max=500,
@@ -65,7 +67,14 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         kuerzel="LI",
         # Nicht das Marken-Blau #0A66C2, sondern das dunklere aus derselben
         # Palette – sonst ist der Rahmen von Facebook nicht zu unterscheiden.
-        farbe="#0a66c2",
+        # Ein mittleres Grau statt des Markenblaus. LinkedIns Blau liegt so
+        # nah an Facebooks, dass die beiden Rahmen nicht zu unterscheiden
+        # waren. Schwarz wäre die naheliegende Alternative gewesen und
+        # scheitert am dunklen Thema - dieses Grau steht dagegen auf beiden
+        # Untergründen mit fast gleichem Kontrast (3,95 und 3,85). Deshalb
+        # trägt es in beiden Themen denselben Wert.
+        farbe="#808080",
+        farbe_dunkel="#808080",
         zeichen_max=3000,
         # Nach etwa 200 Zeichen klappt LinkedIn den Text zu. Was danach kommt,
         # liest nur, wer auf »mehr anzeigen« tippt. Der Kern muss also vorn stehen.
@@ -81,6 +90,7 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         name="Facebook",
         kuerzel="FB",
         farbe="#1877F2",
+        farbe_dunkel="#1877F2",
         # Facebook erlaubt über 60.000 Zeichen. Das ist keine Empfehlung.
         zeichen_max=5000,
         zeichen_ziel=600,
@@ -95,6 +105,7 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         name="Instagram",
         kuerzel="IG",
         farbe="#E1306C",
+        farbe_dunkel="#E1306C",
         zeichen_max=2200,
         zeichen_ziel=700,
         schlagworte_max=12,

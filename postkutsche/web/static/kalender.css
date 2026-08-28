@@ -476,3 +476,38 @@ button { font: inherit; cursor: pointer; }
 .wochenkopf.jetzt { color: var(--blau); font-weight: 600; }
 .laedt { grid-column: 1 / -1; text-align: center; color: var(--text-leise);
          font-size: 12px; padding: 10px; }
+
+/* Farbwahl am Projektpunkt. Sie liegt über der Spalte, nicht als eigenes
+   Fenster - für fünf Tupfer lohnt keine Überlagerung. */
+.liste li { position: relative; }
+.punktknopf { border: 1px solid var(--linie); padding: 0; cursor: pointer; }
+.punktknopf:hover { box-shadow: 0 0 0 2px var(--blau); }
+
+.farbwahl {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  z-index: 20;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  min-width: 168px;
+}
+.farbwahl-titel { font-size: 12px; color: var(--text-leise); margin-bottom: 6px; }
+.farbwahl-raster { display: flex; flex-wrap: wrap; gap: 6px; }
+.farbtupfer {
+  width: 26px; height: 26px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.farbtupfer:hover { border-color: var(--text-leise); }
+.farbtupfer.gewaehlt { border-color: var(--text); }
+.farbwahl-eigene {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-top: 10px; font-size: 12px; color: var(--text-leise);
+}
+.farbwahl-eigene input { width: 34px; height: 26px; padding: 0; border: none;
+                         background: none; cursor: pointer; }

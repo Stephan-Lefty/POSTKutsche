@@ -81,6 +81,13 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._datei(pfad[len("/static/"):])
             if pfad == "/api/projekte":
                 return self._projekte()
+            if pfad == "/api/projektfarben":
+                from .. import farben as farbpalette
+
+                return self._json([
+                    {"farbe": f, "ton": round(farbpalette.farbton(f))}
+                    for f in farbpalette.PROJEKTFARBEN
+                ])
             if pfad == "/api/netzwerke":
                 return self._netzwerke()
             if pfad == "/api/beitraege":
@@ -119,6 +126,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._abgehakt(rumpf)
             if pfad == "/api/bild":
                 return self._bild_setzen(rumpf)
+            if pfad == "/api/projektfarbe":
+                return self._projektfarbe(rumpf)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
         except (ValueError, KeyError) as fehler:
@@ -346,6 +355,43 @@ class Behandler(BaseHTTPRequestHandler):
                 rumpf.get("schlagworte"),
             )
             self._json({"fassung": int(rumpf["fassung"]), "von_hand": True})
+
+    def _projektfarbe(self, rumpf: dict[str, Any]) -> None:
+        """Ändert die Farbe eines Projekts.
+
+        Geprüft wird nur die Form, nicht die Palette: Wer eine eigene Farbe
+        will, soll sie nehmen dürfen. Die Palette ist ein Vorschlag, keine
+        Vorschrift - sie hält Abstand zu den Netzwerkfarben, aber das muss
+        niemand hinnehmen, der es besser weiß.
+        """
+        import re as _re
+
+        farbe = str(rumpf.get("farbe", "")).strip().lower()
+        if not _re.fullmatch(r"#[0-9a-f]{6}", farbe):
+            raise ValueError(f"»{farbe}« ist keine Farbe im Format #rrggbb.")
+
+        kennung = str(rumpf["projekt"])
+        with self._ablage() as a:
+            projekt = a.projekt(kennung)
+            if projekt is None:
+                return self._fehler(f"Kein Projekt »{kennung}«.", 404)
+            a.db.execute("UPDATE projekte SET farbe = ? WHERE id = ?",
+                         (farbe, projekt.id))
+            a.db.commit()
+
+        from .. import farben as farbpalette
+        from .. import netzwerke as netze
+
+        # Warnen, nicht verbieten: Wer eine Farbe nimmt, die aussieht wie eine
+        # Netzwerkmarke, soll das erfahren - entscheiden darf er trotzdem.
+        naechstes = min(netze.alle(),
+                        key=lambda n: farbpalette.tonabstand(farbe, n.farbe))
+        warnung = None
+        if farbpalette.tonabstand(farbe, naechstes.farbe) < 35:
+            warnung = (f"Diese Farbe liegt nah an {naechstes.name} – "
+                       "im Kalender könnte man sie verwechseln.")
+
+        self._json({"projekt": kennung, "farbe": farbe, "warnung": warnung})
 
     def _kampagne(self, rumpf: dict[str, Any]) -> None:
         """Legt eine Kampagne an: Thema, Woche, Kategorien, Hersteller.

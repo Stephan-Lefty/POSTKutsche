@@ -111,6 +111,12 @@ class Projektfarben(unittest.TestCase):
 
         for projektfarbe in farben.PROJEKTFARBEN:
             for netz in netzwerke.alle():
+                if farben.ist_unbunt(netz.farbe):
+                    # Gegen ein Grau schützt die Buntheit, nicht der Abstand:
+                    # Eine gesättigte Farbe wird nie für Grau gehalten.
+                    with self.subTest(farbe=projektfarbe, netz=netz.kennung):
+                        self.assertGreater(farben.saettigung(projektfarbe), 0.3)
+                    continue
                 with self.subTest(farbe=projektfarbe, netz=netz.kennung):
                     # 110 statt eines höheren Werts: Die Netzwerke belegen
                     # Violett, zwei Blautöne und Magenta. Wer mehr verlangt,
@@ -129,6 +135,9 @@ class Projektfarben(unittest.TestCase):
 
         for projektfarbe in farben.PROJEKTFARBEN:
             for netz in netzwerke.alle():
+                # Ein Grau hat keinen Ton, gegen den sich abgrenzen ließe.
+                if farben.ist_unbunt(netz.farbe):
+                    continue
                 with self.subTest(farbe=projektfarbe, netz=netz.kennung):
                     self.assertGreaterEqual(
                         farben.tonabstand(projektfarbe, netz.farbe), 40)

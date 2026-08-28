@@ -11,6 +11,7 @@ const stand = {
   letzteWoche: null,     // Montag der untersten
   projekte: [],
   netzwerke: {},
+  palette: [],           // vorgeschlagene Projektfarben
   sichtbar: new Set(),   // Häkchen links - reine Ansichtssache
   offen: null,           // welcher Beitrag im Blatt steht
 };
@@ -61,9 +62,10 @@ async function anfangen() {
   stand.jahr = heute.getFullYear();
   stand.monat = heute.getMonth() + 1;
 
-  const [projekte, netze] = await Promise.all([
-    hole("/api/projekte"), hole("/api/netzwerke"),
+  const [projekte, netze, palette] = await Promise.all([
+    hole("/api/projekte"), hole("/api/netzwerke"), hole("/api/projektfarben"),
   ]);
+  stand.palette = palette;
   stand.projekte = projekte;
   netze.forEach((n) => (stand.netzwerke[n.kennung] = n));
   projekte.forEach((p) => stand.sichtbar.add(p.kennung));
@@ -445,17 +447,27 @@ function spalteZeichnen() {
       monatLaden();
     };
 
-    const punkt = document.createElement("span");
-    punkt.className = "punkt";
+    // Der Punkt ist ein Knopf: Ein Klick öffnet die Farbwahl. Er sitzt
+    // außerhalb der Beschriftung, sonst schaltete jeder Klick zugleich das
+    // Häkchen um.
+    const punkt = document.createElement("button");
+    punkt.className = "punkt punktknopf";
     punkt.style.background = p.farbe;
+    punkt.title = `Farbe von ${p.name} ändern`;
+    punkt.setAttribute("aria-label", `Farbe von ${p.name} ändern`);
+    punkt.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      farbwahlOeffnen(p, punkt);
+    };
 
     const name = document.createElement("span");
     name.className = "name";
     name.textContent = p.name;
 
     const beschriftung = document.createElement("label");
-    beschriftung.append(feld, punkt, name);
-    zeile.append(beschriftung);
+    beschriftung.append(feld, name);
+    zeile.append(punkt, beschriftung);
 
     if (!p.aktiv) {
       const pause = document.createElement("span");
@@ -485,6 +497,75 @@ function spalteZeichnen() {
     zeile.append(kuerzel, name);
     marken.append(zeile);
   });
+}
+
+/** Kleine Farbwahl neben dem Projektpunkt.
+ *
+ * Die Palette hält Abstand zu den Netzwerkfarben - aber sie ist ein
+ * Vorschlag, keine Vorschrift. Wer eine eigene Farbe will, nimmt den
+ * Farbwähler daneben; gewarnt wird, nicht verboten.
+ */
+function farbwahlOeffnen(projekt, ankerknopf) {
+  document.querySelector(".farbwahl")?.remove();
+
+  const kasten = document.createElement("div");
+  kasten.className = "farbwahl";
+
+  const titel = document.createElement("div");
+  titel.className = "farbwahl-titel";
+  titel.textContent = projekt.name;
+  kasten.append(titel);
+
+  const raster = document.createElement("div");
+  raster.className = "farbwahl-raster";
+  stand.palette.forEach((eintrag) => {
+    const knopf = document.createElement("button");
+    knopf.className = "farbtupfer";
+    knopf.style.background = eintrag.farbe;
+    knopf.title = eintrag.farbe;
+    if (eintrag.farbe === projekt.farbe) knopf.classList.add("gewaehlt");
+    knopf.onclick = () => farbeSetzen(projekt, eintrag.farbe, kasten);
+    raster.append(knopf);
+  });
+  kasten.append(raster);
+
+  const eigene = document.createElement("label");
+  eigene.className = "farbwahl-eigene";
+  const feld = document.createElement("input");
+  feld.type = "color";
+  feld.value = projekt.farbe;
+  feld.onchange = () => farbeSetzen(projekt, feld.value, kasten);
+  eigene.append(document.createTextNode("eigene Farbe"), feld);
+  kasten.append(eigene);
+
+  ankerknopf.parentElement.append(kasten);
+
+  // Klick daneben schließt. Erst im nächsten Durchlauf anmelden, sonst
+  // fängt dieser Handler noch den Klick ab, der das Fenster geöffnet hat.
+  setTimeout(() => {
+    const zu = (e) => {
+      if (!kasten.contains(e.target)) {
+        kasten.remove();
+        document.removeEventListener("click", zu);
+      }
+    };
+    document.addEventListener("click", zu);
+  }, 0);
+}
+
+async function farbeSetzen(projekt, farbe, kasten) {
+  try {
+    const antwort = await hole("/api/projektfarbe",
+                               { projekt: projekt.kennung, farbe });
+    projekt.farbe = antwort.farbe;
+    kasten.remove();
+    spalteZeichnen();
+    monatLaden();
+    melden(antwort.warnung || `Farbe von ${projekt.name} geändert.`,
+           Boolean(antwort.warnung));
+  } catch (fehler) {
+    melden(fehler.message, true);
+  }
 }
 
 // -- Rollende Wochenansicht -------------------------------------------------
