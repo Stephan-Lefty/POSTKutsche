@@ -144,13 +144,14 @@ def seite(adresse: str) -> dict[str, object]:
 
     titel = angaben.get("title") or _titel_aus(roh) or adresse
     beschreibung = angaben.get("description") or _beschreibung_aus(roh) or ""
+    bild = angaben.get("image") or _produktbild(roh, adresse)
 
     return {
         "fremd_id": adresse,
         "titel": entmarken(titel),
         "text": entmarken(beschreibung),
         "adresse": angaben.get("url") or adresse,
-        "bild_adresse": angaben.get("image"),
+        "bild_adresse": bild,
         "veroeffentlicht": None,  # Solche Seiten haben kein Datum, dem zu trauen wäre
         "kategorien": [],
     }
@@ -161,6 +162,47 @@ _BESCHREIBUNG = re.compile(
     r"""<meta[^>]+name\s*=\s*["']description["'][^>]*content\s*=\s*["']([^"']*)["']""",
     re.IGNORECASE,
 )
+
+
+# Bilder, die auf jeder Seite stehen und nichts über das Produkt sagen.
+ZIERRAT = ("/elements/", "logo", "banner", "icon", "sprite", "pixel",
+           "trustedshops", "paypal", "facebook", "instagram", "/flags/",
+           "spacer", "blank", "arrow", "button")
+
+
+def _produktbild(roh: str, adresse: str) -> str | None:
+    """Sucht das Produktfoto im Seitenquelltext.
+
+    Der Weg für Seiten ohne og:image. Zwei Regeln, beide aus dem Blick auf
+    eine echte Seite: Logos, Zahlungssymbole und Sternebewertungen sind keine
+    Produktfotos - sie stehen auf jeder Seite und tragen »elements« oder
+    »logo« im Pfad. Und bei mehreren Größen desselben Bildes ist die größere
+    die richtige; ein 80-Pixel-Vorschaubild taugt für keinen Beitrag.
+    """
+    stamm = _stamm_von(adresse)
+    gefunden: list[str] = []
+
+    for treffer in re.findall(r"""<img[^>]+src\s*=\s*["\']([^"\']+)["\']""",
+                              roh, re.IGNORECASE):
+        quelle = treffer.strip()
+        if any(stueck in quelle.lower() for stueck in ZIERRAT):
+            continue
+        if not quelle.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            continue
+        voll = quelle if quelle.startswith("http") else f"{stamm}{quelle}"
+        gefunden.append(voll)
+
+    if not gefunden:
+        return None
+
+    # Nach Größenordner sortieren, falls es einen gibt: /pictures/item/2/ ist
+    # größer als /pictures/item/1/.
+    def rang(quelle: str) -> int:
+        treffer = re.search(r"/(\d+)/[^/]+$", quelle)
+        return -int(treffer.group(1)) if treffer else 0
+
+    gefunden.sort(key=rang)
+    return gefunden[0]
 
 
 def _titel_aus(roh: str) -> str | None:

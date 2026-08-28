@@ -41,6 +41,9 @@ function melden(text, schlecht = false) {
   meldungsUhr = setTimeout(() => (kasten.hidden = true), schlecht ? 8000 : 3000);
 }
 
+const EMOJIS = ["👉", "✅", "⚠️", "💡", "🔧", "🏠", "🚪", "📍", "📅", "🕐",
+  "📷", "🌿", "☀️", "❄️", "🔥", "👀", "✨", "❤️", "🙌", "📢"];
+
 const ZEICHEN = { entwurf: "✎", rueckfrage: "?", freigegeben: "✓", erledigt: "↑" };
 
 function zweistellig(n) { return String(n).padStart(2, "0"); }
@@ -338,7 +341,25 @@ async function blattOeffnen(id) {
   wann.textContent = `Geplant: ${b.geplant_ort.slice(0, 16).replace("T", ", ")} · ${b.zustand}`;
   inhalt.append(wann);
 
-  b.fassungen.forEach((f) => inhalt.append(fassungsblock(id, f)));
+  if (b.quelle) {
+    // Der Verweis gehört sichtbar ins Blatt: Beim Einstellen von Hand braucht
+    // man ihn zum Anklicken und zum Kopieren.
+    const zeile = document.createElement("p");
+    zeile.className = "quelle";
+    const verweis = document.createElement("a");
+    verweis.href = b.quelle;
+    verweis.target = "_blank";
+    verweis.rel = "noopener";
+    verweis.textContent = b.quelle;
+    const holen = document.createElement("button");
+    holen.className = "klein";
+    holen.textContent = "kopieren";
+    holen.onclick = () => kopieren(b.quelle, "Verweis kopiert.");
+    zeile.append(verweis, holen);
+    inhalt.append(zeile);
+  }
+
+  b.fassungen.forEach((f) => inhalt.append(fassungsblock(id, f, b.quelle)));
 
   const knoepfe = document.createElement("div");
   knoepfe.className = "knoepfe";
@@ -361,7 +382,66 @@ async function blattOeffnen(id) {
   $("#blatt").hidden = false;
 }
 
-function fassungsblock(beitragId, f) {
+async function kopieren(text, meldungstext) {
+  try {
+    await navigator.clipboard.writeText(text);
+    melden(meldungstext);
+  } catch {
+    // Ohne sicheren Kontext verweigert der Browser die Zwischenablage.
+    const hilfsfeld = document.createElement("textarea");
+    hilfsfeld.value = text;
+    document.body.append(hilfsfeld);
+    hilfsfeld.select();
+    melden("Bitte mit Strg+C kopieren – der Text ist markiert.", true);
+    setTimeout(() => hilfsfeld.remove(), 15000);
+  }
+}
+
+/** Der fertige Beitrag, so wie er ins jeweilige Netzwerk gehört.
+ *
+ * Die Unterschiede sind nicht Geschmackssache: Bei Instagram ist ein Verweis
+ * im Text nicht anklickbar, dort steht er nur als Hinweis. Bei Facebook und
+ * LinkedIn gehört er ans Ende. Bei Mastodon darf danach nichts mehr kommen.
+ */
+function fertigerText(f, quelle) {
+  const teile = [f.feld ? f.feld.value : f.text];
+  const netz = f.netzwerk;
+
+  if (quelle && netz !== "instagram") {
+    teile.push("", quelle);
+  }
+  if (f.schlagworte) {
+    teile.push("", f.schlagworte.split(" ").map((w) => `#${w}`).join(" "));
+  }
+  if (quelle && netz === "instagram") {
+    teile.push("", "Verweis im Profil.");
+  }
+  return teile.join("\n");
+}
+
+function emojiLeiste(feld) {
+  const leiste = document.createElement("div");
+  leiste.className = "emojis";
+  EMOJIS.forEach((zeichen) => {
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.textContent = zeichen;
+    knopf.title = `${zeichen} einfügen`;
+    knopf.onclick = () => {
+      // An der Schreibmarke einfügen, nicht am Ende - sonst muss man es
+      // hinterher doch wieder verschieben.
+      const stelle = feld.selectionStart ?? feld.value.length;
+      feld.value = feld.value.slice(0, stelle) + zeichen + feld.value.slice(feld.selectionEnd ?? stelle);
+      feld.focus();
+      feld.selectionStart = feld.selectionEnd = stelle + zeichen.length;
+      feld.dispatchEvent(new Event("input"));
+    };
+    leiste.append(knopf);
+  });
+  return leiste;
+}
+
+function fassungsblock(beitragId, f, quelle) {
   const netz = stand.netzwerke[f.netzwerk] || {};
   const block = document.createElement("div");
   block.className = "fassung";
@@ -407,6 +487,9 @@ function fassungsblock(beitragId, f) {
   feld.value = f.text;
   block.append(feld);
 
+  f.feld = feld;
+  block.append(emojiLeiste(feld));
+
   const zaehler = document.createElement("div");
   zaehler.className = "zaehler";
   const zaehlen = () => {
@@ -445,24 +528,19 @@ function fassungsblock(beitragId, f) {
   // Der Handbetrieb: Text kopieren, bei Facebook oder Instagram einstellen,
   // danach abhaken. Kein Markdown, keine Auszeichnung - genau der Text, der
   // dort hineingehört.
-  const kopieren = document.createElement("button");
-  kopieren.className = "knopf leise";
-  kopieren.textContent = "Text kopieren";
-  kopieren.onclick = async () => {
-    const voll = f.schlagworte
-      ? `${feld.value}\n\n${f.schlagworte.split(" ").map((w) => `#${w}`).join(" ")}`
-      : feld.value;
-    try {
-      await navigator.clipboard.writeText(voll);
-      melden("In die Zwischenablage kopiert.");
-    } catch {
-      // Ohne sicheren Kontext verweigert der Browser die Zwischenablage.
-      feld.select();
-      melden("Bitte mit Strg+C kopieren – der Text ist markiert.", true);
-    }
-  };
+  const alles = document.createElement("button");
+  alles.className = "knopf";
+  alles.textContent = "Alles kopieren";
+  alles.title = "Text, Verweis und Schlagwörter – fertig zum Einfügen";
+  alles.onclick = () => kopieren(fertigerText(f, quelle),
+                                 "Beitrag in der Zwischenablage.");
 
-  knoepfe.append(sichern, kopieren);
+  const nurText = document.createElement("button");
+  nurText.className = "knopf leise";
+  nurText.textContent = "Nur Text";
+  nurText.onclick = () => kopieren(feld.value, "Text kopiert.");
+
+  knoepfe.append(alles, sichern, nurText);
 
   if (f.bild) {
     // Für den Handbetrieb: Bild auf die Platte holen, dann bei Facebook oder
@@ -474,6 +552,32 @@ function fassungsblock(beitragId, f) {
     holen.textContent = "Bild speichern";
     knoepfe.append(holen);
   }
+
+  // Eigenes Bild einsetzen, wenn das gewählte nicht passt.
+  const waehler = document.createElement("input");
+  waehler.type = "file";
+  waehler.accept = "image/*";
+  waehler.hidden = true;
+  waehler.onchange = () => {
+    const datei = waehler.files[0];
+    if (!datei) return;
+    const leser = new FileReader();
+    leser.onload = async () => {
+      try {
+        await hole("/api/bild", { fassung: f.id, daten: leser.result });
+        melden("Bild ersetzt.");
+        blattOeffnen(beitragId);
+      } catch (fehler) {
+        melden(fehler.message, true);
+      }
+    };
+    leser.readAsDataURL(datei);
+  };
+  const tauschen = document.createElement("button");
+  tauschen.className = "knopf leise";
+  tauschen.textContent = f.bild ? "Bild ersetzen" : "Bild wählen";
+  tauschen.onclick = () => waehler.click();
+  knoepfe.append(tauschen, waehler);
 
   if (f.zustand !== "gesendet" && f.zustand !== "abgeholt") {
     const abhaken = document.createElement("button");

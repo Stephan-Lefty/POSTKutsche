@@ -108,6 +108,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._bearbeiten(rumpf)
             if pfad == "/api/abgehakt":
                 return self._abgehakt(rumpf)
+            if pfad == "/api/bild":
+                return self._bild_setzen(rumpf)
         except (ValueError, KeyError) as fehler:
             return self._fehler(str(fehler))
         except ablage_modul.RueckfrageOffen as fehler:
@@ -202,8 +204,15 @@ class Behandler(BaseHTTPRequestHandler):
             zeile = a.beitrag(nummer)
             if zeile is None:
                 return self._fehler("Diesen Beitrag gibt es nicht.", 404)
+            inhalt = a.db.execute(
+                "SELECT titel, adresse FROM inhalte WHERE id = ?",
+                (zeile["inhalt_id"],),
+            ).fetchone() if zeile["inhalt_id"] else None
+
             self._json({
                 "id": nummer,
+                "titel": inhalt["titel"] if inhalt else (zeile["notiz"] or ""),
+                "quelle": inhalt["adresse"] if inhalt else None,
                 "geplant": zeile["geplant"],
                 "geplant_ort": zeiten.nach_ortszeit(zeile["geplant"]).isoformat(),
                 "zustand": zeile["zustand"],
@@ -279,6 +288,46 @@ class Behandler(BaseHTTPRequestHandler):
                 rumpf.get("schlagworte"),
             )
             self._json({"fassung": int(rumpf["fassung"]), "von_hand": True})
+
+    def _bild_setzen(self, rumpf: dict[str, Any]) -> None:
+        """Tauscht das Bild einer Fassung aus.
+
+        Erwartet den Inhalt als Datenadresse aus dem Browser. Der Weg über
+        die Ablage statt über einen Dateipfad ist Absicht: Der Browser kennt
+        den Pfad einer hochgeladenen Datei nicht, und ein Dienst, der
+        beliebige Pfade entgegennimmt, liest irgendwann fremde Dateien.
+        """
+        import base64
+        import re as _re
+
+        from .. import bilder
+
+        roh = str(rumpf.get("daten", ""))
+        treffer = _re.match(r"data:image/(\w+);base64,(.+)$", roh, _re.DOTALL)
+        if not treffer:
+            raise ValueError("Das ist kein Bild.")
+
+        inhalt = base64.b64decode(treffer.group(2))
+        if len(inhalt) > bilder.GROESSE_MAX:
+            raise ValueError("Das Bild ist zu groß.")
+
+        fassung = int(rumpf["fassung"])
+        ziel = bilder.ordner() / f"eigenes-{fassung}.{treffer.group(1)}"
+        ziel.write_bytes(inhalt)
+
+        # Zuschneiden, wenn Pillow da ist - sonst bleibt es, wie es kam.
+        pfad = ziel
+        if bilder.pillow_da():
+            try:
+                pfad = bilder._zuschneiden(ziel, bilder.ordner() / f"eigenes-{fassung}-4x5.jpg")
+            except Exception:  # noqa: BLE001
+                pass
+
+        with self._ablage() as a:
+            a.db.execute("UPDATE fassungen SET bild_pfad = ? WHERE id = ?",
+                         (str(pfad), fassung))
+            a.db.commit()
+        self._json({"fassung": fassung, "bild": f"/bild/{fassung}"})
 
     def _abgehakt(self, rumpf: dict[str, Any]) -> None:
         """»Von Hand veröffentlicht« – der Weg für Facebook und Instagram."""

@@ -199,6 +199,23 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 8px;
 }
 
+/* Verweis und Emojileiste gehören zur Übergabe: Was man zum Einstellen von
+   Hand braucht, soll auf dieser einen Seite liegen. */
+.quelle { font-size: 12px; margin: 6px 0 0; display: flex; gap: 6px; align-items: baseline; }
+.quelle a { color: var(--verweis); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.klein {
+  background: none; border: 1px solid var(--linie); color: var(--text-leise);
+  border-radius: 4px; padding: 1px 6px; font-size: 11px; flex: none;
+}
+.klein:hover { border-color: var(--blau); color: var(--blau); }
+
+.emojis { display: flex; flex-wrap: wrap; gap: 2px; margin: 4px 0; }
+.emojis button {
+  background: none; border: 1px solid transparent; border-radius: 5px;
+  padding: 2px 4px; font-size: 16px; line-height: 1;
+}
+.emojis button:hover { border-color: var(--linie); background: var(--grund); }
+
 .zaehler { font-size: 11px; color: var(--text-leise); }
 .zaehler.zuviel { color: var(--rot); font-weight: 600; }
 .schlagworte { font-size: 12px; color: var(--text-leise); margin: 4px 0 0; }
