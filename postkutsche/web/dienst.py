@@ -36,6 +36,11 @@ class Behandler(BaseHTTPRequestHandler):
     server_version = "POSTKutsche"
     sys_version = ""
 
+    #: Wie weit der laufende Kampagnenlauf ist. Klassenweit, weil je Anfrage
+    #: eine neue Instanz entsteht - und weil immer nur ein Lauf gleichzeitig
+    #: sinnvoll ist.
+    lauf: dict[str, Any] = {"aktiv": False}
+
     # -- Gerüst ------------------------------------------------------------
 
     def log_message(self, format: str, *args: Any) -> None:
@@ -82,6 +87,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._beitraege(frage)
             if pfad.startswith("/api/beitrag/"):
                 return self._beitrag(int(pfad.rsplit("/", 1)[-1]))
+            if pfad == "/api/lauf":
+                return self._json(Behandler.lauf)
             if pfad == "/api/kategorien":
                 return self._kategorien(frage)
             if pfad.startswith("/bild/"):
@@ -261,7 +268,22 @@ class Behandler(BaseHTTPRequestHandler):
 
         karte = projekt.einstellungen.get("seitenkarte")
         bereich = frage.get("bereich", [None])[0]
-        self._json(seitenkarte.kategorien(karte, bereich))
+        kategorien = seitenkarte.kategorien(karte, bereich)
+
+        with self._ablage() as a:
+            zuletzt = a.kategorien_zuletzt(projekt.id)
+
+        for eintrag in kategorien:
+            ordner = str(eintrag["adresse"]).rsplit("/", 1)[0]
+            wann = zuletzt.get(ordner)
+            if wann:
+                jahr, woche = zeiten.kalenderwoche(wann)
+                eintrag["zuletzt"] = f"KW {woche}/{str(jahr)[2:]}"
+                eintrag["zuletzt_stempel"] = wann
+            else:
+                eintrag["zuletzt"] = None
+
+        self._json(kategorien)
 
     def _bild(self, fassung_id: int) -> None:
         """Liefert das Bild einer Fassung aus.
@@ -336,8 +358,21 @@ class Behandler(BaseHTTPRequestHandler):
             je_tag=int(rumpf.get("je_tag", 1)),
             hersteller=[str(h) for h in rumpf.get("hersteller", [])],
         )
-        with self._ablage() as a:
-            bericht = ausfuehren(a, kampagne)
+        if Behandler.lauf.get("aktiv"):
+            return self._fehler("Es läuft schon eine Planung.", 409)
+
+        def melden_fortschritt(getan: int, gesamt: int, text: str) -> None:
+            Behandler.lauf.update({
+                "aktiv": True, "getan": getan, "gesamt": gesamt, "text": text,
+            })
+
+        Behandler.lauf = {"aktiv": True, "getan": 0,
+                          "gesamt": kampagne.anzahl, "text": "beginnt …"}
+        try:
+            with self._ablage() as a:
+                bericht = ausfuehren(a, kampagne, fortschritt=melden_fortschritt)
+        finally:
+            Behandler.lauf = {"aktiv": False}
         self._json(bericht)
 
     def _bild_setzen(self, rumpf: dict[str, Any]) -> None:

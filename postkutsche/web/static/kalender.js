@@ -171,8 +171,10 @@ function kategorienZeichnen() {
   );
   liste.innerHTML = "";
 
+  // Kategorien ohne Produkte sind Übersichtsseiten - sie anzubieten führt
+  // nur zu leeren Kampagnen.
   const treffer = kategorienAlle.filter(
-    (k) => !suche || k.name.toLowerCase().includes(suche)
+    (k) => k.produkte > 0 && (!suche || k.name.toLowerCase().includes(suche))
   );
   if (!treffer.length) {
     liste.innerHTML = '<p class="schlagworte">Nichts gefunden.</p>';
@@ -188,7 +190,16 @@ function kategorienZeichnen() {
     const beschriftung = document.createElement("label");
     // Die Gliederung des Shops beibehalten: Einrückung nach Tiefe.
     beschriftung.style.paddingLeft = `${(k.tiefe - 1) * 14}px`;
-    beschriftung.append(feld, document.createTextNode(k.name));
+    const anzahl = document.createElement("span");
+    anzahl.className = "anzahl";
+    // Was schon dran war, steht dahinter - damit man beim Planen der
+    // nächsten Woche nicht dieselbe Kategorie zweimal erwischt.
+    anzahl.textContent = k.zuletzt ? `${k.produkte} · ${k.zuletzt}` : `${k.produkte}`;
+    if (k.zuletzt) {
+      anzahl.classList.add("gelaufen");
+      anzahl.title = `Zuletzt bespielt: ${k.zuletzt}`;
+    }
+    beschriftung.append(feld, document.createTextNode(k.name), anzahl);
     liste.append(beschriftung);
   });
 }
@@ -208,8 +219,22 @@ async function kampagneAbschicken(e) {
   const jeTag = Number($("#k-jetag").value);
   // Ehrlich sagen, wie lange es dauert: Je Beitrag ein Claude-Aufruf, und
   // der braucht seine halbe Minute. Ohne Hinweis hält man es für abgestürzt.
-  $("#k-stand").textContent =
-    `Entwürfe entstehen – das dauert etwa ${Math.ceil(5 * jeTag * 0.5)} Minuten. Bitte warten.`;
+  $("#k-stand").textContent = "Produkte werden gesammelt …";
+  $("#k-balken").hidden = false;
+  $("#k-fuellung").style.width = "0%";
+
+  // Alle zwei Sekunden nachfragen, wie weit es ist. Ein Ereignisstrom wäre
+  // eleganter, aber für einen Lauf von wenigen Minuten ist Nachfragen
+  // einfacher und geht auch dann, wenn die Verbindung kurz abreißt.
+  const uhr = setInterval(async () => {
+    try {
+      const s = await hole("/api/lauf");
+      if (!s.aktiv) return;
+      const anteil = s.gesamt ? Math.round((s.getan / s.gesamt) * 100) : 0;
+      $("#k-fuellung").style.width = `${anteil}%`;
+      $("#k-stand").textContent = `${s.getan} von ${s.gesamt}: ${s.text}`;
+    } catch { /* Zwischendurch mal keine Antwort ist kein Grund aufzuhören. */ }
+  }, 2000);
 
   try {
     const bericht = await hole("/api/kampagne", {
@@ -232,7 +257,9 @@ async function kampagneAbschicken(e) {
   } catch (fehler) {
     melden(fehler.message, true);
   } finally {
+    clearInterval(uhr);
     knopf.disabled = false;
+    $("#k-balken").hidden = true;
     $("#k-stand").textContent = "";
   }
 }

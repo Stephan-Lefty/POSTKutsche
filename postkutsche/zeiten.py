@@ -100,3 +100,16 @@ def lesbar(stempel: str) -> str:
     tage = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
     ort = nach_ortszeit(stempel)
     return f"{tage[ort.weekday()]} {ort.strftime('%d.%m.%Y, %H:%M')}"
+
+
+def kalenderwoche(stempel: str) -> tuple[int, int]:
+    """Jahr und Kalenderwoche eines Zeitstempels, nach ISO 8601.
+
+    Nicht selbst rechnen: Die erste Woche ist die mit dem ersten Donnerstag,
+    weshalb der 1. Januar mitunter in KW 52 des Vorjahres liegt. `isocalendar`
+    weiß das - und gibt auch das passende Jahr dazu, das dann eben das
+    Vorjahr ist.
+    """
+    ort = nach_ortszeit(stempel)
+    jahr, woche, _ = ort.isocalendar()
+    return jahr, woche

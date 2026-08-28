@@ -39,9 +39,16 @@ def produkte_sammeln(kampagne: kampagnen.Kampagne,
     return gesammelt
 
 
-def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None) -> dict[str, Any]:
-    """Legt die Beiträge einer Kampagne an. Gibt einen Bericht zurück."""
+def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
+               fortschritt=None) -> dict[str, Any]:
+    """Legt die Beiträge einer Kampagne an. Gibt einen Bericht zurück.
+
+    `fortschritt(getan, gesamt, text)` wird nach jedem Schritt gerufen. Ein
+    Lauf über zehn Produkte dauert Minuten - ohne Rückmeldung sieht das aus
+    wie ein Absturz, und jemand bricht ab, während es noch läuft.
+    """
     sagen = melden or (lambda *_: None)
+    schritt = fortschritt or (lambda *_: None)
 
     projekt = ablage.projekt(kampagne.projekt)
     if projekt is None:
@@ -50,6 +57,7 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None) -> dict[str, A
         raise ValueError("»claude« ist nicht im Suchpfad oder nicht angemeldet.")
 
     sagen("Produkte sammeln …")
+    schritt(0, kampagne.anzahl, "Produkte sammeln …")
     alle = produkte_sammeln(kampagne)
     if not alle:
         return _bericht([], [], "In diesen Kategorien stehen keine Produkte. "
@@ -75,6 +83,7 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None) -> dict[str, A
             break
         termin, grund = termine[nummer]
         sagen(f"{nummer + 1}/{len(gewaehlt)}: {produkt['titel'][:50]}")
+        schritt(nummer, len(gewaehlt), produkt["titel"][:60])
         try:
             angelegt.append(
                 _ein_beitrag(ablage, projekt, produkt, termin, grund, netze,
@@ -88,6 +97,7 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None) -> dict[str, A
                                 "grund": str(fehler)[:300]})
             sagen(f"   gescheitert: {fehler}")
 
+    schritt(len(gewaehlt), len(gewaehlt), "fertig")
     return _bericht(angelegt, unklar, None, gescheitert)
 
 

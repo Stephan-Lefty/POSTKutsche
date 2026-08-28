@@ -329,7 +329,8 @@ button { font: inherit; cursor: pointer; }
   cursor: pointer;
 }
 .kategorienliste input { width: auto; margin: 0; flex: none; }
-.kategorienliste .anzahl { color: var(--text-leise); font-size: 11px; }
+.kategorienliste .anzahl { color: var(--text-leise); font-size: 11px; margin-left: auto; flex: none; }
+.kategorienliste .anzahl.gelaufen { color: var(--blau); }
 
 #k-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 #k-netze label {
@@ -338,3 +339,20 @@ button { font: inherit; cursor: pointer; }
   font-size: 12px; color: var(--text); cursor: pointer;
 }
 #k-netze input { width: auto; margin: 0; }
+
+/* Fortschritt beim Planen einer Woche. Ohne Rückmeldung sieht ein Lauf über
+   zehn Produkte aus wie ein Absturz, und jemand bricht ab, während es noch
+   läuft. */
+.balken {
+  height: 6px;
+  background: var(--linie);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.fuellung {
+  height: 100%;
+  width: 0;
+  background: var(--blau);
+  transition: width 0.3s ease;
+}

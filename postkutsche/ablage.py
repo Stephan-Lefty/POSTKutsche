@@ -722,6 +722,36 @@ class Ablage:
         )
         self.db.commit()
 
+    def kategorien_zuletzt(self, projekt_id: int) -> dict[str, str]:
+        """Wann eine Kategorie zuletzt bespielt wurde, je Kategoriepfad.
+
+        Ohne eigene Tabelle: Die Adresse eines Produkts enthält den Pfad
+        seiner Kategorie, und der Beitrag hat seinen Termin. Daraus lässt
+        sich ablesen, was schon dran war - und das ist genau die Frage beim
+        Planen der nächsten Woche.
+
+        Gibt Pfad → Zeitstempel des jüngsten Beitrags zurück.
+        """
+        zuletzt: dict[str, str] = {}
+        zeilen = self.db.execute(
+            """SELECT i.adresse, MAX(b.geplant) AS wann
+               FROM beitraege b
+               JOIN inhalte i ON i.id = b.inhalt_id
+               WHERE b.projekt_id = ? AND i.adresse IS NOT NULL
+               GROUP BY i.adresse""",
+            (projekt_id,),
+        )
+        for zeile in zeilen:
+            ordner = str(zeile["adresse"]).rsplit("/", 1)[0]
+            wann = str(zeile["wann"])
+            # Auch den übergeordneten Pfaden zurechnen - wer »Brandschutztüren«
+            # gewählt hat, hat damit auch die Unterkategorien bespielt.
+            while "/" in ordner and ordner.count("/") > 2:
+                if wann > zuletzt.get(ordner, ""):
+                    zuletzt[ordner] = wann
+                ordner = ordner.rsplit("/", 1)[0]
+        return zuletzt
+
     # -- Konten ------------------------------------------------------------
 
     def konto_anlegen(

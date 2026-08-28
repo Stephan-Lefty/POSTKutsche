@@ -132,6 +132,7 @@ def _stamm_von(adresse: str) -> str:
 
 
 _KATEGORIE = re.compile(r"https?://[^/]+/(.+?)/?list\.html$", re.IGNORECASE)
+_PRODUKT = re.compile(r"_\d+\.html$", re.IGNORECASE)
 
 
 def kategorien(karte: str, bereich: str | None = None,
@@ -145,14 +146,37 @@ def kategorien(karte: str, bereich: str | None = None,
 
     `bereich` schränkt auf einen Zweig ein, etwa »shop-tueren«.
 
+    Jede Kategorie bekommt die Zahl der Produkte mit, die in ihr oder in ihren
+    Unterkategorien liegen. Abgezählt wird aus der Seitenkarte, nicht durch
+    Abrufen der Seiten - für hundert Kategorien wären das hundert Anfragen
+    für eine Auskunft, die schon dasteht. Kategorien ohne Produkte sind
+    Übersichtsseiten; sie zur Auswahl anzubieten führt zu leeren Kampagnen.
+
     Die Nummer am Ende jedes Namens ist die Kategorienummer des Shops. Sie
     wird für die Anzeige abgeschnitten, bleibt aber in der Adresse - man
     braucht sie zum Abrufen.
     """
+    alle = adressen(karte, grenze)
+
+    # Wie viele Produkte in welcher Kategorie liegen - abgezählt aus der
+    # Seitenkarte selbst. Jede Kategorieseite einzeln abzurufen wären hier
+    # 101 Anfragen für eine Information, die schon dasteht: Eine Produkt-
+    # adresse liegt im Pfad ihrer Kategorie.
+    zaehlung: dict[str, int] = {}
+    for adresse in alle:
+        if adresse.endswith("list.html") or not _PRODUKT.search(adresse):
+            continue
+        ordner = adresse.rsplit("/", 1)[0]
+        # Auch den übergeordneten Kategorien zurechnen: Wer »Brandschutztüren«
+        # wählt, bekommt, was in T30-1 und T30-2 liegt.
+        while "/" in ordner:
+            zaehlung[ordner] = zaehlung.get(ordner, 0) + 1
+            ordner = ordner.rsplit("/", 1)[0]
+
     gefunden: list[dict[str, object]] = []
     gesehen: set[str] = set()
 
-    for adresse in adressen(karte, grenze):
+    for adresse in alle:
         treffer = _KATEGORIE.match(adresse)
         if not treffer:
             continue
@@ -165,12 +189,15 @@ def kategorien(karte: str, bereich: str | None = None,
 
         teile = [t for t in pfad.split("/") if t]
         letzter = teile[-1] if teile else ""
+        # Der Ordner der Kategorieseite, ohne »/list.html«.
+        ordner = adresse.rsplit("/", 1)[0]
         gefunden.append({
             "adresse": adresse,
             "pfad": pfad,
             "tiefe": max(len(teile) - (1 if bereich else 0), 0),
             "name": _lesbar(letzter),
             "nummer": _nummer(letzter),
+            "produkte": zaehlung.get(ordner, 0),
         })
 
     gefunden.sort(key=lambda e: str(e["pfad"]))
