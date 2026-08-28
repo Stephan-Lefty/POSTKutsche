@@ -469,11 +469,21 @@ function spalteZeichnen() {
   const marken = $("#netzwerke");
   marken.innerHTML = "";
   Object.values(stand.netzwerke).forEach((n) => {
-    const punkt = document.createElement("li");
-    punkt.textContent = n.kuerzel;
-    punkt.style.borderColor = n.farbe;
-    punkt.title = n.name;
-    marken.append(punkt);
+    const zeile = document.createElement("li");
+    // Kürzel und Name nebeneinander: Das Kürzel steht so auch in den
+    // Kärtchen, der Name sagt, wofür es steht. Links ist Platz dafür.
+    const kuerzel = document.createElement("span");
+    kuerzel.className = "kuerzel";
+    kuerzel.textContent = n.kuerzel;
+    kuerzel.style.borderColor = n.farbe;
+    kuerzel.style.color = n.farbe;
+
+    const name = document.createElement("span");
+    name.textContent = n.name;
+
+    zeile.style.borderColor = n.farbe;
+    zeile.append(kuerzel, name);
+    marken.append(zeile);
   });
 }
 

@@ -71,7 +71,7 @@ button { font: inherit; cursor: pointer; }
 /* -- Aufteilung ---------------------------------------------------------- */
 
 .rumpf { display: flex; align-items: flex-start; gap: 16px; padding: 16px; }
-.spalte { flex: 0 0 190px; }
+.spalte { flex: 0 0 215px; }
 .kalender { flex: 1; min-width: 0; }
 
 .spalte h2 {
@@ -87,17 +87,29 @@ button { font: inherit; cursor: pointer; }
 .liste li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .liste label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0; }
 .liste .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.punkt { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.punkt { width: 11px; height: 11px; border-radius: 50%; flex: none; }
 .pausiert { color: var(--text-leise); }
 .pausiert .name { text-decoration: line-through; }
 
-.marken { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Die Netzwerke ausgeschrieben, jedes mit seiner Farbe als linker Kante.
+   Links ist Platz - ein Kürzel allein muss man sich merken, ein Name nicht. */
+.marken { display: flex; flex-direction: column; gap: 5px; }
 .marken li {
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 5px;
-  border: 2px solid;
-  color: var(--text-leise);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--linie);
+  border-left-width: 4px;
+  color: var(--text);
+}
+.marken .kuerzel {
+  font-size: 10px;
+  font-weight: 600;
+  border-width: 1.5px;
+  padding: 1px 5px;
 }
 
 .legende { display: grid; grid-template-columns: 1.6em 1fr; gap: 4px 6px; margin: 0; font-size: 13px; }
@@ -143,7 +155,7 @@ button { font: inherit; cursor: pointer; }
 /* -- Kärtchen ------------------------------------------------------------ */
 
 .kaertchen {
-  border: 1px solid var(--linie);
+  border: 1.5px solid var(--linie);
   border-radius: 8px;
   background: var(--grund);
   padding: 0 0 6px;
@@ -156,21 +168,28 @@ button { font: inherit; cursor: pointer; }
   color: inherit;
   display: block;
 }
-.kaertchen:hover { border-color: var(--blau); }
+.kaertchen:hover { border-color: var(--blau); box-shadow: 0 0 0 1px var(--blau); }
 .kaertchen:active { cursor: grabbing; }
 .kaertchen.zieht { opacity: 0.4; }
 
 /* Der Streifen oben ist in so viele Segmente geteilt, wie der Beitrag
    Netzwerke hat. Ein Beitrag, der in drei Netze geht, bleibt ein Kärtchen -
    andere Planer zeigen ihn dreimal und zwingen zu Uhrzeiten wie 15:01. */
-.streifen { display: flex; height: 3px; }
+.streifen { display: flex; height: 4px; }
 .streifen span { flex: 1; }
 
 .kopfzeile { display: flex; align-items: center; gap: 5px; padding: 5px 6px 3px; }
 .kopfzeile .zeit { color: var(--text-leise); font-size: 11px; }
 .titel { padding: 0 7px; line-height: 1.35; }
 .fuss { display: flex; align-items: center; gap: 4px; padding: 5px 6px 0; }
-.kuerzel { font-size: 10px; padding: 1px 4px; border-radius: 3px; border: 1px solid; color: var(--text-leise); }
+.kuerzel {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1.5px solid;
+  color: var(--text-leise);
+}
 .zustand { margin-left: auto; font-size: 12px; }
 .zustand.warnung { color: var(--rot); }
 .zustand.gut { color: var(--gruen); }
