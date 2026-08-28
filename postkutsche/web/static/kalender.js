@@ -85,7 +85,12 @@ async function anfangen() {
   const gemerkt = localStorage.getItem("thema");
   if (gemerkt) document.documentElement.dataset.thema = gemerkt;
 
-  kampagneVorbereiten();
+  try {
+    kampagneVorbereiten();
+  } catch (fehler) {
+    // Ein Fehler in der Wochenplanung darf den Kalender nicht mitreißen.
+    melden(`Wochenplanung nicht verfügbar: ${fehler.message}`, true);
+  }
 }
 
 // -- Wochenplanung ----------------------------------------------------------
@@ -148,7 +153,17 @@ function kampagneVorbereiten() {
   $("#k-suche").oninput = kategorienZeichnen;
   $("#k-bereich").onchange = kategorienZeichnen;
   $("#kampagne-form").onsubmit = kampagneAbschicken;
-  kategorienLaden();
+
+  // Escape schließt auch dann, wenn sonst nichts mehr reagiert. Am
+  // 2026-08-28 hing die Maske, weil eine gescheiterte Kategorienabfrage die
+  // Einrichtung abbrach - und damit auch die Zuweisung des Abbrechen-Knopfs.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("#kampagne").hidden) $("#kampagne").hidden = true;
+  });
+
+  // Ohne await und ohne Abbruch: Ob die Kategorien laden, darf nicht
+  // darüber entscheiden, ob die Knöpfe funktionieren.
+  kategorienLaden().catch((fehler) => melden(fehler.message, true));
 }
 
 async function kategorienLaden() {
@@ -161,8 +176,13 @@ async function kategorienLaden() {
     liste.innerHTML = `<p class="schlagworte">${fehler.message}</p>`;
     return;
   }
-  bereicheFuellen();
-  kategorienZeichnen();
+  try {
+    bereicheFuellen();
+    kategorienZeichnen();
+  } catch (fehler) {
+    liste.innerHTML =
+      `<p class="schlagworte">Kategorien nicht darstellbar: ${fehler.message}</p>`;
+  }
 }
 
 /** Die obersten Zweige des Shops zur Auswahl – Türen, Garagentore, Zubehör.
