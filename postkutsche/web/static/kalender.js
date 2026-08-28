@@ -387,6 +387,22 @@ function fassungsblock(beitragId, f) {
     block.append(frage);
   }
 
+  if (f.bild) {
+    // Das Bild gehört sichtbar dazu: Man gibt keinen Beitrag frei, dessen
+    // Bild man nicht gesehen hat.
+    const bild = document.createElement("img");
+    bild.src = f.bild;
+    bild.alt = "";
+    bild.className = "vorschau";
+    bild.loading = "lazy";
+    block.append(bild);
+  } else if (netz.bild_pflicht) {
+    const fehlt = document.createElement("p");
+    fehlt.className = "frage";
+    fehlt.textContent = "Kein Bild – ohne Bild nimmt dieses Netzwerk nichts an.";
+    block.append(fehlt);
+  }
+
   const feld = document.createElement("textarea");
   feld.value = f.text;
   block.append(feld);
@@ -447,6 +463,17 @@ function fassungsblock(beitragId, f) {
   };
 
   knoepfe.append(sichern, kopieren);
+
+  if (f.bild) {
+    // Für den Handbetrieb: Bild auf die Platte holen, dann bei Facebook oder
+    // Instagram hochladen.
+    const holen = document.createElement("a");
+    holen.className = "knopf leise";
+    holen.href = f.bild;
+    holen.download = `postkutsche-${f.netzwerk}-${f.id}.jpg`;
+    holen.textContent = "Bild speichern";
+    knoepfe.append(holen);
+  }
 
   if (f.zustand !== "gesendet" && f.zustand !== "abgeholt") {
     const abhaken = document.createElement("button");

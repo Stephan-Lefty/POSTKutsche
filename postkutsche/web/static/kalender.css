@@ -186,6 +186,19 @@ button { font: inherit; cursor: pointer; }
   color: var(--text);
   resize: vertical;
 }
+/* Das Vorschaubild ist auf 4:5 zugeschnitten; die Höhenbegrenzung sorgt
+   dafür, dass es das Blatt nicht sprengt. */
+.vorschau {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--linie);
+  background: var(--grund);
+  margin-bottom: 8px;
+}
+
 .zaehler { font-size: 11px; color: var(--text-leise); }
 .zaehler.zuviel { color: var(--rot); font-weight: 600; }
 .schlagworte { font-size: 12px; color: var(--text-leise); margin: 4px 0 0; }

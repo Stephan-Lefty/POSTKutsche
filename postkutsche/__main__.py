@@ -159,6 +159,23 @@ def _zerleger() -> argparse.ArgumentParser:
                      help="Dienst starten, aber keinen Browser öffnen")
     kal.set_defaults(handlung=_kalender)
 
+    # -- dienst -----------------------------------------------------------
+    dst = unter.add_parser(
+        "dienst", help="im Hintergrund laufen lassen (systemd)"
+    )
+    dst_unter = dst.add_subparsers(dest="dienst_befehl")
+    dst.set_defaults(handlung=lambda a, g: _dienst_stand(a, g))
+
+    de = dst_unter.add_parser("einrichten", help="Kalender und Sendetimer anlegen")
+    de.add_argument("--port", type=int, default=8770)
+    de.set_defaults(handlung=_dienst_einrichten)
+
+    ds = dst_unter.add_parser("stand", help="läuft es?")
+    ds.set_defaults(handlung=_dienst_stand)
+
+    dx = dst_unter.add_parser("entfernen", help="Dienste anhalten und löschen")
+    dx.set_defaults(handlung=_dienst_entfernen)
+
     # -- netzwerke --------------------------------------------------------
     netze = unter.add_parser("netzwerke", help="Netzwerke, Farben und Grenzen zeigen")
     netze.set_defaults(handlung=_netzwerke)
@@ -408,6 +425,28 @@ def _senden(ablage: Ablage, args: argparse.Namespace) -> int:
         wort = "würden rausgehen" if args.probelauf else "gesendet"
         print(f"\n{gut} {wort}, {schlecht} gescheitert.")
     return 1 if schlecht else 0
+
+
+def _dienst_einrichten(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import dienste
+
+    try:
+        return dienste.einrichten(args.port)
+    except RuntimeError as fehler:
+        print(fehler, file=sys.stderr)
+        return 1
+
+
+def _dienst_stand(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import dienste
+
+    return dienste.stand()
+
+
+def _dienst_entfernen(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import dienste
+
+    return dienste.entfernen()
 
 
 def _kalender(ablage: Ablage, args: argparse.Namespace) -> int:

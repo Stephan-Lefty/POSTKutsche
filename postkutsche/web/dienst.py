@@ -82,6 +82,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._beitraege(frage)
             if pfad.startswith("/api/beitrag/"):
                 return self._beitrag(int(pfad.rsplit("/", 1)[-1]))
+            if pfad.startswith("/bild/"):
+                return self._bild(int(pfad.rsplit("/", 1)[-1]))
         except ValueError as fehler:
             return self._fehler(str(fehler))
         except Exception as fehler:  # noqa: BLE001
@@ -214,6 +216,7 @@ class Behandler(BaseHTTPRequestHandler):
                         "text": f["text"],
                         "schlagworte": f["schlagworte"],
                         "bild_pfad": f["bild_pfad"],
+                        "bild": f"/bild/{int(f['id'])}" if f["bild_pfad"] else None,
                         "versandart": f["versandart"],
                         "zustand": f["zustand"],
                         "rueckfrage": f["rueckfrage"],
@@ -223,6 +226,31 @@ class Behandler(BaseHTTPRequestHandler):
                     for f in a.fassungen(nummer)
                 ],
             })
+
+    def _bild(self, fassung_id: int) -> None:
+        """Liefert das Bild einer Fassung aus.
+
+        Nur Dateien aus dem Bilderordner: Der Pfad kommt zwar aus unserer
+        eigenen Ablage, aber ein Dienst, der beliebige Pfade ausliefert, ist
+        ein Dienst, der irgendwann /etc/passwd ausliefert.
+        """
+        from .. import bilder
+
+        with self._ablage() as a:
+            zeile = a.db.execute(
+                "SELECT bild_pfad FROM fassungen WHERE id = ?", (fassung_id,)
+            ).fetchone()
+
+        if zeile is None or not zeile["bild_pfad"]:
+            return self._fehler("Zu dieser Fassung gibt es kein Bild.", 404)
+
+        datei = Path(zeile["bild_pfad"]).resolve()
+        erlaubt = bilder.ordner().resolve()
+        if not str(datei).startswith(str(erlaubt)) or not datei.is_file():
+            return self._fehler("Das Bild liegt nicht mehr da.", 404)
+
+        art = mimetypes.guess_type(datei.name)[0] or "application/octet-stream"
+        self._senden(datei.read_bytes(), art)
 
     # -- Änderungen --------------------------------------------------------
 

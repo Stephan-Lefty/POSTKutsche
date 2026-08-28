@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import ablage as ablage_modul
-from . import denker, sendezeiten, zeiten
+from . import bilder, denker, sendezeiten, zeiten
 from .quellen import seitenkarte, wordpress
 
 
@@ -111,11 +111,19 @@ def entwerfen(
         beitrag = ablage.beitrag_anlegen(projekt.id, termin, inhalt_id=nummer)
         angelegt.append(beitrag)
 
+        # Das Bild einmal je Beitrag holen und zuschneiden, nicht je Netzwerk.
+        bild = None
+        if inhalt.get("bild_adresse"):
+            try:
+                bild = str(bilder.beschaffen(inhalt["bild_adresse"]))
+            except bilder.BildFehler as fehler:
+                melden(f"  Bild: {fehler}")
+
         for netz in netzwerke:
             f = fassungen[netz]
             ablage.fassung_setzen(
                 beitrag, netz, f["text"], f["schlagworte"],
-                inhalt.get("bild_adresse"),
+                bild,
                 # Die Rückfrage muss mit. Ohne sie wird sie zwar auf der
                 # Kommandozeile gemeldet, verschwindet aber - und der Beitrag
                 # ließe sich freigeben, obwohl eine Frage offen ist. Genau das
