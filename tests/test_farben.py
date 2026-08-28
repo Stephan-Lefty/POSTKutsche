@@ -98,6 +98,57 @@ class Kontraste(unittest.TestCase):
         self.assertAlmostEqual(farben.kontrast("#000000", "#ffffff"), 21.0, places=1)
 
 
+class Projektfarben(unittest.TestCase):
+    """Projektfarben dürfen nicht wie Netzwerkfarben aussehen.
+
+    Im Kalender steht der Projektpunkt neben den Netzwerkkürzeln. Sind die
+    Farben ähnlich, hält man das eine für das andere - und die Farbe ist
+    genau das, was ein Kärtchen auf einen Blick zuordnen soll.
+    """
+
+    def test_abstand_zu_allen_netzwerken(self):
+        from postkutsche import netzwerke
+
+        for projektfarbe in farben.PROJEKTFARBEN:
+            for netz in netzwerke.alle():
+                with self.subTest(farbe=projektfarbe, netz=netz.kennung):
+                    self.assertGreaterEqual(
+                        farben.farbabstand(projektfarbe, netz.farbe), 120,
+                        f"{projektfarbe} sieht aus wie {netz.name}",
+                    )
+
+    def test_abstand_untereinander(self):
+        # Ein erster Versuch, die Liste von Hand zu ergänzen, ging schief:
+        # Zwei der ergänzten Töne lagen 29 auseinander.
+        for i, eine in enumerate(farben.PROJEKTFARBEN):
+            for andere in farben.PROJEKTFARBEN[i + 1:]:
+                with self.subTest(paar=f"{eine}/{andere}"):
+                    self.assertGreaterEqual(
+                        farben.farbabstand(eine, andere), 100)
+
+    def test_in_beiden_themen_sichtbar(self):
+        for projektfarbe in farben.PROJEKTFARBEN:
+            with self.subTest(farbe=projektfarbe):
+                self.assertGreater(farben.kontrast(projektfarbe, farben.WEISS), 2.0)
+                self.assertGreater(farben.kontrast(projektfarbe, farben.GRAU_NACHT), 2.0)
+
+    def test_freie_farbe_meidet_vergebene(self):
+        vergeben = [farben.PROJEKTFARBEN[0]]
+        self.assertNotIn(farben.freie_projektfarbe(vergeben), vergeben)
+
+    def test_freie_farbe_ohne_vergebene(self):
+        self.assertIn(farben.freie_projektfarbe([]), farben.PROJEKTFARBEN)
+
+    def test_freie_farbe_wenn_alle_vergeben(self):
+        # Lieber eine Wiederholung mit Abstand als ein Absturz.
+        self.assertIn(farben.freie_projektfarbe(list(farben.PROJEKTFARBEN)),
+                      farben.PROJEKTFARBEN)
+
+    def test_farbabstand(self):
+        self.assertEqual(farben.farbabstand("#000000", "#000000"), 0)
+        self.assertAlmostEqual(farben.farbabstand("#000000", "#ffffff"), 441.7, places=1)
+
+
 class AlsCss(unittest.TestCase):
     def test_beide_themen_liefern_dieselben_namen(self):
         namen = [

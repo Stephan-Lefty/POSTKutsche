@@ -119,3 +119,56 @@ def kontrast(vorne: str, hinten: str) -> float:
     """
     hell, dunkel = sorted((_helligkeit(vorne), _helligkeit(hinten)), reverse=True)
     return (hell + 0.05) / (dunkel + 0.05)
+
+
+# -- Projektfarben ---------------------------------------------------------
+#
+# Jedes Projekt bekommt eine eigene Farbe für seinen Punkt im Kalender. Sie
+# muss sich von allen **Netzwerkfarben** unterscheiden - sonst hält man einen
+# Projektpunkt für eine Netzwerkmarke.
+#
+# Das ist enger, als es klingt: Die Netzwerke belegen Violett (Mastodon),
+# zwei Blautöne (Facebook, LinkedIn) und Magenta (Instagram) - also die halbe
+# kalte Seite. Übrig bleiben Grün, Gelb und Warmtöne, und daraus ergibt sich
+# eine brauchbare Regel: **Projekte warm und grün, Netzwerke kalt.**
+#
+# Die Liste ist durch Absuchen des Farbraums entstanden, nicht durch Raten:
+# mindestens 120 Abstand zu jeder Netzwerkfarbe, mindestens 100 untereinander,
+# und in beiden Themen sichtbar. Ein erster Versuch, die Liste von Hand zu
+# ergänzen, ging prompt schief - zwei der ergänzten Töne lagen 29 auseinander.
+# `tests/test_farben.py` rechnet beides nach.
+
+PROJEKTFARBEN = [
+    "#6bad08",
+    "#08ad19",
+    "#ccab28",
+    "#56ad6c",
+    "#8c4907",
+]
+
+
+def farbabstand(eine: str, andere: str) -> float:
+    """Grober Abstand zweier Farben im RGB-Würfel.
+
+    Kein Lab und kein Delta-E - für die Frage »sieht das aus wie das andere?«
+    reicht es, und es kommt ohne Fremdpaket aus.
+    """
+    ra, ga, ba = rgb(eine)
+    rb, gb, bb = rgb(andere)
+    return ((ra - rb) ** 2 + (ga - gb) ** 2 + (ba - bb) ** 2) ** 0.5
+
+
+def freie_projektfarbe(vergeben: list[str]) -> str:
+    """Die nächste freie Projektfarbe, mit größtem Abstand zu den vergebenen.
+
+    Sind alle aus der Liste vergeben, wird die genommen, die am weitesten von
+    allen bisherigen entfernt ist - lieber eine Wiederholung mit Abstand als
+    zwei Projekte, die man nicht auseinanderhält.
+    """
+    frei = [f for f in PROJEKTFARBEN if f not in vergeben]
+    if frei:
+        if not vergeben:
+            return frei[0]
+        return max(frei, key=lambda f: min(farbabstand(f, v) for v in vergeben))
+    return max(PROJEKTFARBEN,
+               key=lambda f: min(farbabstand(f, v) for v in vergeben))

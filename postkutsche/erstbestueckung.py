@@ -20,8 +20,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import konfiguration
+from . import farben, konfiguration
 
+# Die Farben stammen aus farben.PROJEKTFARBEN - sie halten Abstand zu den
+# Netzwerkfarben, damit man einen Projektpunkt nicht für eine Netzwerkmarke
+# hält. Wer eine eigene wählt, prüft das mit farben.farbabstand nach.
+#
 # art:
 #   wordpress   – REST-Schnittstelle unter /wp-json/wp/v2/
 #   shopware    – Store-API, braucht einen Zugangsschlüssel je Verkaufskanal
@@ -34,7 +38,7 @@ BEISPIELE: list[dict[str, Any]] = [
         "name": "Mein Blog",
         "adresse": "https://blog.example",
         "art": "wordpress",
-        "farbe": "#16a34a",
+        "farbe": "#6bad08",
         "einstellungen": {
             "rest": "https://blog.example/wp-json/wp/v2",
             "zielgruppe": "verbraucher",
@@ -45,7 +49,7 @@ BEISPIELE: list[dict[str, Any]] = [
         "name": "Mein Shop",
         "adresse": "https://shop.example",
         "art": "shopware",
-        "farbe": "#1d4ed8",
+        "farbe": "#08ad19",
         "einstellungen": {
             "store_api": "https://shop.example/store-api",
             "zielgruppe": "handwerk",
@@ -56,7 +60,7 @@ BEISPIELE: list[dict[str, Any]] = [
         "name": "Seite ohne Schnittstelle",
         "adresse": "https://altbau.example",
         "art": "seitenkarte",
-        "farbe": "#b45309",
+        "farbe": "#8c4907",
         "einstellungen": {
             "seitenkarte": "https://altbau.example/sitemap.xml",
             "zielgruppe": "handwerk",
@@ -85,7 +89,11 @@ def einrichten(ablage, nur_beispiele: bool = False) -> list[str]:  # type: ignor
             name=eintrag["name"],
             adresse=eintrag["adresse"],
             art=eintrag["art"],
-            farbe=eintrag.get("farbe", "#6b7280"),
+            # Ohne Angabe eine freie aus der Palette, statt für alle
+            # dasselbe Grau.
+            farbe=eintrag.get("farbe") or farben.freie_projektfarbe(
+                [p.farbe for p in ablage.projekte()]
+            ),
             freigabe_noetig=eintrag.get("freigabe_noetig", True),
             einstellungen=eintrag.get("einstellungen", {}),
         )
