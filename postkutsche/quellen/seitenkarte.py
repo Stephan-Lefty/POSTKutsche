@@ -215,11 +215,23 @@ def _lesbar(stueck: str) -> str:
     # Umlaute, die in Adressen umschrieben sind, zurückholen. Nicht vollständig
     # möglich - »tueren« wird zu »Türen«, »neue« bliebe »neue«. Deshalb nur
     # die Fälle, die in Shopadressen tatsächlich häufig sind.
+    # Die Liste ist absichtlich lang und stumpf statt clever: »ue« pauschal zu
+    # »ü« zu machen ginge bei »neue« und »Steuerung« schief. Was hier fehlt,
+    # trägt man nach, wenn es auffällt.
     for falsch, richtig in (("Tueren", "Türen"), ("tueren", "türen"),
                             ("Tuer", "Tür"), ("tuer", "tür"),
-                            ("Gefaelzt", "Gefälzt"), ("Schallschutz", "Schallschutz"),
-                            ("Aussen", "Außen"), ("Fluegelig", "flügelig"),
-                            ("fluegelig", "flügelig"), ("Groesse", "Größe")):
+                            ("Zubehoer", "Zubehör"), ("zubehoer", "zubehör"),
+                            ("Moertel", "Mörtel"), ("moertel", "mörtel"),
+                            ("Schloesser", "Schlösser"), ("schloesser", "schlösser"),
+                            ("Tuergriffe", "Türgriffe"), ("Schluessel", "Schlüssel"),
+                            ("Buerst", "Bürst"), ("Boegen", "Bögen"),
+                            ("Oeffner", "Öffner"), ("oeffner", "öffner"),
+                            ("Gefaelzt", "Gefälzt"), ("Waende", "Wände"),
+                            ("Aussen", "Außen"), ("aussen", "außen"),
+                            ("Fluegelig", "flügelig"), ("fluegelig", "flügelig"),
+                            ("Fluegel", "Flügel"), ("fluegel", "flügel"),
+                            ("Groesse", "Größe"), ("Hoehe", "Höhe"),
+                            ("Staerke", "Stärke"), ("Waermeschutz", "Wärmeschutz")):
         lesbar = lesbar.replace(falsch, richtig)
     return lesbar
 

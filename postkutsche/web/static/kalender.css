@@ -356,3 +356,17 @@ button { font: inherit; cursor: pointer; }
   background: var(--blau);
   transition: width 0.3s ease;
 }
+
+/* Der Abschlussbericht bleibt stehen. Ein Lauf dauert Minuten - wer in der
+   Zeit etwas anderes macht, soll das Ergebnis noch vorfinden. */
+.bericht { margin-top: 14px; border-top: 1px solid var(--linie); padding-top: 12px; }
+.bericht h3 { font-size: 14px; margin: 10px 0 6px; }
+.bericht h3:first-child { margin-top: 0; }
+.berichtzeile {
+  font-size: 12px;
+  font-family: var(--mono, ui-monospace, monospace);
+  padding: 2px 0;
+  color: var(--text);
+}
+.berichtzeile.schlecht { color: var(--rot); }
+.bericht .knopf { margin-top: 12px; }

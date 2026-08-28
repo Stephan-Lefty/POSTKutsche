@@ -92,9 +92,14 @@
       <span id="k-netze" class="marken"></span>
     </label>
 
-    <label>Kategorien
-      <input id="k-suche" placeholder="suchen …">
-    </label>
+    <div class="paar">
+      <label>Bereich
+        <select id="k-bereich"><option value="">alle</option></select>
+      </label>
+      <label>Kategorie suchen
+        <input id="k-suche" placeholder="z. B. t30">
+      </label>
+    </div>
     <div id="k-kategorien" class="kategorienliste">
       <p class="schlagworte">Projekt wählen …</p>
     </div>
@@ -111,6 +116,7 @@
       <div id="k-fuellung" class="fuellung"></div>
     </div>
     <p id="k-stand" class="schlagworte"></p>
+    <div id="k-bericht" class="bericht" hidden></div>
   </form>
 </div>
 

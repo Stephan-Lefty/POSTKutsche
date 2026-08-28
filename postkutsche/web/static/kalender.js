@@ -146,6 +146,7 @@ function kampagneVorbereiten() {
   });
 
   $("#k-suche").oninput = kategorienZeichnen;
+  $("#k-bereich").onchange = kategorienZeichnen;
   $("#kampagne-form").onsubmit = kampagneAbschicken;
   kategorienLaden();
 }
@@ -160,7 +161,35 @@ async function kategorienLaden() {
     liste.innerHTML = `<p class="schlagworte">${fehler.message}</p>`;
     return;
   }
+  bereicheFuellen();
   kategorienZeichnen();
+}
+
+/** Die obersten Zweige des Shops zur Auswahl – Türen, Garagentore, Zubehör.
+ *
+ * Ein Shop mit 158 Kategorien in einer Liste ist unbenutzbar; wer bei den
+ * Türen anfangen will, soll nicht an Werkzeugen vorbeiscrollen.
+ */
+function bereicheFuellen() {
+  const auswahl = $("#k-bereich");
+  const bereiche = new Map();
+  kategorienAlle.forEach((k) => {
+    const erster = String(k.pfad).split("/")[0];
+    bereiche.set(erster, (bereiche.get(erster) || 0) + (k.produkte > 0 ? 1 : 0));
+  });
+
+  auswahl.innerHTML = '<option value="">alle Bereiche</option>';
+  [...bereiche.entries()].sort().forEach(([pfad, anzahl]) => {
+    if (!anzahl) return;
+    const eintrag = document.createElement("option");
+    eintrag.value = pfad;
+    // »shop-tueren« zu »Türen«: Das Wort »shop« steht in jedem Zweig und
+    // trägt nichts bei.
+    eintrag.textContent =
+      `${pfad.replace(/^shop-/, "").replace(/^./, (c) => c.toUpperCase())
+             .replace("tueren", "Türen").replace("zubehoer", "Zubehör")} (${anzahl})`;
+    auswahl.append(eintrag);
+  });
 }
 
 function kategorienZeichnen() {
@@ -173,8 +202,11 @@ function kategorienZeichnen() {
 
   // Kategorien ohne Produkte sind Übersichtsseiten - sie anzubieten führt
   // nur zu leeren Kampagnen.
+  const bereich = $("#k-bereich").value;
   const treffer = kategorienAlle.filter(
-    (k) => k.produkte > 0 && (!suche || k.name.toLowerCase().includes(suche))
+    (k) => k.produkte > 0
+      && (!bereich || String(k.pfad).startsWith(bereich))
+      && (!suche || k.name.toLowerCase().includes(suche))
   );
   if (!treffer.length) {
     liste.innerHTML = '<p class="schlagworte">Nichts gefunden.</p>';
@@ -204,6 +236,84 @@ function kategorienZeichnen() {
   });
 }
 
+/** Zeigt an, was aus dem Lauf geworden ist – und bleibt stehen. */
+function berichtZeigen(bericht) {
+  const kasten = $("#k-bericht");
+  kasten.innerHTML = "";
+  kasten.hidden = false;
+
+  const kopf = document.createElement("h3");
+  kopf.textContent = bericht.anzahl === 1
+    ? "1 Entwurf angelegt"
+    : `${bericht.anzahl} Entwürfe angelegt`;
+  kasten.append(kopf);
+
+  bericht.angelegt.forEach((e) => {
+    const zeile = document.createElement("div");
+    zeile.className = "berichtzeile";
+    const zeichen = e.rueckfragen ? "?" : (e.bild ? "✓" : "⚠");
+    const titel = e.titel.length > 52 ? e.titel.slice(0, 52) + "…" : e.titel;
+    zeile.textContent = `${zeichen}  ${e.lesbar}  ${titel}`;
+    if (e.rueckfragen) zeile.title = "Rückfrage offen – nicht freigebbar";
+    else if (!e.bild) zeile.title = "ohne Bild";
+    kasten.append(zeile);
+  });
+
+  if (bericht.gescheitert.length) {
+    const kopf2 = document.createElement("h3");
+    kopf2.textContent = `${bericht.gescheitert.length} gescheitert`;
+    kasten.append(kopf2);
+    bericht.gescheitert.forEach((g) => {
+      const zeile = document.createElement("div");
+      zeile.className = "berichtzeile schlecht";
+      zeile.textContent = `✗  ${g.titel.slice(0, 40)} – ${g.grund.slice(0, 60)}`;
+      kasten.append(zeile);
+    });
+  }
+
+  if (bericht.nicht_zugeordnet.length) {
+    const hinweis = document.createElement("p");
+    hinweis.className = "schlagworte";
+    hinweis.textContent =
+      `${bericht.nicht_zugeordnet.length} Produkte ließen sich keinem ` +
+      "Hersteller zuordnen und wurden übergangen.";
+    kasten.append(hinweis);
+  }
+  if (bericht.hinweis) {
+    const hinweis = document.createElement("p");
+    hinweis.className = "frage";
+    hinweis.textContent = bericht.hinweis;
+    kasten.append(hinweis);
+  }
+
+  const fertig = document.createElement("button");
+  fertig.type = "button";
+  fertig.className = "knopf";
+  fertig.textContent = "Zum Kalender";
+  fertig.onclick = () => {
+    $("#kampagne").hidden = true;
+    kasten.hidden = true;
+  };
+  kasten.append(fertig);
+}
+
+/** Eine Benachrichtigung des Systems, falls erlaubt.
+ *
+ * Wer den Lauf startet und dann in ein anderes Fenster wechselt, merkt sonst
+ * nicht, dass er durch ist. Ohne Erlaubnis passiert schlicht nichts - danach
+ * gefragt wird erst, wenn ein Lauf beginnt, nicht beim Öffnen der Seite.
+ */
+function benachrichtigen(bericht) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const text = bericht.gescheitert.length
+    ? `${bericht.anzahl} angelegt, ${bericht.gescheitert.length} gescheitert`
+    : `${bericht.anzahl} Entwürfe stehen im Kalender`;
+  new Notification("POSTKutsche – Wochenplanung fertig", {
+    body: text,
+    icon: "/static/icon-64.png",
+  });
+}
+
 async function kampagneAbschicken(e) {
   e.preventDefault();
   const kategorien = [...$("#k-kategorien").querySelectorAll("input:checked")]
@@ -214,8 +324,15 @@ async function kampagneAbschicken(e) {
   const netze = [...$("#k-netze").querySelectorAll("input:checked")].map((f) => f.value);
   if (!netze.length) return melden("Wähle mindestens ein Netzwerk.", true);
 
+  // Erlaubnis erst hier erfragen, nicht beim Laden der Seite: Wer den Lauf
+  // startet, wird die Benachrichtigung gleich brauchen.
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+
   const knopf = $("#k-los");
   knopf.disabled = true;
+  $("#k-bericht").hidden = true;
   const jeTag = Number($("#k-jetag").value);
   // Ehrlich sagen, wie lange es dauert: Je Beitrag ein Claude-Aufruf, und
   // der braucht seine halbe Minute. Ohne Hinweis hält man es für abgestürzt.
@@ -247,12 +364,11 @@ async function kampagneAbschicken(e) {
       je_tag: jeTag,
       hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
     });
-    $("#kampagne").hidden = true;
-    melden(`${bericht.anzahl} Entwürfe angelegt.`);
-    if (bericht.gescheitert.length) {
-      melden(`${bericht.anzahl} angelegt, ${bericht.gescheitert.length} gescheitert.`, true);
-    }
-    if (bericht.hinweis) melden(bericht.hinweis, true);
+    // Das Formular bleibt offen und zeigt, was entstanden ist. Ein Lauf
+    // dauert Minuten - wer in der Zeit etwas anderes macht, soll das
+    // Ergebnis noch vorfinden und nicht nur eine Meldung verpasst haben.
+    berichtZeigen(bericht);
+    benachrichtigen(bericht);
     monatLaden();
   } catch (fehler) {
     melden(fehler.message, true);
