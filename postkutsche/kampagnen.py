@@ -34,7 +34,7 @@ from . import sendezeiten, zeiten
 # In Produktnamen steht der Hersteller meistens ausgeschrieben. Wo nicht, hilft
 # nur die Modellreihe – und welche Reihe zu welcher Marke gehört, ist
 # Sortimentswissen. Es steht deshalb **nicht hier**, sondern in
-# `~/.config/sendeplan/hersteller.json`; siehe `konfiguration.py`. Mit welchen
+# `~/.config/postkutsche/hersteller.json`; siehe `konfiguration.py`. Mit welchen
 # Herstellern jemand arbeitet, muss nicht in einem öffentlichen Repository
 # nachzulesen sein.
 #
@@ -67,7 +67,7 @@ HERSTELLER: dict[str, dict[str, list[str]]] = _hersteller_laden()
 
 
 def hersteller_neu_laden() -> None:
-    """Liest ~/.config/sendeplan/hersteller.json erneut ein."""
+    """Liest ~/.config/postkutsche/hersteller.json erneut ein."""
     global HERSTELLER
     HERSTELLER = _hersteller_laden()
 

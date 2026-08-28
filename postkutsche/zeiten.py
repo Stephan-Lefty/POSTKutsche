@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-# Wo Stephan sitzt. Bewusst keine Systemabfrage: Der Sendeplan richtet sich nach
+# Wo Stephan sitzt. Bewusst keine Systemabfrage: Der POSTKutsche richtet sich nach
 # dem Publikum in Deutschland, auch wenn der Rechner im Urlaub woanders steht.
 ORTSZONE = ZoneInfo("Europe/Berlin")
 

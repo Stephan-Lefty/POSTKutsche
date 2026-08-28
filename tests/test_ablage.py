@@ -5,8 +5,8 @@ from __future__ import annotations
 import unittest
 
 from hilfen import OhneEigeneKonfiguration
-from sendeplan import erstbestueckung
-from sendeplan.ablage import (
+from postkutsche import erstbestueckung
+from postkutsche.ablage import (
     BEITRAG_ENTWURF,
     BEITRAG_FREIGEGEBEN,
     BEITRAG_RUECKFRAGE,
@@ -38,7 +38,7 @@ class Projekte(Basis):
         self.assertTrue(projekt.freigabe_noetig)
 
     def test_zweites_anlegen_frischt_auf_statt_zu_scheitern(self):
-        # Ein zweites »sendeplan einrichten« darf nicht mit einem Fehler enden.
+        # Ein zweites »postkutsche einrichten« darf nicht mit einem Fehler enden.
         self.ablage.projekt_anlegen("blog", "Mein Blog", "https://blog.example", "wordpress")
         self.ablage.projekt_anlegen("blog", "Mein Blog neu", "https://blog.example", "wordpress")
         self.assertEqual(len(self.ablage.projekte()), 1)
@@ -97,7 +97,7 @@ class Erstbestueckung(OhneEigeneKonfiguration):
     """Die Erstbestückung – ohne eigene Konfiguration sind es die Beispiele.
 
     Im Repository stehen keine echten Adressen; die eigenen Seiten liegen in
-    ~/.config/sendeplan/projekte.json. Diese Tests laufen deshalb gegen einen
+    ~/.config/postkutsche/projekte.json. Diese Tests laufen deshalb gegen einen
     leeren Konfigurationsordner und sehen die Beispiele.
     """
 

@@ -21,7 +21,7 @@ from .. import __version__
 # Wer wir sind. Ein ehrliches Kennzeichen ist keine Höflichkeit, sondern
 # Eigennutz: Wenn ein Abruf einem Serverbetreuer auffällt, soll er sehen,
 # wer da klopft, statt einen anonymen Kratzer zu sperren.
-KENNZEICHEN = f"Sendeplan/{__version__} (+https://github.com/Stephan-Lefty/Sendeplan)"
+KENNZEICHEN = f"POSTKutsche/{__version__} (+https://github.com/Stephan-Lefty/POSTKutsche)"
 
 ZEITLIMIT = 30
 

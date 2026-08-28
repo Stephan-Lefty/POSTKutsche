@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from sendeplan import netzwerke
+from postkutsche import netzwerke
 
 
 def _als_rgb(hexfarbe: str) -> tuple[int, int, int]:

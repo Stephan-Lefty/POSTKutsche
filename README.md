@@ -1,10 +1,17 @@
 [Deutsch](README.md) | [English](README.en.md) | [Änderungsprotokoll](CHANGELOG.md) | [TODO](TODO.md)
 
-# Sendeplan
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark-1600.png">
+    <img src="assets/banner-1600.png" alt="POSTKutsche – Ab geht die Post." width="620">
+  </picture>
+</p>
+
+# POSTKutsche
 
 Ein Redaktionskalender für die eigenen Seiten und die sozialen Netzwerke.
 
-Sendeplan sieht auf Ihren Blogs und in Ihren Shops nach, was es Neues gibt,
+POSTKutsche sieht auf Ihren Blogs und in Ihren Shops nach, was es Neues gibt,
 lässt Claude daraus für jedes Netzwerk eine eigene Fassung schreiben, legt sie
 Ihnen im Kalender zur Ansicht vor – und veröffentlicht sie zu dem Zeitpunkt,
 den Sie bestimmt haben. Für Facebook und Instagram, solange Metas Prüfung
@@ -49,10 +56,10 @@ bespielen setzt eine geprüfte Meta-App voraus. Bis dahin: Handbetrieb.
 ## Einrichten
 
 ```
-git clone https://github.com/Stephan-Lefty/Sendeplan.git
-cd Sendeplan
+git clone https://github.com/Stephan-Lefty/POSTKutsche.git
+cd POSTKutsche
 pip install -e .
-sendeplan einrichten
+postkutsche einrichten
 ```
 
 Der Kern läuft ohne Fremdpakete. Zwei Dinge sind Kür:
@@ -66,23 +73,23 @@ pip install -e ".[alles]"       # beides
 ## Erste Schritte
 
 ```
-sendeplan einrichten              # Ablage anlegen, Beispielprojekte eintragen
-sendeplan projekt liste           # was da ist
-sendeplan netzwerke               # Farben, Zeichengrenzen, Eigenheiten
-sendeplan plan --monat 2026-09    # was ansteht
+postkutsche einrichten              # Ablage anlegen, Beispielprojekte eintragen
+postkutsche projekt liste           # was da ist
+postkutsche netzwerke               # Farben, Zeichengrenzen, Eigenheiten
+postkutsche plan --monat 2026-09    # was ansteht
 ```
 
 Projekte lassen sich jederzeit ergänzen:
 
 ```
-sendeplan projekt neu meinblog "Mein Blog" https://meinblog.example --art wordpress
+postkutsche projekt neu meinblog "Mein Blog" https://meinblog.example --art wordpress
 ```
 
 Und anhalten, ohne etwas zu verlieren:
 
 ```
-sendeplan projekt pausieren meinblog   # nichts mehr holen, nichts mehr senden
-sendeplan projekt starten meinblog     # weiter wie zuvor
+postkutsche projekt pausieren meinblog   # nichts mehr holen, nichts mehr senden
+postkutsche projekt starten meinblog     # weiter wie zuvor
 ```
 
 Pausieren und Ausblenden sind zweierlei: Das Häkchen im Kalender räumt nur die
@@ -91,7 +98,7 @@ Ansicht auf, Pausieren hält den Betrieb an.
 ## Die eigenen Seiten eintragen
 
 Im Repository stehen nur Beispiele unter `.example`. Die eigenen Seiten kommen
-nach `~/.config/sendeplan/projekte.json` – dort und nirgends sonst:
+nach `~/.config/postkutsche/projekte.json` – dort und nirgends sonst:
 
 ```json
 [
@@ -135,7 +142,7 @@ Beide Dateien stehen in `.gitignore` und werden von einem Test bewacht.
 ## Wo die Zugangsdaten liegen
 
 Im Schlüsselbund, wenn `keyring` da ist. Sonst in
-`~/.config/sendeplan/zugaenge.json` mit Rechten `600`. In der Datenbank stehen
+`~/.config/postkutsche/zugaenge.json` mit Rechten `600`. In der Datenbank stehen
 sie nicht, im Repository erst recht nicht – ein Test wacht darüber.
 
 Was Sie je Netzwerk brauchen:

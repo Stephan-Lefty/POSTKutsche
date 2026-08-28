@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timezone
 
-from sendeplan import zeiten
+from postkutsche import zeiten
 
 
 class Umrechnung(unittest.TestCase):

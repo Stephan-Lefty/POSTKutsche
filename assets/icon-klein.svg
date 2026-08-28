@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="POSTKutsche">
+  <title>POSTKutsche</title>
+
+  <!-- Dieselbe Kutsche wie in icon.png, aber für 16 und 32 Pixel neu gezeichnet.
+       Das ist kein Notbehelf, sondern bei Zeichen der Normalfall: Die kleinen
+       Größen sind eigene Zeichnungen, keine Verkleinerungen.
+
+       Was weggelassen ist und warum:
+         - Dachreling: wird zu einem Strich, der wie ein Kratzer aussieht
+         - drei Fenster: verschmelzen zu einem grauen Band
+         - Speichen: ein erster Anlauf mit vier Speichen sah aus wie ein
+           Fadenkreuz. Jetzt sind es Ringe ohne Speichen - ein Rad bleibt als
+           Rad erkennbar, ein Zielfernrohr wäre etwas anderes.
+         - Gepäckkasten und Kutschbock: zu klein, um zu tragen
+
+       Was bleibt: zwei Ringe verschiedener Größe, die geschwungene
+       Rahmenlinie, ein Kasten mit einem Fensterschlitz. Und alles größer als
+       am großen Icon - bei 16 Pixeln kostet jeder Pixel Rand ein Achtel des
+       Motivs. -->
+
+  <rect width="512" height="512" rx="115" fill="#015ee9"/>
+
+  <g fill="#fff">
+    <!-- Rahmenlinie mit Deichselansatz, deutlich kräftiger als am großen Icon.
+         Eine Linie, die bei 512 Pixeln elegant wirkt, verschwindet bei 32. -->
+    <path d="M244 296 C204 296 186 318 160 342 C136 362 100 372 36 376
+             l0 48 C114 418 152 402 186 374 C212 352 224 340 252 340 Z"/>
+
+    <!-- Kasten: breiter und höher als am großen Icon, damit unter dem
+         Fensterschlitz und neben ihm genug Weiß stehen bleibt. -->
+    <path d="M196 300 v-130 a48 48 0 0 1 48 -48 h150 a48 48 0 0 1 48 48 v130 Z"/>
+  </g>
+
+  <!-- Ein einziger Fensterschlitz. Bei 16 Pixeln ist er zwei Pixel hoch - das
+       reicht, um den Kasten als Kasten mit Fenster zu lesen statt als Klotz. -->
+  <rect x="228" y="164" width="134" height="72" rx="12" fill="#015ee9"/>
+
+  <!-- Räder als Ringe mit dicker Felge. Das Loch ist groß genug, um bei 16
+       Pixeln noch als Loch durchzukommen; bei kleinerer Öffnung liefe der Ring
+       zu einer Scheibe zu. -->
+  <g>
+    <circle cx="330" cy="356" r="104" fill="#fff"/>
+    <circle cx="330" cy="356" r="52" fill="#015ee9"/>
+    <circle cx="132" cy="386" r="76" fill="#fff"/>
+    <circle cx="132" cy="386" r="36" fill="#015ee9"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-"""Sendeplan – Redaktionskalender für Blogs, Shops und soziale Netzwerke.
+"""POSTKutsche – Redaktionskalender für Blogs, Shops und soziale Netzwerke.
 
 Die Fassung steht ausschließlich hier. In MailBurg stand sie zusätzlich in
 pyproject.toml und blieb dort auf 0.1.0 stehen, während das Programm längst

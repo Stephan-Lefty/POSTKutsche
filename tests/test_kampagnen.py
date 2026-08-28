@@ -6,8 +6,8 @@ import unittest
 from datetime import date
 
 from hilfen import OhneEigeneKonfiguration
-from sendeplan import kampagnen, sendezeiten, zeiten
-from sendeplan.netzwerke import FACEBOOK, LINKEDIN
+from postkutsche import kampagnen, sendezeiten, zeiten
+from postkutsche.netzwerke import FACEBOOK, LINKEDIN
 
 
 def _kampagne(**änderungen):
@@ -167,7 +167,7 @@ class Hersteller(OhneEigeneKonfiguration):
     """Herstellerfilter, geprüft an den Beispielmarken aus BEISPIEL_HERSTELLER.
 
     Mit welchen Herstellern tatsächlich gearbeitet wird, steht in
-    ~/.config/sendeplan/hersteller.json und nicht im Repository.
+    ~/.config/postkutsche/hersteller.json und nicht im Repository.
     """
 
     def setUp(self):

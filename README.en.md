@@ -1,10 +1,17 @@
 [Deutsch](README.md) | [English](README.en.md) | [Changelog](CHANGELOG.md) | [TODO](TODO.en.md)
 
-# Sendeplan
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark-1600.png">
+    <img src="assets/banner-1600.png" alt="POSTKutsche – Ab geht die Post." width="620">
+  </picture>
+</p>
+
+# POSTKutsche
 
 An editorial calendar for your own sites and your social accounts.
 
-Sendeplan checks your blogs and shops for what's new, has Claude write a
+POSTKutsche checks your blogs and shops for what's new, has Claude write a
 separate version for each network, shows them to you in a calendar as drafts —
 and publishes them at the time you chose. For Facebook and Instagram, while
 Meta's review is pending, it puts text and image ready for you to copy.
@@ -48,10 +55,10 @@ automatically requires an approved Meta app. Until then: by hand.
 ## Setup
 
 ```
-git clone https://github.com/Stephan-Lefty/Sendeplan.git
-cd Sendeplan
+git clone https://github.com/Stephan-Lefty/POSTKutsche.git
+cd POSTKutsche
 pip install -e .
-sendeplan einrichten
+postkutsche einrichten
 ```
 
 The core runs without third-party packages. Two things are optional:
@@ -68,23 +75,23 @@ The command line speaks German — `einrichten` is "set up", `projekt` is
 "project", `plan` is the calendar, `netzwerke` are the networks.
 
 ```
-sendeplan einrichten              # create the database, add example projects
-sendeplan projekt liste           # what's there
-sendeplan netzwerke               # colours, character limits, quirks
-sendeplan plan --monat 2026-09    # what's coming up
+postkutsche einrichten              # create the database, add example projects
+postkutsche projekt liste           # what's there
+postkutsche netzwerke               # colours, character limits, quirks
+postkutsche plan --monat 2026-09    # what's coming up
 ```
 
 Projects can be added at any time:
 
 ```
-sendeplan projekt neu meinblog "My blog" https://myblog.example --art wordpress
+postkutsche projekt neu meinblog "My blog" https://myblog.example --art wordpress
 ```
 
 And paused without losing anything:
 
 ```
-sendeplan projekt pausieren myblog   # stop fetching, stop sending
-sendeplan projekt starten myblog     # carry on as before
+postkutsche projekt pausieren myblog   # stop fetching, stop sending
+postkutsche projekt starten myblog     # carry on as before
 ```
 
 Pausing and hiding are two different things: the checkbox in the calendar only
@@ -93,14 +100,14 @@ tidies the view, pausing stops the operation.
 ## Adding your own sites
 
 The repository only contains examples under `.example`. Your own sites go into
-`~/.config/sendeplan/projekte.json` — there and nowhere else. See the German
+`~/.config/postkutsche/projekte.json` — there and nowhere else. See the German
 README for the format. That file and `hersteller.json` are in `.gitignore` and
 a test watches over it.
 
 ## Where credentials live
 
 In the keyring if `keyring` is installed. Otherwise in
-`~/.config/sendeplan/zugaenge.json` with mode `600`. Not in the database, and
+`~/.config/postkutsche/zugaenge.json` with mode `600`. Not in the database, and
 certainly not in the repository — a test watches over that.
 
 | Network | Effort | What you need |

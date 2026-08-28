@@ -17,6 +17,13 @@ hersteller.json
 *.db-wal
 bilder/
 
+# Bildquellen, die nicht ins Repository gehören: Ausgangsdateien aus
+# Bildgeneratoren und Größen, die aus einer kleineren Vorlage hochgerechnet
+# wären. Die maßgebliche Quelle ist assets/icon-quelle.png.
+assets/ChatGPT*
+assets/icon-1024.png
+assets/icon-2048.png
+
 __pycache__/
 *.py[cod]
 *.egg-info/

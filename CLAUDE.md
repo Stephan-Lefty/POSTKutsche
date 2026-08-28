@@ -5,8 +5,16 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-28)
 
-Erster Tag. Das Gerüst steht, 109 Tests laufen, noch nichts ist mit dem Netz
-verbunden. Als Nächstes kommen die Quellen (Etappe 2).
+Erster Tag. 195 Tests. Das Gerüst steht, die Quellen für WordPress und für
+Seiten ohne Schnittstelle laufen gegen echte Seiten, Kampagnen samt
+Herstellerfilter sind fertig. Name, Icon, Banner und Farbpalette stehen.
+
+**Als Nächstes:** die Claude-Anbindung über `claude -p` – erst danach gibt es
+einen echten Entwurf zu lesen statt nur Mechanik.
+
+**Offen von außen:** die Zugangsschlüssel der beiden Shopware-Verkaufskanäle.
+Ohne sie ist `quellen/shopware.py` nur nach Spezifikation baubar, nicht
+erprobbar.
 
 ## Wie es zusammenhängt
 
@@ -33,7 +41,7 @@ denselben Post zweimal anzeigt, um 15:00 und um 15:01.
 davon am letzten Sonntag im Oktober ab.
 
 **Zugangsdaten kommen nicht in die Datenbank.** Schlüsselbund, ersatzweise
-`~/.config/sendeplan/zugaenge.json` mit Rechten 600. `test_ablage.py` prüft,
+`~/.config/postkutsche/zugaenge.json` mit Rechten 600. `test_ablage.py` prüft,
 dass die Tabelle `konten` keine Spalte mit »token«, »passwort« oder »secret«
 bekommt – wer das aus Bequemlichkeit ändert, fällt auf.
 
@@ -50,6 +58,12 @@ Die Kette in `wiederholung_von` zeigt immer auf den Urahn, nie auf den Vorgänge
 stecken in der Standardbibliothek. Pillow und keyring sind Kür und werden zur
 Laufzeit geprüft.
 
+**Keine echten Adressen im Repository.** Die eigenen Seiten und Hersteller
+stehen in `~/.config/postkutsche/`. `test_keine_echten_adressen.py` prüft von
+der anderen Seite: Jede Adresse muss unter `.example` liegen oder in einer
+offenen Positivliste stehen. Ein Test, der bekannte echte Adressen sucht,
+müsste sie ja selbst enthalten.
+
 **Farbe trägt keine Bedeutung allein.** Jedes Netzwerk hat neben seiner Farbe
 ein Kürzel, das im Kärtchen steht. Wer rot-grün-blind ist oder auf einem
 schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
@@ -62,7 +76,10 @@ schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
 | `zeiten.py` | UTC ↔ Europe/Berlin, Monats- und Wochengrenzen |
 | `netzwerke/__init__.py` | Farben, Kürzel, Zeichengrenzen, Eigenheiten |
 | `sendezeiten.py` | Terminvorschläge je Netzwerk und Zielgruppe, mit Begründung |
-| `erstbestueckung.py` | die fünf Projekte beim ersten Einrichten |
+| `erstbestueckung.py` | Beispielprojekte; die eigenen kommen aus `~/.config/postkutsche/` |
+| `konfiguration.py` | liest die eigenen Seiten und Hersteller, die nicht ins Repo dürfen |
+| `kampagnen.py` | Thema, Kalenderwoche, Kategorien, Herstellerfilter |
+| `farben.py` | die gemeinsame Palette, auch für andere Projekte |
 | `__main__.py` | Kommandozeile |
 
 ## Was bewusst nicht da ist

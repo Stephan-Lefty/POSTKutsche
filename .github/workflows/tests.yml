@@ -5,7 +5,7 @@ name: Tests
 # neun Sekunden kostet zehn Minuten. Bei MailBurg summierte sich das an einem
 # Arbeitstag auf das gesamte Monatskontingent, bevor es auffiel.
 #
-# Deshalb hier gleich: ein Job auf Linux bei jedem Push. Sendeplan läuft
+# Deshalb hier gleich: ein Job auf Linux bei jedem Push. POSTKutsche läuft
 # ohnehin nur unter Linux, andere Systeme müssen gar nicht geprüft werden.
 
 on:
@@ -33,7 +33,7 @@ jobs:
           python-version: "3.13"
 
       - name: Syntax prüfen
-        run: python -m compileall -q sendeplan tests
+        run: python -m compileall -q postkutsche tests
 
       - name: Tests
         run: python -m unittest discover -s tests
@@ -41,10 +41,10 @@ jobs:
       # Der Kern soll ohne Fremdpakete auskommen. Dieser Schritt hält das fest:
       # Er läuft in einer nackten Umgebung, in der nichts installiert wurde.
       - name: Kern kommt ohne Fremdpakete aus
-        run: python -c "import sendeplan.ablage, sendeplan.zeiten, sendeplan.sendezeiten"
+        run: python -c "import postkutsche.ablage, postkutsche.zeiten, postkutsche.sendezeiten"
 
       - name: Kommandozeile läuft
         run: |
-          python -m sendeplan --ablage /tmp/probe.db einrichten
-          python -m sendeplan --ablage /tmp/probe.db projekt liste
-          python -m sendeplan --ablage /tmp/probe.db netzwerke
+          python -m postkutsche --ablage /tmp/probe.db einrichten
+          python -m postkutsche --ablage /tmp/probe.db projekt liste
+          python -m postkutsche --ablage /tmp/probe.db netzwerke

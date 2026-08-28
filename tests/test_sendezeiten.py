@@ -5,8 +5,8 @@ from __future__ import annotations
 import unittest
 from datetime import datetime
 
-from sendeplan import sendezeiten, zeiten
-from sendeplan.netzwerke import FACEBOOK, INSTAGRAM, LINKEDIN, MASTODON
+from postkutsche import sendezeiten, zeiten
+from postkutsche.netzwerke import FACEBOOK, INSTAGRAM, LINKEDIN, MASTODON
 
 
 class Fenster(unittest.TestCase):

@@ -1,6 +1,6 @@
 """Wacht darüber, dass keine echten Adressen ins Repository geraten.
 
-Sendeplan ist quelloffen, die Seiten, die damit bespielt werden, sind es nicht.
+POSTKutsche ist quelloffen, die Seiten, die damit bespielt werden, sind es nicht.
 Adressen im Quelltext haben die unangenehme Eigenschaft, dass sie auch dann
 noch dastehen, wenn man sie längst entfernt hat – in der Versionsgeschichte.
 Deshalb prüft dieser Test von der anderen Seite: Nicht, ob bestimmte Adressen
@@ -11,7 +11,7 @@ steht.
 `.example` ist nach RFC 2606 für Beispiele reserviert und kann niemandem
 gehören. Wer eine neue Beispieladresse braucht, nimmt eine solche.
 
-Die eigenen Seiten stehen in `~/.config/sendeplan/`, siehe `konfiguration.py`.
+Die eigenen Seiten stehen in `~/.config/postkutsche/`, siehe `konfiguration.py`.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Adressen, die im Repository stehen dürfen. Alles hier ist entweder
 # Werkzeugkette, Norm oder Anbieterdokumentation – nichts davon verrät, wer
-# Sendeplan wofür einsetzt.
+# POSTKutsche wofür einsetzt.
 ERLAUBT = {
     "github.com",
     "raw.githubusercontent.com",
@@ -55,7 +55,7 @@ ERLAUBT = {
 # Was durchsucht wird. Die Ablage und alles Erzeugte bleiben außen vor.
 ENDUNGEN = (".py", ".md", ".toml", ".yml", ".yaml", ".json", ".sh", ".txt")
 AUSGENOMMEN = {".git", "__pycache__", ".venv", "venv", "build", "dist",
-               ".pytest_cache", "sendeplan.egg-info"}
+               ".pytest_cache", "postkutsche.egg-info"}
 
 ADRESSE = re.compile(r"https?://([A-Za-z0-9.-]+)")
 
@@ -93,7 +93,7 @@ class KeineEchtenAdressen(unittest.TestCase):
             beanstandet, [],
             "Echte Adressen im Repository gefunden. Beispiele gehören unter "
             ".example (RFC 2606), die eigenen Seiten nach "
-            "~/.config/sendeplan/projekte.json:\n  " + "\n  ".join(beanstandet),
+            "~/.config/postkutsche/projekte.json:\n  " + "\n  ".join(beanstandet),
         )
 
     def test_keine_mailadressen_ausser_der_eigenen_kennzeichnung(self):
@@ -124,7 +124,7 @@ class KeineEchtenAdressen(unittest.TestCase):
                 self.assertIn(eintrag, gitignore)
 
     def test_beispieladressen_sind_wirklich_beispiele(self):
-        from sendeplan import erstbestueckung
+        from postkutsche import erstbestueckung
 
         for eintrag in erstbestueckung.BEISPIELE:
             with self.subTest(kennung=eintrag["kennung"]):

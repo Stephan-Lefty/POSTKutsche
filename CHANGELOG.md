@@ -2,7 +2,7 @@
 
 # Änderungsprotokoll
 
-Alle nennenswerten Änderungen an Sendeplan stehen hier.
+Alle nennenswerten Änderungen an POSTKutsche stehen hier.
 
 Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
@@ -47,12 +47,37 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 176 Tests.
+- 195 Tests.
+
+### Erscheinungsbild
+
+- **Name.** Aus »Sendeplan« wurde **POSTKutsche** – geschrieben wie
+  NEXTBookmarks und NEXTStatus, mit großem Wortanfang. Umbenannt wurden
+  Repository, Python-Paket, Befehl, Konfigurationsordner und Doku.
+- **Icon und Banner.** Eine Concord-Kutsche, weiß auf blau, in den Größen 16
+  bis 512. Banner fürs README in hell und dunkel, je drei Breiten; erzeugt von
+  `werkzeuge/banner.py`, damit die sechs Dateien nicht auseinanderlaufen.
+- **Eigene Zeichnung für 16 und 32 Pixel** (`assets/icon-klein.svg`). Am großen
+  Icon tragen bei dieser Größe weder Dachreling noch Speichen noch die drei
+  Fenster – es wird ein Fleck. Die kleinen Größen sind deshalb eigene
+  Zeichnungen, keine Verkleinerungen.
+- **Gemeinsame Farbpalette** aus MailBurg, in `assets/farben.md` erklärt und in
+  `postkutsche/farben.py` als Werte hinterlegt. Beide Dateien sind zum Kopieren
+  in andere Projekte gedacht. `als_css()` erzeugt daraus die CSS-Variablen der
+  Weboberfläche – eine zweite, von Hand gepflegte Liste wiche irgendwann ab.
+
+### Behoben
+
+- **Ein Farbton der übernommenen Palette war unlesbar.** `GRAU_MITTE`
+  (`#97a1ad`) erreicht auf hellem Grund nur 2,48 Kontrast und verfehlt damit
+  sogar die 3,0, die WCAG für große Schrift verlangt. Das sieht man einem
+  Farbwert nicht an; aufgefallen ist es, weil `tests/test_farben.py` es
+  nachrechnet. Für hellen Grund gibt es jetzt `GRAU_LEISE` (`#667080`, 4,75).
 
 ### Sicherheit
 
 - **Keine echten Adressen im Repository.** Die eigenen Seiten, Artikeladressen
-  und Hersteller stehen in `~/.config/sendeplan/`, nicht im Quelltext. Im
+  und Hersteller stehen in `~/.config/postkutsche/`, nicht im Quelltext. Im
   Repository liegen nur Beispiele unter `.example` – eine Endung, die nach
   RFC 2606 für genau diesen Zweck reserviert ist. `test_keine_echten_adressen.py`
   prüft von der anderen Seite: Jede Adresse im Repository muss entweder unter
@@ -83,7 +108,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 Diese Eigenheiten stehen als Kommentar an der Stelle im Quelltext, an der sie
 zählen – hier zur Übersicht, weil sie mehr über fremde Systeme sagen als über
-Sendeplan:
+POSTKutsche:
 
 - **Nicht jedes WordPress pflegt Beitragsbilder.** Es gibt Blogs, bei denen
   `featured_media` durchgehend 0 ist, obwohl jeder Beitrag ein Bild im Text und

@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS fassungen (
 );
 
 -- Ein Konto in einem Netzwerk. Geheimnisse stehen hier nicht: Token liegen im
--- Schlüsselbund, ersatzweise in ~/.config/sendeplan/zugaenge.json mit Rechten
+-- Schlüsselbund, ersatzweise in ~/.config/postkutsche/zugaenge.json mit Rechten
 -- 600. Hier steht nur, welches Konto gemeint ist und wie es erreicht wird.
 CREATE TABLE IF NOT EXISTS konten (
     id            INTEGER PRIMARY KEY,
@@ -180,7 +180,7 @@ class Projekt:
 
 def standard_pfad() -> Path:
     """Wo die Ablage liegt, wenn nichts anderes gesagt wird."""
-    return Path.home() / ".local" / "share" / "sendeplan" / "sendeplan.db"
+    return Path.home() / ".local" / "share" / "postkutsche" / "postkutsche.db"
 
 
 class Ablage:

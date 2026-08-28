@@ -1,8 +1,8 @@
 """Was nicht ins Repository gehört: die eigenen Seiten.
 
-Sendeplan ist quelloffen, die Seiten, die damit bespielt werden, sind es nicht.
+POSTKutsche ist quelloffen, die Seiten, die damit bespielt werden, sind es nicht.
 Adressen, Artikeladressen und Mailadressen stehen deshalb nicht im Quelltext,
-sondern in einer Datei unter `~/.config/sendeplan/`. Im Repository liegt nur
+sondern in einer Datei unter `~/.config/postkutsche/`. Im Repository liegt nur
 eine Beispielfassung mit `.example`-Adressen – die sind nach RFC 2606 für
 genau diesen Zweck reserviert und können niemandem gehören.
 
@@ -29,13 +29,13 @@ from typing import Any
 def ordner() -> Path:
     """Wo die eigenen Angaben liegen.
 
-    `SENDEPLAN_CONFIG` sticht alles – das brauchen die Tests, damit sie nicht
+    `POSTKUTSCHE_CONFIG` sticht alles – das brauchen die Tests, damit sie nicht
     versehentlich die echte Konfiguration lesen oder überschreiben.
     """
-    aus_umgebung = os.environ.get("SENDEPLAN_CONFIG")
+    aus_umgebung = os.environ.get("POSTKUTSCHE_CONFIG")
     if aus_umgebung:
         return Path(aus_umgebung)
-    return Path.home() / ".config" / "sendeplan"
+    return Path.home() / ".config" / "postkutsche"
 
 
 def projektdatei() -> Path:

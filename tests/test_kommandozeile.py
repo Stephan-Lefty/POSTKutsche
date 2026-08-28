@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from hilfen import OhneEigeneKonfiguration
-from sendeplan.__main__ import main
+from postkutsche.__main__ import main
 
 
 class Lauf:
@@ -152,7 +152,7 @@ class OhneBefehl(Basis):
         with contextlib.redirect_stdout(aus):
             rueckgabe = main([])
         self.assertEqual(rueckgabe, 1)
-        self.assertIn("sendeplan", aus.getvalue())
+        self.assertIn("postkutsche", aus.getvalue())
 
 
 if __name__ == "__main__":

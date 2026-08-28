@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sendeplan"
-# Die Fassung steht ausschließlich in sendeplan/__init__.py und wird von dort
+name = "postkutsche"
+# Die Fassung steht ausschließlich in postkutsche/__init__.py und wird von dort
 # gelesen. Sie hier zu wiederholen ging bei MailBurg schief: pyproject.toml
 # blieb bei 0.1.0 stehen, während das Programm längst 0.9.0 meldete.
 dynamic = ["version"]
@@ -40,24 +40,24 @@ dependencies = []
 bilder = ["Pillow>=10"]
 
 # Zugangstoken im Schlüsselbund statt in einer Datei. Ohne keyring landen sie
-# in ~/.config/sendeplan/zugaenge.json mit Rechten 600.
+# in ~/.config/postkutsche/zugaenge.json mit Rechten 600.
 schluessel = ["keyring>=24"]
 
-alles = ["sendeplan[bilder,schluessel]"]
+alles = ["postkutsche[bilder,schluessel]"]
 
 [project.urls]
-Quelltext = "https://github.com/Stephan-Lefty/Sendeplan"
-"Änderungsprotokoll" = "https://github.com/Stephan-Lefty/Sendeplan/blob/main/CHANGELOG.md"
-Fehler = "https://github.com/Stephan-Lefty/Sendeplan/issues"
+Quelltext = "https://github.com/Stephan-Lefty/POSTKutsche"
+"Änderungsprotokoll" = "https://github.com/Stephan-Lefty/POSTKutsche/blob/main/CHANGELOG.md"
+Fehler = "https://github.com/Stephan-Lefty/POSTKutsche/issues"
 
 [project.scripts]
-sendeplan = "sendeplan.__main__:main"
+postkutsche = "postkutsche.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["sendeplan*"]
+include = ["postkutsche*"]
 
 [tool.setuptools.package-data]
-sendeplan = ["web/static/*"]
+postkutsche = ["web/static/*"]
 
 [tool.setuptools.dynamic]
-version = { attr = "sendeplan.__version__" }
+version = { attr = "postkutsche.__version__" }

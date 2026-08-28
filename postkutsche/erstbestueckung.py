@@ -1,9 +1,9 @@
-"""Womit ein frisch eingerichteter Sendeplan anfängt.
+"""Womit ein frisch eingerichteter POSTKutsche anfängt.
 
 **Hier stehen keine echten Adressen.** Die Beispiele benutzen `.example` –
 eine Endung, die nach RFC 2606 für genau diesen Zweck reserviert ist und
 niemandem gehören kann. Die eigenen Seiten stehen in
-`~/.config/sendeplan/projekte.json` und werden von dort gelesen; wo keine
+`~/.config/postkutsche/projekte.json` und werden von dort gelesen; wo keine
 solche Datei liegt, kommen die Beispiele zum Zug.
 
 Der Grund ist nicht Geheimniskrämerei: Ein öffentliches Repository ist
@@ -12,7 +12,7 @@ steht auch nach dem Löschen noch darin. Siehe `konfiguration.py`.
 
 In beiden Fällen gilt: Das ist eine *Erstbestückung*, keine feste Liste.
 Projekte werden in der Ablage geführt und lassen sich jederzeit ergänzen,
-umbenennen, pausieren und löschen – über `sendeplan projekt` und über die
+umbenennen, pausieren und löschen – über `postkutsche projekt` und über die
 Oberfläche.
 """
 

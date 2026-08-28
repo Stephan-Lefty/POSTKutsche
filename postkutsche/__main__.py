@@ -1,4 +1,4 @@
-"""Die Kommandozeile von Sendeplan.
+"""Die Kommandozeile von POSTKutsche.
 
 Alles, was die Oberfläche kann, geht auch hier – das ist Absicht. Ein Werkzeug,
 das man nur anklicken kann, lässt sich nicht in einen Zeitplan hängen und nicht
@@ -33,10 +33,10 @@ def main(argv: list[str] | None = None) -> int:
 
 def _zerleger() -> argparse.ArgumentParser:
     zerleger = argparse.ArgumentParser(
-        prog="sendeplan",
+        prog="postkutsche",
         description="Redaktionskalender für Blogs, Shops und soziale Netzwerke.",
     )
-    zerleger.add_argument("--fassung", action="version", version=f"Sendeplan {__version__}")
+    zerleger.add_argument("--fassung", action="version", version=f"POSTKutsche {__version__}")
     zerleger.add_argument(
         "--ablage",
         type=Path,
@@ -121,14 +121,14 @@ def _einrichten(ablage: Ablage, args: argparse.Namespace) -> int:
     print(f"Ablage: {ablage.pfad}")
     print(f"{len(kennungen)} Projekte eingetragen: {', '.join(kennungen)}")
     print()
-    print("Weiter mit »sendeplan projekt liste«.")
+    print("Weiter mit »postkutsche projekt liste«.")
     return 0
 
 
 def _projekt_liste(ablage: Ablage, args: argparse.Namespace) -> int:
     projekte = ablage.projekte()
     if not projekte:
-        print("Noch keine Projekte. »sendeplan einrichten« legt die ersten fünf an.")
+        print("Noch keine Projekte. »postkutsche einrichten« legt die ersten fünf an.")
         return 0
     breite = max(len(p.kennung) for p in projekte)
     for p in projekte:
@@ -191,7 +191,7 @@ def _projekt_loeschen(ablage: Ablage, args: argparse.Namespace) -> int:
         print(
             f"Das würde »{args.kennung}« samt allen Inhalten und geplanten "
             "Beiträgen entfernen.\n"
-            "Meistens ist Pausieren gemeint: sendeplan projekt pausieren "
+            "Meistens ist Pausieren gemeint: postkutsche projekt pausieren "
             f"{args.kennung}\n"
             f"Wenn es wirklich weg soll: --wirklich anhängen.",
             file=sys.stderr,
@@ -223,7 +223,7 @@ def _plan(ablage: Ablage, args: argparse.Namespace) -> int:
         print(f"Nichts geplant für {monat:02d}/{jahr}.")
         return 0
 
-    print(f"Sendeplan {monat:02d}/{jahr}\n")
+    print(f"POSTKutsche {monat:02d}/{jahr}\n")
     for zeile in zeilen:
         fassungen = ablage.fassungen(int(zeile["id"]))
         kuerzel = " ".join(
