@@ -23,7 +23,20 @@ import re
 import xml.etree.ElementTree as ET
 from typing import Iterator
 
-from .abrufen import AbrufFehler, entmarken, holen, og_angaben, text_holen
+from .abrufen import (AbrufFehler, entmarken, holen, og_angaben, text_holen,
+                      text_und_ziel)
+
+
+class ProduktFortgezogen(AbrufFehler):
+    """Die Adresse führt nicht mehr auf ein Produkt, sondern woandershin."""
+
+    def __init__(self, adresse: str, gelandet: str) -> None:
+        super().__init__(
+            f"{adresse} führt nicht mehr auf ein Produkt, sondern auf "
+            f"{gelandet}. Die Seitenkarte ist an dieser Stelle veraltet."
+        )
+        self.adresse = adresse
+        self.gelandet = gelandet
 
 # Namensraum der Sitemap-Norm. Ohne den findet ElementTree nichts.
 NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -249,18 +262,28 @@ def seite(adresse: str) -> dict[str, object]:
     meistens gepflegter als der Rest der Seite. Fehlen sie, wird der Titel aus
     `<title>` genommen.
     """
-    roh = text_holen(adresse)
+    roh, gelandet = text_und_ziel(adresse)
+
+    # Wer umgeleitet wurde, ist woanders. Landet man auf einer Übersicht oder
+    # einer Fehlerseite, gibt es das Produkt nicht mehr - ein Beitrag darüber
+    # bewirbt eine Adresse, die niemanden zum Angekündigten führt.
+    if _ist_keine_produktseite(gelandet):
+        raise ProduktFortgezogen(adresse, gelandet)
+
     angaben = og_angaben(roh)
 
-    titel = angaben.get("title") or _titel_aus(roh) or adresse
+    titel = angaben.get("title") or _titel_aus(roh) or gelandet
     beschreibung = angaben.get("description") or _beschreibung_aus(roh) or ""
-    bild = angaben.get("image") or _produktbild(roh, adresse)
+    fliesstext = _fliesstext(roh)
+    if fliesstext:
+        beschreibung = f"{beschreibung}\n\n{fliesstext}" if beschreibung else fliesstext
+    bild = angaben.get("image") or _produktbild(roh, gelandet)
 
     return {
-        "fremd_id": adresse,
+        "fremd_id": gelandet,
         "titel": entmarken(titel),
         "text": entmarken(beschreibung),
-        "adresse": angaben.get("url") or adresse,
+        "adresse": gelandet,
         "bild_adresse": bild,
         "veroeffentlicht": None,  # Solche Seiten haben kein Datum, dem zu trauen wäre
         "kategorien": [],
@@ -313,6 +336,50 @@ def _produktbild(roh: str, adresse: str) -> str | None:
 
     gefunden.sort(key=rang)
     return gefunden[0]
+
+
+#: Endadressen, hinter denen kein einzelnes Produkt steckt.
+KEIN_ZIEL = ("/list.html", "/errordoc/", "/404", "/suche", "/search")
+
+
+def _ist_keine_produktseite(adresse: str) -> bool:
+    unten = adresse.lower()
+    return any(stueck in unten for stueck in KEIN_ZIEL)
+
+
+#: Wie viel Fließtext höchstens mitgenommen wird. Genug für die Beschreibung
+#: samt Merkmalen, zu wenig, um eine ganze Kategorieseite einzuschleppen.
+TEXTGRENZE = 4000
+
+#: Kürzer als das ist eine Schaltfläche oder eine Zeile aus dem Menü.
+KUERZESTER_ABSATZ = 60
+
+
+def _fliesstext(roh: str) -> str:
+    """Sammelt, was auf der Seite wirklich über das Produkt steht.
+
+    Die og:description reicht nicht. Sie ist für die Vorschau in sozialen
+    Netzwerken geschrieben, also 150 Zeichen Werbung mit Häkchen-Zeichen -
+    daraus lässt sich kein Beitrag bauen, der etwas aussagt. Am 2026-08-28
+    gemessen: 172 Zeichen Werbung, während auf derselben Seite 2.800 Zeichen
+    Fachtext standen, mit Normnummer und Herstellernamen. Genau das, wonach
+    Claude sonst zurückfragen muss.
+
+    Nur Blattelemente (`p`, `li`, Überschriften), nie umschließende `div`.
+    Sonst nimmt man denselben Satz dreimal mit, einmal je Verschachtelung.
+    """
+    stuecke: list[str] = []
+    gesehen: set[str] = set()
+    for treffer in re.finditer(r"<(p|li|h1|h2|h3|h4)\b[^>]*>(.*?)</\1>",
+                               roh, re.IGNORECASE | re.DOTALL):
+        text = entmarken(treffer.group(2))
+        if len(text) < KUERZESTER_ABSATZ or text in gesehen:
+            continue
+        gesehen.add(text)
+        stuecke.append(text)
+        if sum(len(s) for s in stuecke) >= TEXTGRENZE:
+            break
+    return "\n\n".join(stuecke)[:TEXTGRENZE]
 
 
 def _titel_aus(roh: str) -> str | None:

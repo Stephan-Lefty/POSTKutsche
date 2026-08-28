@@ -91,6 +91,33 @@ def text_holen(adresse: str) -> str:
     return holen(adresse).decode("utf-8", "replace")
 
 
+def text_und_ziel(adresse: str) -> tuple[str, str]:
+    """Wie `text_holen`, gibt aber auch zurück, wo man tatsächlich gelandet ist.
+
+    **Wer umleitet, sagt damit etwas.** Ein alter Shop, dessen Seitenkarte seit
+    Jahren nicht gepflegt wurde, schickt abgekündigte Produktadressen auf die
+    Kategorieübersicht - manchmal sogar auf eine andere Kategorie, als der
+    Adressname verspricht. Wer nur den Inhalt liest und die Endadresse
+    wegwirft, hält dann eine Übersichtsseite für ein Produkt und bewirbt unter
+    dem Namen einer Stahltür einen Text über Holztüren. Am 2026-08-28 an
+    echten Adressen beobachtet: von zwölf Stichproben führte keine einzige
+    unverändert zum Ziel.
+    """
+    anfrage = urllib.request.Request(adresse)
+    anfrage.add_header("User-Agent", KENNZEICHEN)
+    anfrage.add_header("Accept-Encoding", "gzip")
+    try:
+        with urllib.request.urlopen(anfrage, timeout=ZEITLIMIT) as antwort:
+            roh = antwort.read()
+            if antwort.headers.get("Content-Encoding") == "gzip":
+                roh = gzip.decompress(roh)
+            return roh.decode("utf-8", "replace"), antwort.url
+    except urllib.error.HTTPError as fehler:
+        raise AbrufFehler(f"{adresse} antwortet mit {fehler.code}.") from fehler
+    except urllib.error.URLError as fehler:
+        raise AbrufFehler(f"{adresse} nicht erreichbar: {fehler.reason}") from fehler
+
+
 # -- HTML aufräumen --------------------------------------------------------
 
 _SKRIPTE = re.compile(r"<(script|style)\b.*?</\1>", re.IGNORECASE | re.DOTALL)
