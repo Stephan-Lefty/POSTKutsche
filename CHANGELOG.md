@@ -57,10 +57,11 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 - **Icon und Banner.** Eine Concord-Kutsche, weiß auf blau, in den Größen 16
   bis 512. Banner fürs README in hell und dunkel, je drei Breiten; erzeugt von
   `werkzeuge/banner.py`, damit die sechs Dateien nicht auseinanderlaufen.
-- **Eigene Zeichnung für 16 und 32 Pixel** (`assets/icon-klein.svg`). Am großen
-  Icon tragen bei dieser Größe weder Dachreling noch Speichen noch die drei
-  Fenster – es wird ein Fleck. Die kleinen Größen sind deshalb eigene
-  Zeichnungen, keine Verkleinerungen.
+- **Alle Größen zeigen dieselbe Kutsche.** Für 16 und 32 Pixel gab es
+  zwischenzeitlich eine eigene, gröbere Zeichnung – bei Icons ist das der
+  Normalfall, weil feine Formen dort zu einem Fleck werden. Verworfen: Die
+  reduzierte Fassung zeigte eine *andere* Kutsche, und zwei Kutschen für ein
+  Programm sind schlimmer als ein unscharfes Zeichen im Browser-Tab.
 - **Gemeinsame Farbpalette** aus MailBurg, in `assets/farben.md` erklärt und in
   `postkutsche/farben.py` als Werte hinterlegt. Beide Dateien sind zum Kopieren
   in andere Projekte gedacht. `als_css()` erzeugt daraus die CSS-Variablen der
