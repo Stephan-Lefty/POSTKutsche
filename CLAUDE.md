@@ -3,18 +3,27 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
-## Hier war Schluss (Stand 2026-08-28)
+## Hier war Schluss (Stand 2026-08-28, abends)
 
-Erster Tag. 195 Tests. Das Gerüst steht, die Quellen für WordPress und für
-Seiten ohne Schnittstelle laufen gegen echte Seiten, Kampagnen samt
-Herstellerfilter sind fertig. Name, Icon, Banner und Farbpalette stehen.
+280 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
+Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
-**Als Nächstes:** die Claude-Anbindung über `claude -p` – erst danach gibt es
-einen echten Entwurf zu lesen statt nur Mechanik.
+**Am letzten Abend gefunden und behoben:** Claude bekam von einer Produktseite
+nur die `og:description` zu lesen – 172 Zeichen Werbung, während daneben 2.800
+Zeichen Fachtext standen. Daher kamen die vielen Rückfragen. Und die
+Seitenkarte des ersten Shops ist veraltet: von zwölf Adressen führte keine
+unverändert zum Ziel, eine als »Stahltür« benannte landete auf der Übersicht
+für Holztüren.
 
-**Offen von außen:** die Zugangsschlüssel der beiden Shopware-Verkaufskanäle.
-Ohne sie ist `quellen/shopware.py` nur nach Spezifikation baubar, nicht
-erprobbar.
+**Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
+werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,
+nicht mehr an der Quelle.
+
+**Entschieden am 2026-08-28:** Die beiden Shopware-Shops kommen über die
+Seitenkarte, nicht über die Store-API. Die Kategorieseiten liefern
+Produktverweise und `og:`-Angaben, ein Zugangsschlüssel wird nicht gebraucht.
+`quellen/shopware.py` gibt es deshalb nicht und soll es vorerst nicht geben.
 
 ## Wie es zusammenhängt
 

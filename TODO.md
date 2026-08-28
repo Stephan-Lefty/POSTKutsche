@@ -10,19 +10,29 @@ wurde.
 
 ### Als Nächstes
 
-- **Quellen anbinden.** WordPress über `/wp-json/wp/v2/posts?_embed`, Shopware 6
-  über die Store-API, altbau.example über `sitemap.xml` und `og:`-Auslesen. Je Quelle
-  ein Test gegen eine aufgezeichnete Antwort, kein Netz im Test.
-- **Claude anbinden.** `claude -p` mit festem Ausgabeformat, Anweisungen je
-  Netzwerk. Test gegen einen vorgetäuschten Aufruf.
-- **Weboberfläche.** Kalender in Monats- und Wochenansicht, links die
-  Projektspalte zum Ein- und Ausblenden, Kärtchen in Projektfarbe mit
-  Netzwerk-Streifen, Ziehen verschiebt den Termin.
-- **Mastodon.** Das erste Netzwerk, das ganz durchläuft – vom Blogbeitrag bis
-  zum veröffentlichten Post. Sofort nutzbar, kein Prüfverfahren.
-- **Handbetrieb für Facebook und Instagram.** Übergabe-Ansicht mit Text zum
-  Kopieren (unausgezeichnet, ohne Markdown-Zeichen), Bild auf 4:5 zum
-  Herunterladen, Knopf »von Hand veröffentlicht«.
+- **Die erste Woche mit dem neuen Seitenlesen planen.** Seit dem 2026-08-28
+  wird der Fließtext der Produktseite gelesen statt nur der `og:description`,
+  und Umleitungen werden verfolgt. Damit sollten deutlich weniger Rückfragen
+  entstehen – nachsehen, ob das eintritt, und sonst die Anweisung in
+  `denker/vorlagen.py` nachschärfen.
+- **Die Seitenkarte des ersten Shops ist veraltet.** Stichprobe vom
+  2026-08-28: von zwölf Produktadressen führte keine unverändert zum Ziel,
+  zehn landeten auf einer Kategorieübersicht oder der Fehlerseite. Sie werden
+  jetzt übersprungen, aber damit schrumpft der Vorrat auf etwa ein Fünftel.
+  Klären, ob sich die Seitenkarte neu erzeugen lässt.
+- **Die beiden Shopware-Shops über die Seitenkarte anbinden**, nicht über die
+  Store-API. Beide Kategorieseiten liefern Produktverweise und `og:`-Angaben;
+  ein Zugangsschlüssel ist dafür nicht nötig, und niemand muss darauf warten.
+  Je Shop zwei Kategorien, die Adressen stehen in
+  `~/.config/postkutsche/projekte.json`.
+- **Die Uhrzeit im Kalender ändern können.** Ziehen verschiebt bisher nur den
+  Tag; die Uhrzeit lässt sich nur über die Vorschläge aus `sendezeiten.py`
+  setzen.
+- **Beiträge in der Oberfläche löschen können.** Bisher geht das nur über die
+  Datenbank.
+- **»Von Hand veröffentlicht« bei Mastodon ausblenden.** Der Knopf gehört zum
+  Handbetrieb für Facebook und Instagram und verwirrt, wo automatisch gesendet
+  wird.
 
 ### Danach
 
