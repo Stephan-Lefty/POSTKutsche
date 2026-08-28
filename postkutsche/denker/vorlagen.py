@@ -51,6 +51,11 @@ So schreibst du:
 - Keine Markdown-Auszeichnung: kein **fett**, kein # und keine [Verweise](…).
   Die Netzwerke stellen das nicht dar, es erscheint als Zeichensalat.
 - Emojis sparsam, höchstens eines, und nur wenn es etwas beiträgt.
+- **Nach dem Verweis kommt kein Satz mehr.** Wo er steht, sagt das jeweilige
+  Netzwerk unten - aber was danach folgt, liest niemand mehr; es hängt hinter
+  dem Link in der Luft.
+- Schlagwörter sind eine Obergrenze, kein Ziel. Nimm so wenige wie möglich.
+  Eines, das trifft, ist besser als vier, die ungefähr passen.
 
 Was du nicht tust:
 
@@ -66,9 +71,17 @@ Wenn du unsicher bist:
 Schreib deine Frage in »rueckfrage« und lass den Text trotzdem so gut wie
 möglich stehen. Ein Beitrag mit offener Frage wird nicht veröffentlicht,
 bevor jemand geantwortet hat - das ist besser als eine glatte Erfindung.
-Frag zum Beispiel, wenn der Quelltext widersprüchlich ist, wenn eine
-Fachangabe unklar bleibt oder wenn du nicht erkennen kannst, worum es
-eigentlich geht. Ist alles klar, setz »rueckfrage« auf null.\
+Frag zum Beispiel:
+
+- wenn der Quelltext sich widerspricht oder mitten im Satz abbricht
+- wenn eine Fachangabe unklar bleibt - ein Maß ohne Einheit, eine Norm
+  ohne Nummer, eine Modellbezeichnung, die zweimal verschieden geschrieben ist
+- wenn nicht zu erkennen ist, was das Beworbene eigentlich tut
+- wenn für ein Netzwerk mit Bildpflicht kein Bild vorliegt
+- wenn der Text eine Zusage enthält, die du nicht prüfen kannst
+
+Ist alles klar, setz »rueckfrage« auf null. Eine erfundene Rückfrage ist so
+schlecht wie ein erfundenes Detail.\
 """
 
 

@@ -74,12 +74,21 @@ class Anweisung(unittest.TestCase):
         self.assertIn("Bild vorhanden: nein", ohne)
 
     def test_langer_text_wird_gekuerzt(self):
-        # Ein Blogbeitrag mit 14.000 Zeichen macht die Anweisung teuer, ohne
+        # Ein Blogbeitrag mit 20.000 Zeichen macht die Anweisung teuer, ohne
         # dass die letzten Absätze für 500 Zeichen Ausgabe etwas beitragen.
         lang = {**INHALT, "text": "Wort " * 4000}
         a = vorlagen.anweisung(lang, ["mastodon"])
         self.assertIn("[hier gekürzt]", a)
-        self.assertLess(len(a), 9000)
+        # Der Inhalt wird bei 6.000 Zeichen gekappt; alles Weitere sind die
+        # Regeln. Die Grenze wacht darüber, dass die Regeln nicht unbemerkt
+        # ausufern - jede Zeile darin steckt in jedem einzelnen Aufruf.
+        self.assertLess(len(a), 10_000)
+
+    def test_die_regeln_bleiben_ueberschaubar(self):
+        # Ohne Inhalt ist die Anweisung reines Regelwerk. Wächst das über
+        # diese Grenze, gehört aufgeräumt statt angebaut.
+        nackt = vorlagen.anweisung({"titel": "x", "text": ""}, ["mastodon"])
+        self.assertLess(len(nackt), 4_000)
 
     def test_ohne_netzwerk_ist_ein_fehler(self):
         with self.assertRaises(ValueError):

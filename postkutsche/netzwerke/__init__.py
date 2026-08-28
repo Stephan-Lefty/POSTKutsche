@@ -47,11 +47,17 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         # rechnen mit 500, dann passt es überall.
         zeichen_max=500,
         zeichen_ziel=420,
-        schlagworte_max=4,
+        # Drei statt vier: Der erste Durchlauf am 2026-08-28 lieferte prompt
+        # die erlaubte Höchstzahl. Auf Mastodon gelten vier schon als
+        # reichlich - was erlaubt ist, wird ausgeschöpft, also erlaubt man
+        # weniger.
+        schlagworte_max=3,
         bild_format="4:5",
         bild_pflicht=False,
-        hinweis="Kurz, sachlich, Verweis gehört mitten in den Text. "
-                "Schlagwörter sparsam – zu viele gelten dort als Lärm.",
+        hinweis="Kurz und sachlich. Der Verweis darf im Text stehen, aber "
+                "danach kommt kein Satz mehr - sonst hängt er hinter dem Link "
+                "in der Luft. Schlagwörter sehr sparsam, ein bis zwei reichen; "
+                "zu viele gelten dort als Lärm.",
     ),
     LINKEDIN: Netzwerk(
         kennung=LINKEDIN,
