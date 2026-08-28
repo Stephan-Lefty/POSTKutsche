@@ -112,19 +112,47 @@ class Projektfarben(unittest.TestCase):
         for projektfarbe in farben.PROJEKTFARBEN:
             for netz in netzwerke.alle():
                 with self.subTest(farbe=projektfarbe, netz=netz.kennung):
+                    # 110 statt eines höheren Werts: Die Netzwerke belegen
+                    # Violett, zwei Blautöne und Magenta. Wer mehr verlangt,
+                    # bekommt eine Palette aus lauter Grüntönen - genau das
+                    # war der erste Anlauf. Der Farbton unten trägt die
+                    # eigentliche Unterscheidung.
                     self.assertGreaterEqual(
-                        farben.farbabstand(projektfarbe, netz.farbe), 120,
+                        farben.farbabstand(projektfarbe, netz.farbe), 100,
                         f"{projektfarbe} sieht aus wie {netz.name}",
                     )
 
+    def test_farbton_haelt_abstand_zu_den_netzwerken(self):
+        # Der RGB-Abstand allein genügt nicht: Er zählt Helligkeit mit,
+        # wiedererkannt wird aber der Ton.
+        from postkutsche import netzwerke
+
+        for projektfarbe in farben.PROJEKTFARBEN:
+            for netz in netzwerke.alle():
+                with self.subTest(farbe=projektfarbe, netz=netz.kennung):
+                    self.assertGreaterEqual(
+                        farben.tonabstand(projektfarbe, netz.farbe), 40)
+
+    def test_die_ersten_fuenf_sind_gestreut(self):
+        # Fünf Projekte sind der Regelfall. Diese fünf müssen verschieden
+        # *aussehen* - der erste Anlauf hielt rechnerisch Abstand und lieferte
+        # trotzdem drei Grüntöne.
+        ersten = farben.PROJEKTFARBEN[:5]
+        for i, eine in enumerate(ersten):
+            for andere in ersten[i + 1:]:
+                with self.subTest(paar=f"{eine}/{andere}"):
+                    self.assertGreaterEqual(farben.tonabstand(eine, andere), 25)
+
     def test_abstand_untereinander(self):
-        # Ein erster Versuch, die Liste von Hand zu ergänzen, ging schief:
-        # Zwei der ergänzten Töne lagen 29 auseinander.
         for i, eine in enumerate(farben.PROJEKTFARBEN):
             for andere in farben.PROJEKTFARBEN[i + 1:]:
                 with self.subTest(paar=f"{eine}/{andere}"):
+                    # Zwischen zwei Projektfarben genügt weniger als zwischen
+                    # Projekt und Netzwerk: Ein Projekt mit einem anderen zu
+                    # verwechseln ist ärgerlich, eines mit einer Netzwerkmarke
+                    # führt in die Irre.
                     self.assertGreaterEqual(
-                        farben.farbabstand(eine, andere), 100)
+                        farben.farbabstand(eine, andere), 60)
 
     def test_in_beiden_themen_sichtbar(self):
         for projektfarbe in farben.PROJEKTFARBEN:

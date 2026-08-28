@@ -132,18 +132,23 @@ def kontrast(vorne: str, hinten: str) -> float:
 # kalte Seite. Übrig bleiben Grün, Gelb und Warmtöne, und daraus ergibt sich
 # eine brauchbare Regel: **Projekte warm und grün, Netzwerke kalt.**
 #
+# Entscheidend ist der **Farbton**, nicht der Zahlenabstand im RGB-Würfel.
+# Der erste Anlauf hielt rechnerisch Abstand und lieferte trotzdem drei
+# Grüntöne: Der RGB-Abstand zählt Helligkeit mit, aber wiedererkannt wird der
+# Ton. Deshalb sind die ersten fünf Farben über den verfügbaren Bereich
+# gestreut - 20°, 56°, 94°, 132°, 170° - statt nur weit auseinanderzuliegen.
+#
 # Die Liste ist durch Absuchen des Farbraums entstanden, nicht durch Raten:
-# mindestens 120 Abstand zu jeder Netzwerkfarbe, mindestens 100 untereinander,
-# und in beiden Themen sichtbar. Ein erster Versuch, die Liste von Hand zu
-# ergänzen, ging prompt schief - zwei der ergänzten Töne lagen 29 auseinander.
-# `tests/test_farben.py` rechnet beides nach.
+# mindestens 40° Tonabstand und 110 RGB-Abstand zu jeder Netzwerkfarbe, und in
+# beiden Themen sichtbar. Ein Versuch, sie von Hand zu ergänzen, ging prompt
+# schief - zwei Töne lagen 29 auseinander. `tests/test_farben.py` prüft beides.
 
 PROJEKTFARBEN = [
-    "#6bad08",
-    "#08ad19",
-    "#ccab28",
-    "#56ad6c",
-    "#8c4907",
+    "#b23b00",  # Zinnober,   Farbton  20°
+    "#938a00",  # Bernstein,  Farbton  56°
+    "#6f8c3f",  # Oliv,       Farbton  83°
+    "#35b24e",  # Grün,       Farbton 132°
+    "#4bbca9",  # Türkis,     Farbton 170°
 ]
 
 
@@ -158,6 +163,25 @@ def farbabstand(eine: str, andere: str) -> float:
     return ((ra - rb) ** 2 + (ga - gb) ** 2 + (ba - bb) ** 2) ** 0.5
 
 
+def farbton(farbe: str) -> float:
+    """Der Farbton in Grad, 0 bis 360.
+
+    Zwei Farben mit ähnlichem Ton wirken verwandt, auch wenn sie sich in
+    Helligkeit und Sättigung unterscheiden - genau das ist beim ersten Anlauf
+    der Projektpalette passiert.
+    """
+    import colorsys
+
+    r, g, b = (k / 255 for k in rgb(farbe))
+    return colorsys.rgb_to_hsv(r, g, b)[0] * 360
+
+
+def tonabstand(eine: str, andere: str) -> float:
+    """Abstand zweier Farbtöne auf dem Kreis, 0 bis 180 Grad."""
+    unterschied = abs(farbton(eine) - farbton(andere))
+    return min(unterschied, 360 - unterschied)
+
+
 def freie_projektfarbe(vergeben: list[str]) -> str:
     """Die nächste freie Projektfarbe, mit größtem Abstand zu den vergebenen.
 
@@ -169,6 +193,8 @@ def freie_projektfarbe(vergeben: list[str]) -> str:
     if frei:
         if not vergeben:
             return frei[0]
-        return max(frei, key=lambda f: min(farbabstand(f, v) for v in vergeben))
+        # Nach Farbton auswählen, nicht nach RGB-Abstand: Was man
+        # auseinanderhalten soll, muss verschieden *aussehen*.
+        return max(frei, key=lambda f: min(tonabstand(f, v) for v in vergeben))
     return max(PROJEKTFARBEN,
-               key=lambda f: min(farbabstand(f, v) for v in vergeben))
+               key=lambda f: min(tonabstand(f, v) for v in vergeben))

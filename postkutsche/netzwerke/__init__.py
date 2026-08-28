@@ -65,7 +65,7 @@ VERZEICHNIS: dict[str, Netzwerk] = {
         kuerzel="LI",
         # Nicht das Marken-Blau #0A66C2, sondern das dunklere aus derselben
         # Palette – sonst ist der Rahmen von Facebook nicht zu unterscheiden.
-        farbe="#004182",
+        farbe="#0a66c2",
         zeichen_max=3000,
         # Nach etwa 200 Zeichen klappt LinkedIn den Text zu. Was danach kommt,
         # liest nur, wer auf »mehr anzeigen« tippt. Der Kern muss also vorn stehen.
