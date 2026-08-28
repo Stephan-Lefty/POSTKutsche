@@ -348,6 +348,73 @@ function benachrichtigen(bericht) {
   });
 }
 
+/** Fragt, was mit kürzlich beworbenen Produkten geschehen soll.
+ *
+ * Drei Möglichkeiten statt der zwei, die ein confirm() hergibt: »trotzdem«,
+ * »andere nehmen« oder abbrechen. Gibt die Wahl zurück oder null.
+ */
+function wiederholungWaehlen(wiederholungen) {
+  return new Promise((antworten) => {
+    const huelle = document.createElement("div");
+    huelle.className = "ueberlagerung";
+
+    const kasten = document.createElement("div");
+    kasten.className = "kasten";
+    kasten.style.maxWidth = "460px";
+
+    const titel = document.createElement("h2");
+    titel.textContent = wiederholungen.length === 1
+      ? "Ein Produkt war schon dran"
+      : `${wiederholungen.length} Produkte waren schon dran`;
+    kasten.append(titel);
+
+    const erklaerung = document.createElement("p");
+    erklaerung.className = "schlagworte";
+    erklaerung.textContent = "In den letzten vier Wochen bereits beworben:";
+    kasten.append(erklaerung);
+
+    const liste = document.createElement("div");
+    liste.className = "bericht";
+    wiederholungen.forEach((w) => {
+      const zeile = document.createElement("div");
+      zeile.className = "berichtzeile";
+      const titeltext = w.titel.length > 46 ? w.titel.slice(0, 46) + "…" : w.titel;
+      zeile.textContent = `${titeltext}  –  ${w.lesbar}`;
+      liste.append(zeile);
+    });
+    kasten.append(liste);
+
+    const knoepfe = document.createElement("div");
+    knoepfe.className = "knoepfe";
+
+    const fertig = (wahl) => { huelle.remove(); antworten(wahl); };
+
+    const andere = document.createElement("button");
+    andere.type = "button";
+    andere.className = "knopf";
+    andere.textContent = "Andere Produkte nehmen";
+    andere.onclick = () => fertig("ersetzen");
+
+    const trotzdem = document.createElement("button");
+    trotzdem.type = "button";
+    trotzdem.className = "knopf leise";
+    trotzdem.textContent = "Trotzdem einplanen";
+    trotzdem.onclick = () => fertig("trotzdem");
+
+    const weg = document.createElement("button");
+    weg.type = "button";
+    weg.className = "knopf leise";
+    weg.textContent = "Abbrechen";
+    weg.onclick = () => fertig(null);
+
+    knoepfe.append(andere, trotzdem, weg);
+    kasten.append(knoepfe);
+    huelle.append(kasten);
+    document.body.append(huelle);
+    andere.focus();
+  });
+}
+
 async function kampagneAbschicken(e) {
   e.preventDefault();
   const kategorien = [...$("#k-kategorien").querySelectorAll("input:checked")]
@@ -393,7 +460,10 @@ async function kampagneAbschicken(e) {
   }, 2000);
 
   try {
-    let bericht = await hole("/api/kampagne", {
+    // Einmal zusammenstellen: Der Auftrag wird womöglich zweimal gebraucht -
+    // einmal zum Prüfen, einmal zum Ausführen. Zweimal aufgeschrieben wiche
+    // er irgendwann voneinander ab.
+    const auftrag = {
       projekt: $("#k-projekt").value,
       thema: $("#k-thema").value,
       kalenderwoche: Number($("#k-woche").value),
@@ -403,38 +473,26 @@ async function kampagneAbschicken(e) {
       je_tag: jeTag,
       tage,
       hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
-      bestaetigt: false,
-    });
+    };
+    let bericht = await hole("/api/kampagne", { ...auftrag, bestaetigt: false });
 
-    // Waren Produkte in den letzten vier Wochen schon dran, fragt der Lauf
-    // nach, statt sie stillschweigend zu übergehen oder zu wiederholen.
+    // Waren Produkte in den letzten vier Wochen schon dran, wird gefragt -
+    // mit drei Möglichkeiten. »Abbrechen« hieße sonst »gar nichts«, obwohl
+    // meistens gemeint ist: nimm eben andere.
     if (bericht.rueckfrage) {
-      const liste = bericht.wiederholungen
-        .map((w) => `• ${w.titel.slice(0, 60)} (${w.lesbar})`)
-        .join("\n");
-      const weiter = confirm(
-        `${bericht.wiederholungen.length} der ausgewählten Produkte waren in ` +
-        `den letzten vier Wochen schon dran:\n\n${liste}\n\n` +
-        "Trotzdem einplanen?"
-      );
-      if (!weiter) {
+      const wahl = await wiederholungWaehlen(bericht.wiederholungen);
+      if (!wahl) {
         $("#k-stand").textContent = "Abgebrochen – nichts angelegt.";
         return;
       }
-      $("#k-stand").textContent = "Entwürfe entstehen …";
+      $("#k-stand").textContent = wahl === "ersetzen"
+        ? "Andere Produkte werden gesucht …"
+        : "Entwürfe entstehen …";
       bericht = await hole("/api/kampagne", {
-        projekt: $("#k-projekt").value,
-        thema: $("#k-thema").value,
-        kalenderwoche: Number($("#k-woche").value),
-        jahr: Number($("#k-jahr").value),
-        kategorien,
-        netzwerke: netze,
-        je_tag: jeTag,
-        tage,
-        hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
-        bestaetigt: true,
+        ...auftrag, bestaetigt: true, wiederholungen: wahl,
       });
     }
+
     // Das Formular bleibt offen und zeigt, was entstanden ist. Ein Lauf
     // dauert Minuten - wer in der Zeit etwas anderes macht, soll das
     // Ergebnis noch vorfinden und nicht nur eine Meldung verpasst haben.

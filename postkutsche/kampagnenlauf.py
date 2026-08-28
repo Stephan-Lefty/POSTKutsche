@@ -76,17 +76,25 @@ def wiederholungen_finden(ablage, projekt_id: int,
     return treffer
 
 
+#: Was mit kürzlich beworbenen Produkten geschehen soll.
+FRAGEN = "fragen"        # abbrechen und zurückmelden
+TROTZDEM = "trotzdem"    # nehmen, wie sie sind
+ERSETZEN = "ersetzen"    # durch andere ersetzen, die länger nicht dran waren
+
+
 def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
-               fortschritt=None, bestaetigt: bool = False) -> dict[str, Any]:
+               fortschritt=None, bestaetigt: bool = False,
+               wiederholungen: str = FRAGEN) -> dict[str, Any]:
     """Legt die Beiträge einer Kampagne an. Gibt einen Bericht zurück.
 
     `fortschritt(getan, gesamt, text)` wird nach jedem Schritt gerufen. Ein
     Lauf über zehn Produkte dauert Minuten - ohne Rückmeldung sieht das aus
     wie ein Absturz, und jemand bricht ab, während es noch läuft.
 
-    Waren Produkte in den letzten vier Wochen schon dran, bricht der Lauf ab
-    und meldet sie zurück - es sei denn, `bestaetigt` ist gesetzt. Der Aufruf
-    kommt also zweimal: einmal zum Prüfen, einmal zum Ausführen.
+    Waren Produkte in den letzten vier Wochen schon dran, entscheidet
+    `wiederholungen`: `FRAGEN` bricht ab und meldet sie zurück, `TROTZDEM`
+    nimmt sie, `ERSETZEN` sucht andere. Der Aufruf kommt also zweimal: einmal
+    zum Prüfen, einmal zum Ausführen.
     """
     sagen = melden or (lambda *_: None)
     schritt = fortschritt or (lambda *_: None)
@@ -116,6 +124,26 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
     # Was in den letzten vier Wochen schon dran war, wird gemeldet - nicht
     # stillschweigend übersprungen. Vielleicht ist die Wiederholung gewollt.
     wiederholt = wiederholungen_finden(ablage, projekt.id, gewaehlt)
+
+    if wiederholt and wiederholungen == ERSETZEN:
+        # Andere nehmen statt weniger: Wer eine Woche plant, will eine volle
+        # Woche. Aussortiert wird aus dem ganzen Vorrat, nicht nur aus der
+        # bereits getroffenen Auswahl - sonst bleiben Lücken.
+        schon_dran = {w["adresse"] for w in wiederholt}
+        frisch = [p for p in alle if p["adresse"] not in schon_dran]
+        weitere = wiederholungen_finden(ablage, projekt.id, frisch)
+        noch_frei = {w["adresse"] for w in weitere}
+        frisch = [p for p in frisch if p["adresse"] not in noch_frei]
+
+        gewaehlt = kampagnen.streuen(frisch, kampagne.anzahl)
+        sagen(f"{len(wiederholt)} ersetzt, {len(gewaehlt)} Produkte übrig.")
+        if not gewaehlt:
+            return _bericht([], unklar,
+                            "Alle Produkte dieser Kategorien waren in den "
+                            "letzten vier Wochen schon dran. Nimm andere "
+                            "Kategorien oder plane sie trotzdem ein.")
+        wiederholt = []
+
     if wiederholt and not bestaetigt:
         return {
             "rueckfrage": True,

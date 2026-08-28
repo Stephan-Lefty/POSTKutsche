@@ -159,3 +159,55 @@ class Wiederholungen(unittest.TestCase):
         self.assertTrue(bericht["rueckfrage"])
         self.assertEqual(bericht["anzahl"], 0)
         self.assertEqual(len(bericht["wiederholungen"]), 1)
+
+    def test_ersetzen_nimmt_andere_produkte(self):
+        # Absagen soll »nimm andere« heißen, nicht »mach gar nichts«.
+        from postkutsche import kampagnen, kampagnenlauf
+
+        alt = "https://shop.example/alt_1.html"
+        neu = "https://shop.example/neu_2.html"
+        self._beitrag_fuer(alt, 5)
+        self.ablage.geholt_vermerken(self.projekt.id)
+
+        vorrat = [
+            {"adresse": alt, "titel": "Alte Tür", "kategorie": "a"},
+            {"adresse": neu, "titel": "Neue Tür", "kategorie": "a"},
+        ]
+        k = kampagnen.Kampagne(thema="Probe", projekt="shop",
+                               kalenderwoche=36, jahr=2026, je_tag=1,
+                               tage=(0,))
+        antwort = {"facebook": {"text": "Text", "schlagworte": "", "rueckfrage": None}}
+
+        with mock.patch.object(kampagnenlauf, "produkte_sammeln", return_value=vorrat), \
+             mock.patch.object(kampagnenlauf.seitenkarte, "seite",
+                               return_value={"fremd_id": neu, "titel": "Neue Tür",
+                                             "text": "x", "adresse": neu,
+                                             "bild_adresse": None, "kategorien": []}), \
+             mock.patch("postkutsche.denker.verfuegbar", return_value=True), \
+             mock.patch("postkutsche.denker.schreiben", return_value=antwort):
+            bericht = kampagnenlauf.ausfuehren(
+                self.ablage, k, wiederholungen=kampagnenlauf.ERSETZEN
+            )
+
+        self.assertEqual(bericht["anzahl"], 1)
+        self.assertNotIn("rueckfrage", bericht)
+
+    def test_ersetzen_meldet_wenn_nichts_uebrig_ist(self):
+        from postkutsche import kampagnen, kampagnenlauf
+
+        alt = "https://shop.example/alt_1.html"
+        self._beitrag_fuer(alt, 5)
+        self.ablage.geholt_vermerken(self.projekt.id)
+        k = kampagnen.Kampagne(thema="Probe", projekt="shop",
+                               kalenderwoche=36, jahr=2026, je_tag=1, tage=(0,))
+
+        with mock.patch.object(kampagnenlauf, "produkte_sammeln",
+                               return_value=[{"adresse": alt, "titel": "Alt",
+                                              "kategorie": "a"}]), \
+             mock.patch("postkutsche.denker.verfuegbar", return_value=True):
+            bericht = kampagnenlauf.ausfuehren(
+                self.ablage, k, wiederholungen=kampagnenlauf.ERSETZEN
+            )
+
+        self.assertEqual(bericht["anzahl"], 0)
+        self.assertIn("schon dran", bericht["hinweis"])

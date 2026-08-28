@@ -486,6 +486,7 @@ class Behandler(BaseHTTPRequestHandler):
             hersteller=[str(h) for h in rumpf.get("hersteller", [])],
         )
         bestaetigt = bool(rumpf.get("bestaetigt"))
+        umgang = str(rumpf.get("wiederholungen", "fragen"))
         if Behandler.lauf.get("aktiv"):
             return self._fehler("Es läuft schon eine Planung.", 409)
 
@@ -499,7 +500,8 @@ class Behandler(BaseHTTPRequestHandler):
         try:
             with self._ablage() as a:
                 bericht = ausfuehren(a, kampagne, fortschritt=melden_fortschritt,
-                                     bestaetigt=bestaetigt)
+                                     bestaetigt=bestaetigt,
+                                     wiederholungen=umgang)
         finally:
             Behandler.lauf = {"aktiv": False}
         self._json(bericht)
