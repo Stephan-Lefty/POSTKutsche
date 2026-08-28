@@ -50,8 +50,21 @@ def _befehl() -> str:
     return f"{sys.executable} -m postkutsche"
 
 
+def _wurzel() -> Path:
+    """Das Verzeichnis, aus dem POSTKutsche läuft.
+
+    Wird als WorkingDirectory in die Einheit geschrieben. Ohne das scheitert
+    der Dienst mit »No module named postkutsche«, sobald das Paket nicht mit
+    pip installiert ist, sondern nur im Projektordner liegt - und genau so
+    läuft es hier. Aufgefallen beim ersten Start als Dienst: Er versuchte es
+    48-mal, bevor jemand ins Protokoll sah.
+    """
+    return Path(__file__).resolve().parent.parent
+
+
 def einheiten(port: int = 8770) -> dict[str, str]:
     ruf = _befehl()
+    wurzel = _wurzel()
     return {
         KALENDER: f"""[Unit]
 Description=POSTKutsche – Kalender
@@ -60,9 +73,16 @@ After=network.target
 
 [Service]
 Type=simple
+WorkingDirectory={wurzel}
+Environment=PYTHONPATH={wurzel}
 ExecStart={ruf} kalender --port {port} --nicht-oeffnen
 Restart=on-failure
 RestartSec=10
+# Nicht endlos neu starten: Ein Dienst, der 48-mal scheitert, hat ein
+# Problem, das kein weiterer Versuch löst - er soll aufgeben und es sichtbar
+# machen.
+StartLimitBurst=5
+StartLimitIntervalSec=300
 
 [Install]
 WantedBy=default.target
@@ -73,6 +93,8 @@ Documentation=https://github.com/Stephan-Lefty/POSTKutsche
 
 [Service]
 Type=oneshot
+WorkingDirectory={wurzel}
+Environment=PYTHONPATH={wurzel}
 ExecStart={ruf} senden
 """,
         SENDEN_TIMER: """[Unit]
