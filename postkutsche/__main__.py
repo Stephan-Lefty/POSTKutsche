@@ -122,6 +122,36 @@ def _zerleger() -> argparse.ArgumentParser:
     )
     entw.set_defaults(handlung=_entwerfen)
 
+    # -- konto ------------------------------------------------------------
+    konto = unter.add_parser("konto", help="Konten der Netzwerke einrichten")
+    konto_unter = konto.add_subparsers(dest="konto_befehl")
+    konto.set_defaults(handlung=lambda a, g: _konto_liste(a, g))
+
+    kl = konto_unter.add_parser("liste", help="eingerichtete Konten zeigen")
+    kl.set_defaults(handlung=_konto_liste)
+
+    kn = konto_unter.add_parser("neu", help="ein Konto anlegen")
+    kn.add_argument("netzwerk", choices=[n.kennung for n in netzwerke.alle()])
+    kn.add_argument("kennung", help="kurzer Name, etwa »mastodon-privat«")
+    kn.add_argument("--instanz", help="bei Mastodon die Serveradresse")
+    kn.add_argument("--projekt", action="append", dest="projekte",
+                    help="Projekt zuordnen; mehrfach angebbar")
+    kn.set_defaults(handlung=_konto_neu)
+
+    kt = konto_unter.add_parser("token", help="Zugangstoken hinterlegen")
+    kt.add_argument("kennung")
+    kt.set_defaults(handlung=_konto_token)
+
+    kp = konto_unter.add_parser("pruefen", help="Zugang prüfen, ohne zu senden")
+    kp.add_argument("kennung")
+    kp.set_defaults(handlung=_konto_pruefen)
+
+    # -- senden -----------------------------------------------------------
+    snd = unter.add_parser("senden", help="fällige Beiträge veröffentlichen")
+    snd.add_argument("--probelauf", action="store_true",
+                     help="nur zeigen, was rausginge")
+    snd.set_defaults(handlung=_senden)
+
     # -- kalender ---------------------------------------------------------
     kal = unter.add_parser("kalender", help="den Kalender im Browser öffnen")
     kal.add_argument("--port", type=int, default=8770)
@@ -284,6 +314,100 @@ def _entwerfen(ablage: Ablage, args: argparse.Namespace) -> int:
         print(f"\n{len(angelegt)} Entwurf/Entwürfe angelegt. "
               "Ansehen mit »postkutsche plan«.")
     return 0
+
+
+def _konto_liste(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import versand, zugaenge
+
+    zeilen = ablage.konten()
+    if not zeilen:
+        print("Noch keine Konten. Anlegen mit »postkutsche konto neu«.")
+        return 0
+    for zeile in zeilen:
+        hat = "Token vorhanden" if zugaenge.vorhanden(zeile["kennung"]) else "kein Token"
+        print(f"{zeile['netzwerk']:<10} {zeile['kennung']:<22} {hat}")
+        for name, wert in json.loads(zeile["einstellungen"] or "{}").items():
+            print(f"           {name}: {wert}")
+    warnung = zugaenge.rechte_warnung()
+    if warnung:
+        print(f"\n{warnung}", file=sys.stderr)
+    return 0
+
+
+def _konto_neu(ablage: Ablage, args: argparse.Namespace) -> int:
+    einstellungen = {}
+    if args.netzwerk == netzwerke.MASTODON:
+        if not args.instanz:
+            print("Bei Mastodon fehlt --instanz, etwa "
+                  "--instanz https://meine-instanz.example", file=sys.stderr)
+            return 1
+        einstellungen["instanz"] = args.instanz.rstrip("/")
+
+    nummer = ablage.konto_anlegen(args.netzwerk, args.kennung,
+                                  einstellungen=einstellungen)
+    for kennung in args.projekte or []:
+        projekt = ablage.projekt(kennung)
+        if projekt is None:
+            print(f"Kein Projekt »{kennung}« – übersprungen.", file=sys.stderr)
+            continue
+        ablage.konto_zuordnen(projekt.id, nummer)
+
+    print(f"Konto »{args.kennung}« für {args.netzwerk} angelegt.")
+    print(f"Jetzt das Token hinterlegen: postkutsche konto token {args.kennung}")
+    return 0
+
+
+def _konto_token(ablage: Ablage, args: argparse.Namespace) -> int:
+    import getpass
+    from . import zugaenge
+
+    # getpass, damit das Token nicht im Klartext auf dem Schirm steht - und
+    # nicht in der Verlaufsdatei der Shell landet.
+    token = getpass.getpass(f"Token für »{args.kennung}« (Eingabe bleibt unsichtbar): ")
+    if not token.strip():
+        print("Nichts eingegeben, nichts gespeichert.", file=sys.stderr)
+        return 1
+    ort = zugaenge.setzen(args.kennung, token.strip())
+    print(f"Hinterlegt in: {ort}")
+    return 0
+
+
+def _konto_pruefen(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import versand, zugaenge
+    from .netzwerke import mastodon
+
+    zeile = next((z for z in ablage.konten() if z["kennung"] == args.kennung), None)
+    if zeile is None:
+        print(f"Kein Konto »{args.kennung}«.", file=sys.stderr)
+        return 1
+    if zeile["netzwerk"] != netzwerke.MASTODON:
+        print(f"Prüfen ist bisher nur für Mastodon gebaut.", file=sys.stderr)
+        return 1
+
+    einstellungen = json.loads(zeile["einstellungen"] or "{}")
+    try:
+        konto = mastodon.pruefen(einstellungen["instanz"],
+                                 zugaenge.holen(args.kennung))
+    except (mastodon.MastodonFehler, zugaenge.KeinZugang) as fehler:
+        print(fehler, file=sys.stderr)
+        return 1
+
+    print(f"Angemeldet als @{konto['name']} ({konto['anzeigename']})")
+    print(f"{konto['beitraege']} Beiträge bisher")
+    grenze = mastodon.zeichengrenze(einstellungen["instanz"])
+    print(f"Zeichengrenze dieser Instanz: {grenze}")
+    return 0
+
+
+def _senden(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import versand
+
+    konten = versand.konten_lesen(ablage)
+    gut, schlecht = versand.senden(ablage, konten, probelauf=args.probelauf)
+    if gut or schlecht:
+        wort = "würden rausgehen" if args.probelauf else "gesendet"
+        print(f"\n{gut} {wort}, {schlecht} gescheitert.")
+    return 1 if schlecht else 0
 
 
 def _kalender(ablage: Ablage, args: argparse.Namespace) -> int:
