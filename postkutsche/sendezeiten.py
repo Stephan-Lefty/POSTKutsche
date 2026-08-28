@@ -69,27 +69,42 @@ FENSTER: dict[tuple[str, str], list[Fenster]] = {
         Fenster(WERKTAGS, 6, 30, 1,
                 "Vor Arbeitsbeginn. Handwerker schauen aufs Handy, bevor der "
                 "Wagen losfährt – da ist der Wettbewerb um Aufmerksamkeit gering."),
+        Fenster(WERKTAGS, 9, 0, 2,
+                "Neun Uhr, wenn der Bürotag beginnt. Für Deutschland die "
+                "meistgenannte Zeit – gilt aber für Schreibtische, nicht für "
+                "Baustellen. Steht hier, damit sich beides an den eigenen "
+                "Zahlen messen lässt."),
         Fenster(WERKTAGS, 12, 0, 2, "Mittagspause, in jeder Auswertung stabil."),
-        Fenster(WERKTAGS, 16, 30, 2,
+        Fenster(WERKTAGS, 16, 30, 3,
                 "Feierabend auf dem Bau. Früher als im Büro, deshalb nicht 18 Uhr."),
-        Fenster((SA,), 9, 0, 3,
-                "Samstagvormittag – der Bauherr plant, der Handwerker hat frei."),
+        Fenster((SA,), 10, 30, 3,
+                "Samstagvormittag – der Bauherr plant, der Handwerker hat frei. "
+                "Die deutschen Angaben nennen 10 bis 12 Uhr."),
     ],
     (FACEBOOK, VERBRAUCHER): [
         Fenster(KERNTAGE, 19, 0, 1, "Abends auf dem Sofa, die verlässlichste Zeit."),
-        Fenster((SA, SO), 10, 0, 1, "Wochenende vormittags, in Ruhe gelesen."),
+        Fenster((SA,), 11, 0, 1,
+                "Samstagvormittag. Für Deutschland werden 10 bis 12 Uhr "
+                "genannt; 11 Uhr liegt in der Mitte."),
+        Fenster((SO,), 11, 0, 1,
+                "Sonntagvormittag, dieselbe Spanne. Nachmittags gilt für "
+                "Deutschland 17 bis 19 Uhr."),
+        Fenster((SO,), 18, 0, 2, "Sonntagabend, vor dem Wochenanfang."),
         Fenster(WERKTAGS, 12, 30, 2,
                 "Mittagspause. Schwächer als der Abend, aber verlässlich."),
     ],
     (FACEBOOK, BETROFFENE): [
-        Fenster((SO,), 10, 30, 1,
+        Fenster((SO,), 11, 0, 1,
                 "Sonntagvormittag. Angehörige haben Zeit und Muße – für ein "
                 "Thema, das man nicht nebenbei liest, der beste Moment."),
         Fenster(KERNTAGE, 19, 30, 1, "Abends, wenn der Tag geschafft ist."),
         Fenster((SA,), 10, 30, 2, "Samstagvormittag als Ausweichtermin."),
     ],
     (FACEBOOK, GEMISCHT): [
-        Fenster(KERNTAGE, 12, 0, 1, "Mittagsfenster, plattformweit am stabilsten."),
+        Fenster(WERKTAGS, 9, 0, 1,
+                "Neun Uhr – für Deutschland die meistgenannte Zeit für "
+                "Facebook, wenn der Arbeitstag beginnt."),
+        Fenster(KERNTAGE, 12, 0, 2, "Mittagsfenster, plattformweit am stabilsten."),
         Fenster(KERNTAGE, 19, 0, 2,
                 "Abends auf dem Sofa – die zweite verlässliche Zeit des Tages."),
     ],
