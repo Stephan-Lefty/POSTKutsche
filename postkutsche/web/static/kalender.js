@@ -7,8 +7,8 @@
  */
 
 const stand = {
-  jahr: null,
-  monat: null,
+  ersteWoche: null,      // Montag der obersten sichtbaren Woche
+  letzteWoche: null,     // Montag der untersten
   projekte: [],
   netzwerke: {},
   sichtbar: new Set(),   // Häkchen links - reine Ansichtssache
@@ -71,14 +71,11 @@ async function anfangen() {
   spalteZeichnen();
   await monatLaden();
 
-  $("#zurueck").onclick = () => blaettern(-1);
-  $("#vor").onclick = () => blaettern(1);
   $("#heute").onclick = () => {
-    const h = new Date();
-    stand.jahr = h.getFullYear();
-    stand.monat = h.getMonth() + 1;
     monatLaden();
+    $("#rollbereich").scrollTop = 0;
   };
+  rollenBeobachten();
   $("#blatt-zu").onclick = blattSchliessen;
   $("#thema").onclick = themaWechseln;
 
@@ -428,13 +425,6 @@ function themaWechseln() {
   localStorage.setItem("thema", neu);
 }
 
-function blaettern(schritt) {
-  stand.monat += schritt;
-  if (stand.monat < 1) { stand.monat = 12; stand.jahr--; }
-  if (stand.monat > 12) { stand.monat = 1; stand.jahr++; }
-  monatLaden();
-}
-
 // -- Projektspalte ----------------------------------------------------------
 
 function spalteZeichnen() {
@@ -487,32 +477,77 @@ function spalteZeichnen() {
   });
 }
 
-// -- Monatsraster -----------------------------------------------------------
+// -- Rollende Wochenansicht -------------------------------------------------
+//
+// Statt eines Monatsrasters eine Liste von Wochen: die laufende und fünf
+// weitere. Wer weiter blättert, lädt nach - nach oben in die Vergangenheit,
+// nach unten in die Zukunft.
+//
+// Der Grund gegen das Monatsraster: Geplant wird über den Monatswechsel
+// hinweg. Wer Ende August die KW 36 vorbereitet, sieht im Augustraster nur
+// den 31. und muss blättern - ausgerechnet an der Stelle, an der er arbeitet.
+
+const WOCHEN_SICHTBAR = 6;
+
+/** Der Montag der Woche, in der ein Datum liegt. */
+function montagVon(d) {
+  const m = new Date(d);
+  m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+  m.setHours(0, 0, 0, 0);
+  return m;
+}
+
+function tageSpaeter(d, n) {
+  const neu = new Date(d);
+  neu.setDate(neu.getDate() + n);
+  return neu;
+}
 
 async function monatLaden() {
-  const frage = new URLSearchParams({ jahr: stand.jahr, monat: stand.monat });
+  // Der Name bleibt, damit die übrigen Aufrufe nicht alle geändert werden
+  // müssen - gemeint ist: den sichtbaren Bereich neu zeichnen.
+  stand.ersteWoche = montagVon(new Date());
+  stand.letzteWoche = tageSpaeter(stand.ersteWoche, (WOCHEN_SICHTBAR - 1) * 7);
+  $("#raster").innerHTML = "";
+  await bereichZeichnen(stand.ersteWoche, stand.letzteWoche, "unten");
+  titelSetzen();
+}
+
+function titelSetzen() {
+  const von = stand.ersteWoche;
+  const bis = tageSpaeter(stand.letzteWoche, 6);
+  const form = { day: "2-digit", month: "short" };
+  $("#monatstitel").textContent =
+    `${von.toLocaleDateString("de-DE", form)} – ${bis.toLocaleDateString("de-DE", { ...form, year: "numeric" })}`;
+}
+
+async function beitraegeHolen(von, bis) {
+  const frage = new URLSearchParams({
+    von: tagesschluessel(von),
+    bis: tagesschluessel(tageSpaeter(bis, 7)),
+  });
   stand.projekte.forEach((p) => {
     if (stand.sichtbar.has(p.kennung)) frage.append("projekt", p.kennung);
   });
-
-  let daten;
-  try {
-    daten = await hole(`/api/beitraege?${frage}`);
-  } catch (fehler) {
-    melden(fehler.message, true);
-    return;
-  }
-
-  const monatsname = new Date(stand.jahr, stand.monat - 1, 1)
-    .toLocaleDateString("de-DE", { month: "long", year: "numeric" });
-  $("#monatstitel").textContent = monatsname;
-
-  rasterZeichnen(daten.beitraege);
+  const daten = await hole(`/api/beitraege?${frage}`);
+  return daten.beitraege;
 }
 
-function rasterZeichnen(beitraege) {
+let laedtGerade = false;
+
+async function bereichZeichnen(vonMontag, bisMontag, richtung) {
+  if (laedtGerade) return;
+  laedtGerade = true;
   const raster = $("#raster");
-  raster.innerHTML = "";
+
+  let beitraege;
+  try {
+    beitraege = await beitraegeHolen(vonMontag, bisMontag);
+  } catch (fehler) {
+    melden(fehler.message, true);
+    laedtGerade = false;
+    return;
+  }
 
   const nachTag = new Map();
   beitraege.forEach((b) => {
@@ -521,52 +556,86 @@ function rasterZeichnen(beitraege) {
     nachTag.get(schluessel).push(b);
   });
 
-  // Das Raster beginnt am Montag der Woche, in der der Erste liegt.
-  const erster = new Date(stand.jahr, stand.monat - 1, 1);
-  const anfang = new Date(erster);
-  anfang.setDate(erster.getDate() - ((erster.getDay() + 6) % 7));
-
   const heute = tagesschluessel(new Date());
+  const stuecke = document.createDocumentFragment();
+  const wochen = Math.round((bisMontag - vonMontag) / 604800000) + 1;
 
-  for (let i = 0; i < 42; i++) {
-    const tag = new Date(anfang);
-    tag.setDate(anfang.getDate() + i);
-    const schluessel = tagesschluessel(tag);
-    const eigen = tag.getMonth() === stand.monat - 1;
+  for (let w = 0; w < wochen; w++) {
+    const montag = tageSpaeter(vonMontag, w * 7);
+    const kw = kalenderwoche(montag);
 
-    // Angefangene Wochen werden zu Ende gezeichnet. Vorher brach das Raster
-    // nach dem letzten Tag des Monats ab - der 31. August stand allein in
-    // seiner Zeile, während oben die Juli-Tage vollständig dastanden. Was
-    // vor dem Monat gezeigt wird, gehört auch danach gezeigt.
-    if (i >= 35 && tag.getDay() === 1 && !eigen) break;
-
-    // Zu Beginn jeder Zeile die Kalenderwoche. Sie steht in einer eigenen
-    // Spalte und nicht im Montagsfeld - sonst wandert sie mit, sobald man
-    // die Spaltenbreite ändert.
-    if (i % 7 === 0) {
-      const kw = document.createElement("div");
-      kw.className = "kw";
-      kw.textContent = kalenderwoche(tag).woche;
-      kw.title = `Kalenderwoche ${kalenderwoche(tag).woche}`;
-      raster.append(kw);
+    const kopf = document.createElement("div");
+    kopf.className = "wochenkopf";
+    const sonntag = tageSpaeter(montag, 6);
+    kopf.textContent =
+      `KW ${kw.woche} · ${montag.toLocaleDateString("de-DE", { day: "2-digit", month: "long" })}` +
+      ` bis ${sonntag.toLocaleDateString("de-DE", { day: "2-digit", month: "long" })}`;
+    if (kw.woche === kalenderwoche(new Date()).woche
+        && kw.jahr === kalenderwoche(new Date()).jahr) {
+      kopf.classList.add("jetzt");
+      kopf.textContent += " · diese Woche";
     }
+    stuecke.append(kopf);
 
-    const kasten = document.createElement("div");
-    kasten.className = "tag" + (eigen ? "" : " fremd") + (schluessel === heute ? " heute" : "");
-    kasten.dataset.tag = schluessel;
+    const kwFeld = document.createElement("div");
+    kwFeld.className = "kw";
+    kwFeld.textContent = kw.woche;
+    stuecke.append(kwFeld);
 
-    const zahl = document.createElement("span");
-    zahl.className = "zahl";
-    zahl.textContent = tag.getDate();
-    kasten.append(zahl);
+    for (let i = 0; i < 7; i++) {
+      const tag = tageSpaeter(montag, i);
+      const schluessel = tagesschluessel(tag);
+      const kasten = document.createElement("div");
+      kasten.className = "tag" + (schluessel === heute ? " heute" : "");
+      kasten.dataset.tag = schluessel;
 
-    (nachTag.get(schluessel) || [])
-      .sort((a, b) => a.geplant.localeCompare(b.geplant))
-      .forEach((b) => kasten.append(kaertchen(b)));
+      const zahl = document.createElement("span");
+      zahl.className = "zahl";
+      zahl.textContent = tag.getDate() === 1
+        ? tag.toLocaleDateString("de-DE", { day: "numeric", month: "short" })
+        : tag.getDate();
+      kasten.append(zahl);
 
-    ablegenErlauben(kasten);
-    raster.append(kasten);
+      (nachTag.get(schluessel) || [])
+        .sort((a, b) => a.geplant.localeCompare(b.geplant))
+        .forEach((b) => kasten.append(kaertchen(b)));
+
+      ablegenErlauben(kasten);
+      stuecke.append(kasten);
+    }
   }
+
+  const bereich = $("#rollbereich");
+  if (richtung === "oben") {
+    // Beim Nachladen nach oben rutscht der Inhalt weg. Die Rollposition wird
+    // um die dazugekommene Höhe verschoben, sonst springt die Ansicht.
+    const vorher = bereich.scrollHeight;
+    raster.prepend(stuecke);
+    bereich.scrollTop += bereich.scrollHeight - vorher;
+  } else {
+    raster.append(stuecke);
+  }
+  laedtGerade = false;
+}
+
+function rollenBeobachten() {
+  const bereich = $("#rollbereich");
+  bereich.onscroll = async () => {
+    if (laedtGerade) return;
+    const rest = bereich.scrollHeight - bereich.scrollTop - bereich.clientHeight;
+
+    if (rest < 200) {
+      const neuVon = tageSpaeter(stand.letzteWoche, 7);
+      stand.letzteWoche = tageSpaeter(neuVon, 21);
+      await bereichZeichnen(neuVon, stand.letzteWoche, "unten");
+      titelSetzen();
+    } else if (bereich.scrollTop < 200) {
+      const neuBis = tageSpaeter(stand.ersteWoche, -7);
+      stand.ersteWoche = tageSpaeter(neuBis, -21);
+      await bereichZeichnen(stand.ersteWoche, neuBis, "oben");
+      titelSetzen();
+    }
+  };
 }
 
 function kaertchen(b) {

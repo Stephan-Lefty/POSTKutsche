@@ -174,19 +174,28 @@ class Behandler(BaseHTTPRequestHandler):
         Netzwerke, und eine zweite Anfrage je Beitrag wären bei dreißig
         Kärtchen dreißig Anfragen.
         """
-        heute = datetime.now(zeiten.ORTSZONE)
-        jahr = int(frage.get("jahr", [heute.year])[0])
-        monat = int(frage.get("monat", [heute.month])[0])
-        if not 1 <= monat <= 12:
-            raise ValueError(f"Monat {monat} gibt es nicht.")
-
         nur = frage.get("projekt")
-        von, bis = zeiten.monatsgrenzen(jahr, monat)
+
+        # Zwei Wege: ein Zeitraum in Ortszeit (»2026-08-31« bis »2026-10-12«)
+        # oder ein Monat. Der Zeitraum ist der neue Weg für die rollende
+        # Wochenansicht; der Monat bleibt, weil die Kommandozeile ihn nutzt.
+        if frage.get("von") and frage.get("bis"):
+            von = zeiten.von_ortszeit(frage["von"][0])
+            bis = zeiten.von_ortszeit(frage["bis"][0])
+            kopf = {"von": frage["von"][0], "bis": frage["bis"][0]}
+        else:
+            heute = datetime.now(zeiten.ORTSZONE)
+            jahr = int(frage.get("jahr", [heute.year])[0])
+            monat = int(frage.get("monat", [heute.month])[0])
+            if not 1 <= monat <= 12:
+                raise ValueError(f"Monat {monat} gibt es nicht.")
+            von, bis = zeiten.monatsgrenzen(jahr, monat)
+            kopf = {"jahr": jahr, "monat": monat}
 
         with self._ablage() as a:
             zeilen = a.beitraege_im_zeitraum(von, bis, nur)
             self._json({
-                "jahr": jahr, "monat": monat,
+                **kopf,
                 "beitraege": [self._kaertchen(a, z) for z in zeilen],
             })
 

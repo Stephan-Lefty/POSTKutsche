@@ -125,12 +125,15 @@ button { font: inherit; cursor: pointer; }
 .wochentage { margin-bottom: 6px; }
 .wochentage span { font-size: 12px; color: var(--text-leise); padding-left: 4px; }
 
+/* Die Höhe richtet sich nach dem Fenster: sechs Wochen sollen es füllen,
+   ohne dass ein Tag zum Briefmarkenformat schrumpft. Der Abzug deckt Kopf,
+   Wochentagszeile und die Wochenüberschriften. */
 .tag {
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: 10px;
-  min-height: 108px;
-  padding: 5px;
+  min-height: max(132px, calc((100vh - 260px) / 4));
+  padding: 6px;
 }
 .tag.fremd { opacity: 0.45; }
 .tag.heute { border-color: var(--blau); box-shadow: inset 0 0 0 1px var(--blau); }
@@ -143,8 +146,8 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid var(--linie);
   border-radius: 8px;
   background: var(--grund);
-  padding: 0 0 5px;
-  margin-bottom: 5px;
+  padding: 0 0 6px;
+  margin-bottom: 6px;
   cursor: grab;
   overflow: hidden;
   font-size: 12px;
@@ -165,7 +168,7 @@ button { font: inherit; cursor: pointer; }
 
 .kopfzeile { display: flex; align-items: center; gap: 5px; padding: 5px 6px 3px; }
 .kopfzeile .zeit { color: var(--text-leise); font-size: 11px; }
-.titel { padding: 0 6px; line-height: 1.3; }
+.titel { padding: 0 7px; line-height: 1.35; }
 .fuss { display: flex; align-items: center; gap: 4px; padding: 5px 6px 0; }
 .kuerzel { font-size: 10px; padding: 1px 4px; border-radius: 3px; border: 1px solid; color: var(--text-leise); }
 .zustand { margin-left: auto; font-size: 12px; }
@@ -277,7 +280,8 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 860px) {
   .rumpf { flex-direction: column; }
   .spalte, .blatt { flex: 1 1 auto; width: 100%; max-height: none; }
-  .tag { min-height: 78px; }
+  .tag { min-height: 96px; }
+  .rollbereich { max-height: none; }
 }
 
 
@@ -408,3 +412,24 @@ button { font: inherit; cursor: pointer; }
   border-color: var(--blau); color: var(--blau); background: var(--flaeche);
 }
 .tage input { width: auto; margin: 0; }
+
+/* Die rollende Wochenansicht: sechs Wochen sichtbar, weiter gescrollt wird
+   nachgeladen. Ein Monatsraster zwingt dazu, am Monatsende zu blättern -
+   ausgerechnet dort, wo die nächste Woche geplant wird. */
+.rollbereich {
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.wochenkopf {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--text-leise);
+  padding: 10px 4px 2px;
+  border-top: 1px solid var(--linie);
+  margin-top: 4px;
+}
+.wochenkopf:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.wochenkopf.jetzt { color: var(--blau); font-weight: 600; }
+.laedt { grid-column: 1 / -1; text-align: center; color: var(--text-leise);
+         font-size: 12px; padding: 10px; }

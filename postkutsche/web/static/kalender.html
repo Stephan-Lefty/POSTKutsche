@@ -13,10 +13,8 @@
   <img src="/static/icon-64.png" alt="" class="zeichen" width="34" height="34">
   <h1>POST<span>Kutsche</span></h1>
 
-  <nav class="blaettern" aria-label="Monat wählen">
-    <button id="zurueck" aria-label="Voriger Monat">‹</button>
+  <nav class="blaettern" aria-label="Zeitraum">
     <strong id="monatstitel">…</strong>
-    <button id="vor" aria-label="Nächster Monat">›</button>
     <button id="heute" class="schlicht">Heute</button>
   </nav>
 
@@ -50,7 +48,9 @@
       <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
       <span>Fr</span><span>Sa</span><span>So</span>
     </div>
-    <div id="raster" class="raster"></div>
+    <div id="rollbereich" class="rollbereich">
+      <div id="raster" class="raster"></div>
+    </div>
   </main>
 
   <section id="blatt" class="blatt" hidden aria-label="Beitrag">
