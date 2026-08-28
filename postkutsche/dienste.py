@@ -134,6 +134,60 @@ def entfernen(melden=print) -> int:
     return 0
 
 
+def verknuepfung(port: int = 8770, melden=print) -> int:
+    """Legt einen Eintrag im Anwendungsmenü an.
+
+    Er startet keinen Dienst, sondern öffnet nur die Adresse im Browser - der
+    Kalender läuft ja im Hintergrund. Damit fühlt es sich an wie ein Programm,
+    obwohl es eine Seite im Browser ist.
+
+    Nach ~/.local/share, nicht nach /usr/share: kein Administratorkennwort,
+    und es gilt nur für diesen Benutzer.
+    """
+    from . import __version__
+
+    anwendungen = Path.home() / ".local" / "share" / "applications"
+    anwendungen.mkdir(parents=True, exist_ok=True)
+
+    # Das Icon in den Symbolordner legen, damit die Arbeitsumgebung es findet.
+    # Ein Verweis auf eine Datei im Projektordner ginge auch, hinge dann aber
+    # daran, dass niemand das Verzeichnis verschiebt.
+    quelle = Path(__file__).parent.parent / "assets" / "icon-256.png"
+    symbol = "postkutsche"
+    if quelle.is_file():
+        ziel = Path.home() / ".local/share/icons/hicolor/256x256/apps"
+        ziel.mkdir(parents=True, exist_ok=True)
+        (ziel / f"{symbol}.png").write_bytes(quelle.read_bytes())
+        melden(f"Symbol: {ziel / f'{symbol}.png'}")
+
+    datei = anwendungen / "postkutsche.desktop"
+    datei.write_text(f"""[Desktop Entry]
+Type=Application
+Version=1.0
+Name=POSTKutsche
+GenericName=Redaktionskalender
+Comment=Beiträge für Blogs, Shops und soziale Netzwerke planen
+Exec=xdg-open http://127.0.0.1:{port}/
+Icon={symbol}
+Terminal=false
+Categories=Office;Network;
+Keywords=Kalender;Social;Beitrag;Mastodon;Facebook;Instagram;
+StartupNotify=false
+X-POSTKutsche-Version={__version__}
+""", encoding="utf-8")
+    datei.chmod(0o755)
+    melden(f"Eintrag: {datei}")
+
+    # Manche Arbeitsumgebungen merken neue Einträge erst nach einem Anstoß.
+    if shutil.which("update-desktop-database"):
+        subprocess.run(["update-desktop-database", str(anwendungen)],
+                       capture_output=True)
+
+    melden("\nPOSTKutsche steht jetzt im Anwendungsmenü.")
+    melden("Ein Klick öffnet den Kalender im Browser – kein Terminal nötig.")
+    return 0
+
+
 def stand(melden=print) -> int:
     """Zeigt, ob die Dienste laufen."""
     if not verfuegbar():

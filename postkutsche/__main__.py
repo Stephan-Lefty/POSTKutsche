@@ -173,6 +173,12 @@ def _zerleger() -> argparse.ArgumentParser:
     ds = dst_unter.add_parser("stand", help="läuft es?")
     ds.set_defaults(handlung=_dienst_stand)
 
+    dv = dst_unter.add_parser(
+        "menueeintrag", help="POSTKutsche ins Anwendungsmenü legen"
+    )
+    dv.add_argument("--port", type=int, default=8770)
+    dv.set_defaults(handlung=_dienst_verknuepfung)
+
     dx = dst_unter.add_parser("entfernen", help="Dienste anhalten und löschen")
     dx.set_defaults(handlung=_dienst_entfernen)
 
@@ -435,6 +441,12 @@ def _dienst_einrichten(ablage: Ablage, args: argparse.Namespace) -> int:
     except RuntimeError as fehler:
         print(fehler, file=sys.stderr)
         return 1
+
+
+def _dienst_verknuepfung(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import dienste
+
+    return dienste.verknuepfung(args.port)
 
 
 def _dienst_stand(ablage: Ablage, args: argparse.Namespace) -> int:
