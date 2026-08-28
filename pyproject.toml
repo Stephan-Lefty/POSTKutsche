@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sendeplan"
+# Die Fassung steht ausschließlich in sendeplan/__init__.py und wird von dort
+# gelesen. Sie hier zu wiederholen ging bei MailBurg schief: pyproject.toml
+# blieb bei 0.1.0 stehen, während das Programm längst 0.9.0 meldete.
+dynamic = ["version"]
+description = "Redaktionskalender für Blogs, Shops und soziale Netzwerke"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Stephan Rösner" }]
+keywords = ["social-media", "redaktionsplan", "mastodon", "linkedin", "wordpress"]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: German",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+]
+
+# Der Kern kommt ohne Fremdpakete aus – Datenbank, Webdienst und alle Abrufe
+# stecken in der Standardbibliothek. Das ist Absicht: Ein Werkzeug, das man
+# einmal einrichtet und dann jahrelang laufen lässt, soll nicht an einer
+# Bibliothek hängen, die es in zwei Jahren nicht mehr gibt.
+dependencies = []
+
+[project.optional-dependencies]
+# Bilder auf 4:5 zuschneiden. Ohne Pillow wird das unveränderte Bild von der
+# Website genommen – funktioniert, sieht auf dem Handy nur schlechter aus.
+bilder = ["Pillow>=10"]
+
+# Zugangstoken im Schlüsselbund statt in einer Datei. Ohne keyring landen sie
+# in ~/.config/sendeplan/zugaenge.json mit Rechten 600.
+schluessel = ["keyring>=24"]
+
+alles = ["sendeplan[bilder,schluessel]"]
+
+[project.urls]
+Quelltext = "https://github.com/Stephan-Lefty/Sendeplan"
+"Änderungsprotokoll" = "https://github.com/Stephan-Lefty/Sendeplan/blob/main/CHANGELOG.md"
+Fehler = "https://github.com/Stephan-Lefty/Sendeplan/issues"
+
+[project.scripts]
+sendeplan = "sendeplan.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["sendeplan*"]
+
+[tool.setuptools.package-data]
+sendeplan = ["web/static/*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "sendeplan.__version__" }

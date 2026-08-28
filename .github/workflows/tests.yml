@@ -1,0 +1,50 @@
+name: Tests
+
+# Sparfassung von Anfang an. GitHub rundet *jeden einzelnen Job* auf volle
+# Minuten auf und rechnet macOS zehnfach, Windows zweifach – ein macOS-Job von
+# neun Sekunden kostet zehn Minuten. Bei MailBurg summierte sich das an einem
+# Arbeitstag auf das gesamte Monatskontingent, bevor es auffiel.
+#
+# Deshalb hier gleich: ein Job auf Linux bei jedem Push. Sendeplan läuft
+# ohnehin nur unter Linux, andere Systeme müssen gar nicht geprüft werden.
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+  pull_request:
+  workflow_dispatch:
+
+# Wer dreimal hintereinander pusht, braucht nur die Antwort auf den letzten.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Syntax prüfen
+        run: python -m compileall -q sendeplan tests
+
+      - name: Tests
+        run: python -m unittest discover -s tests
+
+      # Der Kern soll ohne Fremdpakete auskommen. Dieser Schritt hält das fest:
+      # Er läuft in einer nackten Umgebung, in der nichts installiert wurde.
+      - name: Kern kommt ohne Fremdpakete aus
+        run: python -c "import sendeplan.ablage, sendeplan.zeiten, sendeplan.sendezeiten"
+
+      - name: Kommandozeile läuft
+        run: |
+          python -m sendeplan --ablage /tmp/probe.db einrichten
+          python -m sendeplan --ablage /tmp/probe.db projekt liste
+          python -m sendeplan --ablage /tmp/probe.db netzwerke
