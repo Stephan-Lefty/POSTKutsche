@@ -268,6 +268,14 @@ button { font: inherit; cursor: pointer; }
 
 /* -- Wochenplanung ------------------------------------------------------- */
 
+/* Diese Zeile ist nicht überflüssig, sondern der Grund, warum das Fenster
+   sich überhaupt schließen lässt: »display: flex« unten überschreibt das
+   »display: none«, das der Browser für [hidden] setzt - eine Klasse wiegt
+   schwerer als ein Attribut. Ohne diese Regel bleibt die Maske sichtbar,
+   auch wenn hidden gesetzt ist, und jeder Abbrechen-Knopf wirkt kaputt.
+   Am 2026-08-28 genau so passiert. */
+.ueberlagerung[hidden] { display: none; }
+
 .ueberlagerung {
   position: fixed;
   inset: 0;
