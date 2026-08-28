@@ -128,6 +128,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._bild_setzen(rumpf)
             if pfad == "/api/projektfarbe":
                 return self._projektfarbe(rumpf)
+            if pfad == "/api/antwort":
+                return self._antwort(rumpf)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
         except (ValueError, KeyError) as fehler:
@@ -355,6 +357,74 @@ class Behandler(BaseHTTPRequestHandler):
                 rumpf.get("schlagworte"),
             )
             self._json({"fassung": int(rumpf["fassung"]), "von_hand": True})
+
+    def _antwort(self, rumpf: dict[str, Any]) -> None:
+        """Beantwortet eine Rückfrage und lässt den Text nachbessern.
+
+        Die Schleife, die POSTKutsche besser macht statt nur schneller:
+        Claude fragt, du antwortest, der Text wird genauer. Ohne sie bleibt
+        nur, den Text von Hand zu ergänzen - dann lernt niemand etwas.
+        """
+        from .. import denker
+
+        fassung_id = int(rumpf["fassung"])
+        antwort = str(rumpf.get("antwort", "")).strip()
+        if not antwort:
+            raise ValueError("Ohne Antwort lässt sich nichts nachbessern.")
+
+        with self._ablage() as a:
+            zeile = a.db.execute(
+                """SELECT f.*, b.inhalt_id FROM fassungen f
+                   JOIN beitraege b ON b.id = f.beitrag_id
+                   WHERE f.id = ?""", (fassung_id,)
+            ).fetchone()
+            if zeile is None:
+                return self._fehler("Diese Fassung gibt es nicht.", 404)
+            if not zeile["rueckfrage"]:
+                return self._fehler("Zu dieser Fassung ist keine Frage offen.")
+
+            inhalt = a.db.execute(
+                "SELECT titel, text, adresse, bild_adresse FROM inhalte WHERE id = ?",
+                (zeile["inhalt_id"],),
+            ).fetchone() if zeile["inhalt_id"] else None
+
+            quelle = {
+                "titel": inhalt["titel"] if inhalt else "",
+                "text": inhalt["text"] if inhalt else "",
+                "adresse": inhalt["adresse"] if inhalt else "",
+                "bild_adresse": inhalt["bild_adresse"] if inhalt else None,
+                "kategorien": [],
+            }
+
+            neu = denker.nachbessern(
+                quelle, zeile["netzwerk"], zeile["text"],
+                zeile["rueckfrage"], antwort,
+            )
+
+            # Die Antwort wird an den Beitrag geschrieben. Sie gehört zur
+            # Geschichte: Wer später liest, warum dort etwas Bestimmtes steht,
+            # findet Frage und Antwort beieinander.
+            beitrag = a.beitrag(int(zeile["beitrag_id"]))
+            vermerk = (beitrag["notiz"] + "\n\n" if beitrag["notiz"] else "")
+            vermerk += f"F: {zeile['rueckfrage']}\nA: {antwort}"
+            a.db.execute("UPDATE beitraege SET notiz = ? WHERE id = ?",
+                         (vermerk, int(zeile["beitrag_id"])))
+
+            a.db.execute(
+                """UPDATE fassungen SET text = ?, schlagworte = ?,
+                       rueckfrage = ?, von_hand = 0 WHERE id = ?""",
+                (neu["text"], neu["schlagworte"], neu["rueckfrage"], fassung_id),
+            )
+            a.db.commit()
+            a._beitrag_nachfuehren(int(zeile["beitrag_id"]))
+
+        self._json({
+            "fassung": fassung_id,
+            "text": neu["text"],
+            "schlagworte": neu["schlagworte"],
+            # Claude darf erneut fragen - lieber zweimal fragen als einmal raten.
+            "rueckfrage": neu["rueckfrage"],
+        })
 
     def _projektfarbe(self, rumpf: dict[str, Any]) -> None:
         """Ändert die Farbe eines Projekts.

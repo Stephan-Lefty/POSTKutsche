@@ -246,3 +246,72 @@ def _json_finden(roh: str) -> dict[str, Any]:
     if not isinstance(daten, dict):
         raise AntwortFehler("Die Antwort ist kein JSON-Objekt.")
     return daten
+
+
+def nachbesserung(
+    inhalt: dict[str, Any],
+    netzwerk: str,
+    bisher: str,
+    frage: str,
+    antwort: str,
+    zusatz: str = "",
+) -> str:
+    """Anweisung zum Nachbessern eines Textes mit der Antwort auf die Rückfrage.
+
+    Der Unterschied zum Neuschreiben ist wesentlich: Der bisherige Text war
+    nicht falsch, ihm fehlte eine Angabe. Wer neu schreiben lässt, bekommt
+    einen anderen Text - womöglich einen schlechteren, und die Arbeit am
+    ersten war umsonst. Deshalb bekommt Claude den alten Text mit und den
+    Auftrag, ihn zu ergänzen statt zu ersetzen.
+    """
+    netz = netzwerke.netzwerk(netzwerk)
+    teile = [
+        "Du hast einen Beitrag geschrieben und dabei nachgefragt. Die Antwort "
+        "liegt jetzt vor. Bessere den Text nach - ergänze ihn, schreib ihn "
+        "nicht neu.",
+        "",
+        "## Der bisherige Text",
+        "",
+        bisher,
+        "",
+        "## Deine Rückfrage",
+        "",
+        frage,
+        "",
+        "## Die Antwort",
+        "",
+        antwort,
+        "",
+        "## Das Netzwerk",
+        "",
+        _netzwerkteil(netzwerk),
+        "",
+        "## Regeln",
+        "",
+        GRUNDREGELN,
+        "",
+        "## Zusätzlich",
+        "",
+        "- Behalte, was gut war. Ändere nur, was die Antwort betrifft.",
+        "- Erfinde aus der Antwort nichts dazu. Steht dort »verstellt die "
+        "Breite«, schreibst du das - nicht »verstellt die Breite stufenlos "
+        "um bis zu 30 Zentimeter«.",
+        "- Reicht die Antwort nicht aus, frag erneut. Lieber zweimal fragen "
+        "als einmal raten.",
+    ]
+    if zusatz:
+        teile += ["", zusatz]
+    teile += [
+        "",
+        "## Antwortformat",
+        "",
+        "Antworte ausschließlich mit JSON, ohne einleitenden Satz und ohne "
+        "Code-Zaun:",
+        "",
+        json.dumps({"fassungen": {netzwerk: {
+            "text": "der nachgebesserte Text",
+            "schlagworte": ["ohne", "raute"],
+            "rueckfrage": None,
+        }}}, indent=2, ensure_ascii=False),
+    ]
+    return "\n".join(teile)

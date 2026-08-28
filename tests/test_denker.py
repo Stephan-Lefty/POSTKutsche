@@ -181,6 +181,54 @@ class AntwortLesen(unittest.TestCase):
             vorlagen.antwort_lesen('{"text": "irgendwas"}', ["mastodon"])
 
 
+class Nachbesserung(unittest.TestCase):
+    """Die Schleife: Claude fragt, Stephan antwortet, der Text wird genauer."""
+
+    def test_anweisung_enthaelt_frage_und_antwort(self):
+        a = vorlagen.nachbesserung(
+            INHALT, "facebook", "Der bisherige Text.",
+            "Was verstellt die Spindel?", "Die Breite, stufenlos.",
+        )
+        self.assertIn("Der bisherige Text.", a)
+        self.assertIn("Was verstellt die Spindel?", a)
+        self.assertIn("Die Breite, stufenlos.", a)
+
+    def test_verlangt_ergaenzen_statt_neuschreiben(self):
+        # Der bisherige Text war nicht falsch, ihm fehlte eine Angabe. Wer
+        # neu schreiben lässt, bekommt einen anderen - womöglich schlechteren.
+        a = vorlagen.nachbesserung(INHALT, "facebook", "Text", "Frage?", "Antwort")
+        self.assertIn("ergänze ihn, schreib ihn nicht neu", a)
+
+    def test_verbietet_ausschmuecken(self):
+        # »verstellt die Breite« darf nicht zu »stufenlos um bis zu 30
+        # Zentimeter« werden.
+        a = vorlagen.nachbesserung(INHALT, "facebook", "Text", "Frage?", "Antwort")
+        self.assertIn("Erfinde aus der Antwort nichts dazu", a)
+
+    def test_erlaubt_erneutes_nachfragen(self):
+        a = vorlagen.nachbesserung(INHALT, "facebook", "Text", "Frage?", "Antwort")
+        self.assertIn("frag erneut", a)
+
+    def test_nachbessern_liest_die_antwort(self):
+        antwort = json.dumps({"fassungen": {"facebook": _fassung("Jetzt genauer.")}})
+        huelle = json.dumps({"result": antwort})
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(stdout=huelle)):
+            e = kommando.nachbessern(INHALT, "facebook", "Vorher",
+                                     "Was denn?", "Das hier.")
+        self.assertEqual(e["text"], "Jetzt genauer.")
+        self.assertIsNone(e["rueckfrage"])
+
+    def test_erneute_rueckfrage_kommt_durch(self):
+        antwort = json.dumps({"fassungen": {"facebook": _fassung(
+            "Immer noch unklar.", rueckfrage="Und in welcher Einheit?")}})
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run",
+                        return_value=_lauf(stdout=json.dumps({"result": antwort}))):
+            e = kommando.nachbessern(INHALT, "facebook", "Vorher", "Was?", "Das.")
+        self.assertEqual(e["rueckfrage"], "Und in welcher Einheit?")
+
+
 def _lauf(rueckgabe=0, stdout="", stderr=""):
     ergebnis = mock.Mock()
     ergebnis.returncode = rueckgabe

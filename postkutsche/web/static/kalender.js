@@ -977,10 +977,51 @@ function fassungsblock(beitragId, f, quelle) {
   block.append(kopf);
 
   if (f.rueckfrage) {
+    // Frage plus Antwortfeld. Ohne die Möglichkeit zu antworten bliebe nur,
+    // den Text von Hand zu ergänzen - dann lernt niemand etwas, und beim
+    // nächsten Produkt kommt dieselbe Frage wieder.
+    const kasten = document.createElement("div");
+    kasten.className = "frage";
+
     const frage = document.createElement("p");
-    frage.className = "frage";
-    frage.textContent = `Rückfrage: ${f.rueckfrage}`;
-    block.append(frage);
+    frage.className = "fragetext";
+    frage.textContent = f.rueckfrage;
+    kasten.append(frage);
+
+    const feld = document.createElement("textarea");
+    feld.className = "antwortfeld";
+    feld.rows = 2;
+    feld.placeholder = "Antwort … (Strg+Enter zum Absenden)";
+    kasten.append(feld);
+
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.className = "knopf";
+    knopf.textContent = "Antworten und nachbessern";
+    const absenden = async () => {
+      const antwort = feld.value.trim();
+      if (!antwort) return melden("Ohne Antwort geht es nicht.", true);
+      knopf.disabled = true;
+      knopf.textContent = "Claude bessert nach …";
+      try {
+        const neu = await hole("/api/antwort", { fassung: f.id, antwort });
+        melden(neu.rueckfrage
+          ? "Nachgebessert – aber es ist noch eine Frage offen."
+          : "Nachgebessert.", Boolean(neu.rueckfrage));
+        blattOeffnen(beitragId);
+        monatLaden();
+      } catch (fehler) {
+        melden(fehler.message, true);
+        knopf.disabled = false;
+        knopf.textContent = "Antworten und nachbessern";
+      }
+    };
+    knopf.onclick = absenden;
+    feld.onkeydown = (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) absenden();
+    };
+    kasten.append(knopf);
+    block.append(kasten);
   }
 
   if (f.bild) {

@@ -257,13 +257,28 @@ button { font: inherit; cursor: pointer; }
 .zaehler.zuviel { color: var(--rot); font-weight: 600; }
 .schlagworte { font-size: 12px; color: var(--text-leise); margin: 4px 0 0; }
 
+/* Rückfrage samt Antwortfeld. Der rote Rand macht sie unübersehbar - ein
+   Beitrag mit offener Frage geht nicht raus, das soll man sehen. */
 .frage {
-  background: color-mix(in srgb, var(--rot) 12%, var(--flaeche));
+  background: color-mix(in srgb, var(--rot) 10%, var(--flaeche));
   border-left: 3px solid var(--rot);
-  padding: 8px 10px;
+  padding: 10px 12px;
   margin: 8px 0;
   font-size: 13px;
   border-radius: 0 6px 6px 0;
+}
+.fragetext { margin: 0 0 8px; line-height: 1.45; }
+.antwortfeld {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--linie);
+  border-radius: 5px;
+  background: var(--flaeche);
+  color: var(--text);
+  resize: vertical;
+  margin-bottom: 8px;
 }
 
 .knoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

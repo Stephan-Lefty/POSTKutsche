@@ -63,6 +63,21 @@ def fassungen(
     return vorlagen.antwort_lesen(text, fuer)
 
 
+def nachbessern(
+    inhalt: dict[str, Any],
+    netzwerk: str,
+    bisher: str,
+    frage: str,
+    antwort: str,
+    zusatz: str = "",
+) -> dict[str, Any]:
+    """Bessert einen Text mit der Antwort auf die Rückfrage nach."""
+    text = _aufrufen(
+        vorlagen.nachbesserung(inhalt, netzwerk, bisher, frage, antwort, zusatz)
+    )
+    return vorlagen.antwort_lesen(text, [netzwerk])[netzwerk]
+
+
 def _aufrufen(anweisung: str, modell: str | None = None) -> str:
     if not vorhanden():
         raise ClaudeFehlt(

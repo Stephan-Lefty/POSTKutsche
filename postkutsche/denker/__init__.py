@@ -20,7 +20,7 @@ from . import kommando, vorlagen
 from .kommando import ClaudeFehler, ClaudeFehlt
 from .vorlagen import AntwortFehler
 
-__all__ = ["kommando", "vorlagen", "schreiben", "verfuegbar",
+__all__ = ["kommando", "vorlagen", "schreiben", "nachbessern", "verfuegbar",
            "ClaudeFehler", "ClaudeFehlt", "AntwortFehler"]
 
 KOMMANDO = "kommando"
@@ -50,3 +50,18 @@ def schreiben(
             "Bis dahin: weg=\"kommando\"."
         )
     raise ValueError(f"Unbekannter Weg: {weg!r}. Bekannt: {KOMMANDO}, {API}")
+
+
+def nachbessern(
+    inhalt: dict[str, Any],
+    netzwerk: str,
+    bisher: str,
+    frage: str,
+    antwort: str,
+    zusatz: str = "",
+    weg: str = KOMMANDO,
+) -> dict[str, Any]:
+    """Bessert einen Text mit der Antwort auf eine Rückfrage nach."""
+    if weg == KOMMANDO:
+        return kommando.nachbessern(inhalt, netzwerk, bisher, frage, antwort, zusatz)
+    raise NotImplementedError(f"Weg {weg!r} ist noch nicht gebaut.")
