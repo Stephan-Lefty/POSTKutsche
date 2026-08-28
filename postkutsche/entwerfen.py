@@ -116,6 +116,11 @@ def entwerfen(
             ablage.fassung_setzen(
                 beitrag, netz, f["text"], f["schlagworte"],
                 inhalt.get("bild_adresse"),
+                # Die Rückfrage muss mit. Ohne sie wird sie zwar auf der
+                # Kommandozeile gemeldet, verschwindet aber - und der Beitrag
+                # ließe sich freigeben, obwohl eine Frage offen ist. Genau das
+                # sollte die Rückfrage verhindern.
+                rueckfrage=f.get("rueckfrage"),
             )
             zeichen = len(f["text"])
             hinweis = f"  ? {f['rueckfrage']}" if f["rueckfrage"] else ""

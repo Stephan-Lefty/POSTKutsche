@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de" data-thema="hell">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POSTKutsche</title>
+<link rel="icon" href="/static/icon-32.png">
+<link rel="stylesheet" href="/static/kalender.css">
+</head>
+<body>
+
+<header class="kopf">
+  <img src="/static/icon-64.png" alt="" class="zeichen" width="34" height="34">
+  <h1>POST<span>Kutsche</span></h1>
+
+  <nav class="blaettern" aria-label="Monat wählen">
+    <button id="zurueck" aria-label="Voriger Monat">‹</button>
+    <strong id="monatstitel">…</strong>
+    <button id="vor" aria-label="Nächster Monat">›</button>
+    <button id="heute" class="schlicht">Heute</button>
+  </nav>
+
+  <button id="thema" class="schlicht" aria-label="Helles oder dunkles Thema">◐</button>
+</header>
+
+<div class="rumpf">
+
+  <aside class="spalte" aria-label="Projekte und Netzwerke">
+    <h2>Projekte</h2>
+    <ul id="projekte" class="liste"></ul>
+
+    <h2>Netzwerke</h2>
+    <ul id="netzwerke" class="marken"></ul>
+
+    <h2>Zeichen</h2>
+    <dl class="legende">
+      <dt aria-hidden="true">✎</dt><dd>Entwurf</dd>
+      <dt aria-hidden="true">?</dt><dd>Rückfrage offen</dd>
+      <dt aria-hidden="true">✓</dt><dd>freigegeben</dd>
+      <dt aria-hidden="true">↑</dt><dd>gesendet</dd>
+      <dt aria-hidden="true">✋</dt><dd>von Hand</dd>
+    </dl>
+  </aside>
+
+  <main class="kalender" aria-label="Kalender">
+    <div class="wochentage" aria-hidden="true">
+      <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span>
+      <span>Fr</span><span>Sa</span><span>So</span>
+    </div>
+    <div id="raster" class="raster"></div>
+  </main>
+
+  <section id="blatt" class="blatt" hidden aria-label="Beitrag">
+    <div class="blattkopf">
+      <strong id="blatt-titel"></strong>
+      <button id="blatt-zu" class="schlicht" aria-label="Schließen">×</button>
+    </div>
+    <div id="blatt-inhalt"></div>
+  </section>
+
+</div>
+
+<p id="meldung" class="meldung" hidden role="status"></p>
+
+<script src="/static/kalender.js"></script>
+</body>
+</html>

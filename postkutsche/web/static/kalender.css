@@ -1,0 +1,236 @@
+/* Die Oberfläche des Kalenders.
+ *
+ * Die Farbwerte hier sind dieselben wie in postkutsche/farben.py. Sie stehen
+ * doppelt, weil eine erzeugte CSS-Datei zur Laufzeit mehr Umstand wäre als
+ * Nutzen - dafür wacht tests/test_web.py darüber, dass beide übereinstimmen.
+ * Wer hier einen Wert ändert, ändert ihn auch dort, sonst fällt der Test.
+ */
+
+:root {
+  --blau: #1668e3;
+  --blau-hell: #0e8af6;
+  --blau-tief: #0047a7;
+  --grund: #f7f9fc;
+  --flaeche: #ffffff;
+  --linie: #d6dde8;
+  --text: #3a4048;
+  --text-leise: #667080;
+  --verweis: #1668e3;
+  --rot: #c62828;
+  --gruen: #2e7d32;
+}
+
+:root[data-thema="dunkel"] {
+  --grund: #20262f;
+  --flaeche: #2b323c;
+  --linie: #3a4048;
+  --text: #d6dde8;
+  --text-leise: #97a1ad;
+  --verweis: #6cb6ff;
+  --rot: #ef9a9a;
+  --gruen: #81c784;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--grund);
+  color: var(--text);
+}
+
+h1, h2 { margin: 0; font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+
+/* -- Kopf ---------------------------------------------------------------- */
+
+.kopf {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--flaeche);
+  border-bottom: 1px solid var(--linie);
+}
+.kopf h1 { font-size: 20px; letter-spacing: -0.2px; }
+.kopf h1 span { color: var(--blau); font-weight: 400; }
+.zeichen { border-radius: 8px; }
+
+.blaettern { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.blaettern strong { min-width: 11em; text-align: center; font-weight: 600; }
+.blaettern button, .schlicht {
+  background: none;
+  border: 1px solid var(--linie);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.blaettern button:hover, .schlicht:hover { border-color: var(--blau); color: var(--blau); }
+
+/* -- Aufteilung ---------------------------------------------------------- */
+
+.rumpf { display: flex; align-items: flex-start; gap: 16px; padding: 16px; }
+.spalte { flex: 0 0 190px; }
+.kalender { flex: 1; min-width: 0; }
+
+.spalte h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-leise);
+  margin: 18px 0 8px;
+}
+.spalte h2:first-child { margin-top: 0; }
+
+.liste, .marken { list-style: none; margin: 0; padding: 0; }
+.liste li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.liste label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0; }
+.liste .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.punkt { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.pausiert { color: var(--text-leise); }
+.pausiert .name { text-decoration: line-through; }
+
+.marken { display: flex; flex-wrap: wrap; gap: 6px; }
+.marken li {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 2px solid;
+  color: var(--text-leise);
+}
+
+.legende { display: grid; grid-template-columns: 1.6em 1fr; gap: 4px 6px; margin: 0; font-size: 13px; }
+.legende dt { text-align: center; color: var(--text-leise); }
+.legende dd { margin: 0; color: var(--text-leise); }
+
+/* -- Raster -------------------------------------------------------------- */
+
+.wochentage, .raster { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.wochentage { margin-bottom: 6px; }
+.wochentage span { font-size: 12px; color: var(--text-leise); padding-left: 4px; }
+
+.tag {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  min-height: 108px;
+  padding: 5px;
+}
+.tag.fremd { opacity: 0.45; }
+.tag.heute { border-color: var(--blau); box-shadow: inset 0 0 0 1px var(--blau); }
+.tag.ziel { border-color: var(--blau); background: color-mix(in srgb, var(--blau) 8%, var(--flaeche)); }
+.tag .zahl { font-size: 12px; color: var(--text-leise); padding: 0 3px 4px; display: block; }
+
+/* -- Kärtchen ------------------------------------------------------------ */
+
+.kaertchen {
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--grund);
+  padding: 0 0 5px;
+  margin-bottom: 5px;
+  cursor: grab;
+  overflow: hidden;
+  font-size: 12px;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  display: block;
+}
+.kaertchen:hover { border-color: var(--blau); }
+.kaertchen:active { cursor: grabbing; }
+.kaertchen.zieht { opacity: 0.4; }
+
+/* Der Streifen oben ist in so viele Segmente geteilt, wie der Beitrag
+   Netzwerke hat. Ein Beitrag, der in drei Netze geht, bleibt ein Kärtchen -
+   andere Planer zeigen ihn dreimal und zwingen zu Uhrzeiten wie 15:01. */
+.streifen { display: flex; height: 3px; }
+.streifen span { flex: 1; }
+
+.kopfzeile { display: flex; align-items: center; gap: 5px; padding: 5px 6px 3px; }
+.kopfzeile .zeit { color: var(--text-leise); font-size: 11px; }
+.titel { padding: 0 6px; line-height: 1.3; }
+.fuss { display: flex; align-items: center; gap: 4px; padding: 5px 6px 0; }
+.kuerzel { font-size: 10px; padding: 1px 4px; border-radius: 3px; border: 1px solid; color: var(--text-leise); }
+.zustand { margin-left: auto; font-size: 12px; }
+.zustand.warnung { color: var(--rot); }
+.zustand.gut { color: var(--gruen); }
+
+/* -- Blatt --------------------------------------------------------------- */
+
+.blatt {
+  flex: 0 0 420px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  padding: 14px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.blattkopf { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.blattkopf strong { flex: 1; line-height: 1.3; }
+
+.fassung { border-top: 1px solid var(--linie); padding-top: 12px; margin-top: 12px; }
+.fassung h3 { margin: 0 0 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.fassung textarea {
+  width: 100%;
+  min-height: 150px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  background: var(--grund);
+  color: var(--text);
+  resize: vertical;
+}
+.zaehler { font-size: 11px; color: var(--text-leise); }
+.zaehler.zuviel { color: var(--rot); font-weight: 600; }
+.schlagworte { font-size: 12px; color: var(--text-leise); margin: 4px 0 0; }
+
+.frage {
+  background: color-mix(in srgb, var(--rot) 12%, var(--flaeche));
+  border-left: 3px solid var(--rot);
+  padding: 8px 10px;
+  margin: 8px 0;
+  font-size: 13px;
+  border-radius: 0 6px 6px 0;
+}
+
+.knoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.knopf {
+  background: var(--blau);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.knopf:hover { background: var(--blau-tief); }
+.knopf.leise { background: none; color: var(--text); border: 1px solid var(--linie); }
+.knopf.leise:hover { border-color: var(--blau); color: var(--blau); background: none; }
+
+.meldung {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--grund);
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.22);
+}
+.meldung.schlecht { background: var(--rot); color: #fff; }
+
+.leer { color: var(--text-leise); padding: 30px 0; text-align: center; }
+
+/* Auf dem Handy nebeneinander zu stellen ergibt drei unlesbare Spalten. */
+@media (max-width: 860px) {
+  .rumpf { flex-direction: column; }
+  .spalte, .blatt { flex: 1 1 auto; width: 100%; max-height: none; }
+  .tag { min-height: 78px; }
+}

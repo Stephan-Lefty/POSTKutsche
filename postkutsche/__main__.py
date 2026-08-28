@@ -122,6 +122,13 @@ def _zerleger() -> argparse.ArgumentParser:
     )
     entw.set_defaults(handlung=_entwerfen)
 
+    # -- kalender ---------------------------------------------------------
+    kal = unter.add_parser("kalender", help="den Kalender im Browser öffnen")
+    kal.add_argument("--port", type=int, default=8770)
+    kal.add_argument("--nicht-oeffnen", action="store_true",
+                     help="Dienst starten, aber keinen Browser öffnen")
+    kal.set_defaults(handlung=_kalender)
+
     # -- netzwerke --------------------------------------------------------
     netze = unter.add_parser("netzwerke", help="Netzwerke, Farben und Grenzen zeigen")
     netze.set_defaults(handlung=_netzwerke)
@@ -276,6 +283,18 @@ def _entwerfen(ablage: Ablage, args: argparse.Namespace) -> int:
     if angelegt:
         print(f"\n{len(angelegt)} Entwurf/Entwürfe angelegt. "
               "Ansehen mit »postkutsche plan«.")
+    return 0
+
+
+def _kalender(ablage: Ablage, args: argparse.Namespace) -> int:
+    from .web import dienst
+
+    # Der Dienst öffnet die Ablage je Anfrage selbst; die hier geöffnete
+    # wird nicht gebraucht und würde sonst über Fäden hinweg benutzt -
+    # SQLite-Verbindungen sind nicht dafür gemacht.
+    pfad = ablage.pfad
+    ablage.schliessen()
+    dienst.starten(pfad, args.port, not args.nicht_oeffnen)
     return 0
 
 
