@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, erstbestueckung, netzwerke, zeiten
+from . import __version__, denker, erstbestueckung, netzwerke, zeiten
 from .ablage import (
     PROJEKT_AKTIV,
     PROJEKT_PAUSIERT,
@@ -105,6 +105,22 @@ def _zerleger() -> argparse.ArgumentParser:
         help="nur diese Projekte; mehrfach angebbar",
     )
     plan.set_defaults(handlung=_plan)
+
+    # -- entwerfen --------------------------------------------------------
+    entw = unter.add_parser(
+        "entwerfen", help="neue Inhalte holen und Entwürfe schreiben lassen"
+    )
+    entw.add_argument("--projekt", required=True, help="Kennung des Projekts")
+    entw.add_argument(
+        "--netzwerk", action="append", dest="netzwerke",
+        help="für welches Netzwerk; mehrfach angebbar. Vorgabe: mastodon",
+    )
+    entw.add_argument("--anzahl", type=int, default=1, help="wie viele Entwürfe")
+    entw.add_argument(
+        "--auch-bekannte", action="store_true",
+        help="auch aus Inhalten entwerfen, die schon bekannt sind",
+    )
+    entw.set_defaults(handlung=_entwerfen)
 
     # -- netzwerke --------------------------------------------------------
     netze = unter.add_parser("netzwerke", help="Netzwerke, Farben und Grenzen zeigen")
@@ -234,6 +250,32 @@ def _plan(ablage: Ablage, args: argparse.Namespace) -> int:
             f"{zeiten.lesbar(zeile['geplant'])}  [{zeile['projekt_kennung']}] "
             f"{titel}\n    {kuerzel} · {zeile['zustand']}"
         )
+    return 0
+
+
+def _entwerfen(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import entwerfen as entwerfen_modul
+
+    netze = args.netzwerke or [netzwerke.MASTODON]
+    for netz in netze:
+        try:
+            netzwerke.netzwerk(netz)
+        except ValueError as fehler:
+            print(fehler, file=sys.stderr)
+            return 1
+
+    try:
+        angelegt = entwerfen_modul.entwerfen(
+            ablage, args.projekt, netze, args.anzahl, args.auch_bekannte
+        )
+    except (entwerfen_modul.EntwurfFehler, denker.ClaudeFehler,
+            denker.ClaudeFehlt, denker.AntwortFehler) as fehler:
+        print(f"\n{fehler}", file=sys.stderr)
+        return 1
+
+    if angelegt:
+        print(f"\n{len(angelegt)} Entwurf/Entwürfe angelegt. "
+              "Ansehen mit »postkutsche plan«.")
     return 0
 
 
