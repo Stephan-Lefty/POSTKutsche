@@ -60,6 +60,13 @@ class Anweisung(unittest.TestCase):
         # Markdown erscheint in den Netzwerken als Zeichensalat.
         self.assertIn("Markdown", vorlagen.anweisung(INHALT, ["facebook"]))
 
+    def test_verbietet_die_adresse_im_text(self):
+        # Am 2026-08-28 stand der Verweis zweimal in einem Facebook-Beitrag:
+        # einmal von Claude geschrieben, einmal beim Zusammensetzen angehängt.
+        # Die Anweisung muss das eindeutig regeln.
+        a = vorlagen.anweisung(INHALT, ["facebook"])
+        self.assertIn("nicht in den Text", a)
+
     def test_fordert_rueckfragen_statt_raten(self):
         self.assertIn("rueckfrage", vorlagen.anweisung(INHALT, ["mastodon"]))
 

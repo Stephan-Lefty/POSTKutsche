@@ -51,9 +51,10 @@ So schreibst du:
 - Keine Markdown-Auszeichnung: kein **fett**, kein # und keine [Verweise](…).
   Die Netzwerke stellen das nicht dar, es erscheint als Zeichensalat.
 - Emojis sparsam, höchstens eines, und nur wenn es etwas beiträgt.
-- **Nach dem Verweis kommt kein Satz mehr.** Wo er steht, sagt das jeweilige
-  Netzwerk unten - aber was danach folgt, liest niemand mehr; es hängt hinter
-  dem Link in der Luft.
+- **Schreib die Adresse des Artikels nicht in den Text.** Sie wird beim
+  Veröffentlichen angehängt, je Netzwerk an der richtigen Stelle. Wer sie
+  mitschreibt, hat sie am Ende zweimal drin - genau das ist am 2026-08-28 in
+  einem echten Beitrag passiert.
 - Schlagwörter sind eine Obergrenze, kein Ziel. Nimm so wenige wie möglich.
   Eines, das trifft, ist besser als vier, die ungefähr passen.
 

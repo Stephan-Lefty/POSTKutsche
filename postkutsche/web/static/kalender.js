@@ -404,16 +404,23 @@ async function kopieren(text, meldungstext) {
  * LinkedIn gehört er ans Ende. Bei Mastodon darf danach nichts mehr kommen.
  */
 function fertigerText(f, quelle) {
-  const teile = [f.feld ? f.feld.value : f.text];
+  const text = f.feld ? f.feld.value : f.text;
+  const teile = [text];
   const netz = f.netzwerk;
 
-  if (quelle && netz !== "instagram") {
+  // Steht die Adresse schon im Text, wird sie nicht noch einmal angehängt.
+  // Claude soll sie nicht mitschreiben, aber wer von Hand nachbessert, tut
+  // es womöglich doch - und zwei Links im selben Beitrag sehen nach Pfusch
+  // aus. Am 2026-08-28 in einem echten Facebook-Beitrag passiert.
+  const schonDrin = quelle && text.includes(quelle);
+
+  if (quelle && !schonDrin && netz !== "instagram") {
     teile.push("", quelle);
   }
   if (f.schlagworte) {
     teile.push("", f.schlagworte.split(" ").map((w) => `#${w}`).join(" "));
   }
-  if (quelle && netz === "instagram") {
+  if (quelle && netz === "instagram" && !schonDrin) {
     teile.push("", "Verweis im Profil.");
   }
   return teile.join("\n");
