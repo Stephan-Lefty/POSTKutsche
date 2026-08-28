@@ -20,6 +20,8 @@
     <button id="heute" class="schlicht">Heute</button>
   </nav>
 
+  <button id="kampagne-auf" class="knopf">Woche planen</button>
+
   <button id="thema" class="schlicht" aria-label="Helles oder dunkles Thema">◐</button>
 </header>
 
@@ -58,6 +60,55 @@
     <div id="blatt-inhalt"></div>
   </section>
 
+</div>
+
+<div id="kampagne" class="ueberlagerung" hidden>
+  <form id="kampagne-form" class="kasten">
+    <h2>Eine Woche planen</h2>
+    <p class="schlagworte">Aus den Kategorien deines Shops entstehen Entwürfe –
+      einer oder zwei je Tag, mit Bild, Text und Terminvorschlag.</p>
+
+    <label>Projekt
+      <select id="k-projekt" required></select>
+    </label>
+
+    <label>Thema der Woche
+      <input id="k-thema" placeholder="T30 Stahltüren" required>
+    </label>
+
+    <div class="paar">
+      <label>Kalenderwoche
+        <input id="k-woche" type="number" min="1" max="53" required>
+      </label>
+      <label>Jahr
+        <input id="k-jahr" type="number" min="2020" max="2099" required>
+      </label>
+      <label>Beiträge je Tag
+        <select id="k-jetag"><option>1</option><option>2</option></select>
+      </label>
+    </div>
+
+    <label>Netzwerke
+      <span id="k-netze" class="marken"></span>
+    </label>
+
+    <label>Kategorien
+      <input id="k-suche" placeholder="suchen …">
+    </label>
+    <div id="k-kategorien" class="kategorienliste">
+      <p class="schlagworte">Projekt wählen …</p>
+    </div>
+
+    <label>Nur diese Hersteller (leer = alle)
+      <input id="k-hersteller" placeholder="Musterwerk, Beispielbau">
+    </label>
+
+    <div class="knoepfe">
+      <button type="submit" class="knopf" id="k-los">Entwürfe anlegen</button>
+      <button type="button" class="knopf leise" id="k-zu">Abbrechen</button>
+    </div>
+    <p id="k-stand" class="schlagworte"></p>
+  </form>
 </div>
 
 <p id="meldung" class="meldung" hidden role="status"></p>

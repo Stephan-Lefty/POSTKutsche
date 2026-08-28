@@ -264,3 +264,77 @@ button { font: inherit; cursor: pointer; }
   .spalte, .blatt { flex: 1 1 auto; width: 100%; max-height: none; }
   .tag { min-height: 78px; }
 }
+
+
+/* -- Wochenplanung ------------------------------------------------------- */
+
+.ueberlagerung {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  z-index: 10;
+}
+.kasten {
+  background: var(--flaeche);
+  border-radius: 12px;
+  padding: 20px 22px;
+  width: 100%;
+  max-width: 560px;
+}
+.kasten h2 { font-size: 18px; margin-bottom: 4px; }
+.kasten label {
+  display: block;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-leise);
+}
+.kasten input, .kasten select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font: inherit;
+  padding: 7px 9px;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  background: var(--grund);
+  color: var(--text);
+}
+.paar { display: flex; gap: 10px; }
+.paar label { flex: 1; }
+
+/* Die Kategorien des Shops, in der Gliederung des Shops. Die Höhe ist
+   begrenzt: Bei über hundert Einträgen wäre der Kasten sonst länger als
+   der Bildschirm. */
+.kategorienliste {
+  margin-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--grund);
+}
+.kategorienliste label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 2px 0;
+  color: var(--text);
+  cursor: pointer;
+}
+.kategorienliste input { width: auto; margin: 0; flex: none; }
+.kategorienliste .anzahl { color: var(--text-leise); font-size: 11px; }
+
+#k-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+#k-netze label {
+  display: flex; align-items: center; gap: 5px; margin: 0;
+  border: 2px solid; border-radius: 6px; padding: 2px 8px;
+  font-size: 12px; color: var(--text); cursor: pointer;
+}
+#k-netze input { width: auto; margin: 0; }

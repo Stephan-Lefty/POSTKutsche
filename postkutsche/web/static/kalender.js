@@ -84,6 +84,157 @@ async function anfangen() {
 
   const gemerkt = localStorage.getItem("thema");
   if (gemerkt) document.documentElement.dataset.thema = gemerkt;
+
+  kampagneVorbereiten();
+}
+
+// -- Wochenplanung ----------------------------------------------------------
+
+/** Die Kalenderwoche eines Datums nach ISO 8601.
+ *
+ * Nicht selbst zählen: Die erste Woche ist die mit dem ersten Donnerstag,
+ * weshalb der 1. Januar mitunter in KW 52 des Vorjahres liegt. */
+function kalenderwoche(d) {
+  const hilfe = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  hilfe.setUTCDate(hilfe.getUTCDate() + 4 - (hilfe.getUTCDay() || 7));
+  const jahresanfang = new Date(Date.UTC(hilfe.getUTCFullYear(), 0, 1));
+  return {
+    woche: Math.ceil(((hilfe - jahresanfang) / 86400000 + 1) / 7),
+    jahr: hilfe.getUTCFullYear(),
+  };
+}
+
+let kategorienAlle = [];
+
+function kampagneVorbereiten() {
+  const kasten = $("#kampagne");
+  $("#kampagne-auf").onclick = () => {
+    // Vorschlag: die kommende Woche. Für diese Woche zu planen geht auch,
+    // dann liegen die ersten Termine aber schon in der Vergangenheit.
+    const naechste = new Date();
+    naechste.setDate(naechste.getDate() + 7);
+    const kw = kalenderwoche(naechste);
+    $("#k-woche").value = kw.woche;
+    $("#k-jahr").value = kw.jahr;
+    kasten.hidden = false;
+  };
+  $("#k-zu").onclick = () => (kasten.hidden = true);
+  kasten.onclick = (e) => { if (e.target === kasten) kasten.hidden = true; };
+
+  const auswahl = $("#k-projekt");
+  auswahl.innerHTML = "";
+  stand.projekte.forEach((p) => {
+    const eintrag = document.createElement("option");
+    eintrag.value = p.kennung;
+    eintrag.textContent = p.name;
+    if (p.art !== "seitenkarte") eintrag.disabled = true;
+    auswahl.append(eintrag);
+  });
+  auswahl.onchange = kategorienLaden;
+
+  const netze = $("#k-netze");
+  netze.innerHTML = "";
+  Object.values(stand.netzwerke).forEach((n) => {
+    const feld = document.createElement("input");
+    feld.type = "checkbox";
+    feld.value = n.kennung;
+    feld.checked = n.kennung === "facebook";
+    const beschriftung = document.createElement("label");
+    beschriftung.style.borderColor = n.farbe;
+    beschriftung.append(feld, document.createTextNode(n.name));
+    netze.append(beschriftung);
+  });
+
+  $("#k-suche").oninput = kategorienZeichnen;
+  $("#kampagne-form").onsubmit = kampagneAbschicken;
+  kategorienLaden();
+}
+
+async function kategorienLaden() {
+  const liste = $("#k-kategorien");
+  liste.innerHTML = '<p class="schlagworte">Kategorien werden geholt …</p>';
+  try {
+    kategorienAlle = await hole(`/api/kategorien?projekt=${$("#k-projekt").value}`);
+  } catch (fehler) {
+    kategorienAlle = [];
+    liste.innerHTML = `<p class="schlagworte">${fehler.message}</p>`;
+    return;
+  }
+  kategorienZeichnen();
+}
+
+function kategorienZeichnen() {
+  const liste = $("#k-kategorien");
+  const suche = $("#k-suche").value.trim().toLowerCase();
+  const gewaehlt = new Set(
+    [...liste.querySelectorAll("input:checked")].map((f) => f.value)
+  );
+  liste.innerHTML = "";
+
+  const treffer = kategorienAlle.filter(
+    (k) => !suche || k.name.toLowerCase().includes(suche)
+  );
+  if (!treffer.length) {
+    liste.innerHTML = '<p class="schlagworte">Nichts gefunden.</p>';
+    return;
+  }
+
+  treffer.forEach((k) => {
+    const feld = document.createElement("input");
+    feld.type = "checkbox";
+    feld.value = k.adresse;
+    feld.checked = gewaehlt.has(k.adresse);
+
+    const beschriftung = document.createElement("label");
+    // Die Gliederung des Shops beibehalten: Einrückung nach Tiefe.
+    beschriftung.style.paddingLeft = `${(k.tiefe - 1) * 14}px`;
+    beschriftung.append(feld, document.createTextNode(k.name));
+    liste.append(beschriftung);
+  });
+}
+
+async function kampagneAbschicken(e) {
+  e.preventDefault();
+  const kategorien = [...$("#k-kategorien").querySelectorAll("input:checked")]
+    .map((f) => f.value);
+  if (!kategorien.length) {
+    return melden("Wähle mindestens eine Kategorie.", true);
+  }
+  const netze = [...$("#k-netze").querySelectorAll("input:checked")].map((f) => f.value);
+  if (!netze.length) return melden("Wähle mindestens ein Netzwerk.", true);
+
+  const knopf = $("#k-los");
+  knopf.disabled = true;
+  const jeTag = Number($("#k-jetag").value);
+  // Ehrlich sagen, wie lange es dauert: Je Beitrag ein Claude-Aufruf, und
+  // der braucht seine halbe Minute. Ohne Hinweis hält man es für abgestürzt.
+  $("#k-stand").textContent =
+    `Entwürfe entstehen – das dauert etwa ${Math.ceil(5 * jeTag * 0.5)} Minuten. Bitte warten.`;
+
+  try {
+    const bericht = await hole("/api/kampagne", {
+      projekt: $("#k-projekt").value,
+      thema: $("#k-thema").value,
+      kalenderwoche: Number($("#k-woche").value),
+      jahr: Number($("#k-jahr").value),
+      kategorien,
+      netzwerke: netze,
+      je_tag: jeTag,
+      hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
+    });
+    $("#kampagne").hidden = true;
+    melden(`${bericht.anzahl} Entwürfe angelegt.`);
+    if (bericht.gescheitert.length) {
+      melden(`${bericht.anzahl} angelegt, ${bericht.gescheitert.length} gescheitert.`, true);
+    }
+    if (bericht.hinweis) melden(bericht.hinweis, true);
+    monatLaden();
+  } catch (fehler) {
+    melden(fehler.message, true);
+  } finally {
+    knopf.disabled = false;
+    $("#k-stand").textContent = "";
+  }
 }
 
 function themaWechseln() {

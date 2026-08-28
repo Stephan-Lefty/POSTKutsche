@@ -82,6 +82,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._beitraege(frage)
             if pfad.startswith("/api/beitrag/"):
                 return self._beitrag(int(pfad.rsplit("/", 1)[-1]))
+            if pfad == "/api/kategorien":
+                return self._kategorien(frage)
             if pfad.startswith("/bild/"):
                 return self._bild(int(pfad.rsplit("/", 1)[-1]))
         except ValueError as fehler:
@@ -110,6 +112,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._abgehakt(rumpf)
             if pfad == "/api/bild":
                 return self._bild_setzen(rumpf)
+            if pfad == "/api/kampagne":
+                return self._kampagne(rumpf)
         except (ValueError, KeyError) as fehler:
             return self._fehler(str(fehler))
         except ablage_modul.RueckfrageOffen as fehler:
@@ -236,6 +240,29 @@ class Behandler(BaseHTTPRequestHandler):
                 ],
             })
 
+    def _kategorien(self, frage: dict[str, list[str]]) -> None:
+        """Die Kategorien eines Projekts – die Gliederung des Shops.
+
+        Wird beim Anlegen einer Kampagne gebraucht: Man wählt aus, was der
+        Shop ohnehin hat, statt Adressen abzutippen.
+        """
+        from ..quellen import seitenkarte
+
+        kennung = frage.get("projekt", [""])[0]
+        with self._ablage() as a:
+            projekt = a.projekt(kennung)
+        if projekt is None:
+            return self._fehler(f"Kein Projekt »{kennung}«.", 404)
+        if projekt.art != "seitenkarte":
+            return self._fehler(
+                f"Kategorien gibt es bisher nur für Seiten ohne Schnittstelle, "
+                f"nicht für {projekt.art}.", 400
+            )
+
+        karte = projekt.einstellungen.get("seitenkarte")
+        bereich = frage.get("bereich", [None])[0]
+        self._json(seitenkarte.kategorien(karte, bereich))
+
     def _bild(self, fassung_id: int) -> None:
         """Liefert das Bild einer Fassung aus.
 
@@ -288,6 +315,30 @@ class Behandler(BaseHTTPRequestHandler):
                 rumpf.get("schlagworte"),
             )
             self._json({"fassung": int(rumpf["fassung"]), "von_hand": True})
+
+    def _kampagne(self, rumpf: dict[str, Any]) -> None:
+        """Legt eine Kampagne an: Thema, Woche, Kategorien, Hersteller.
+
+        Der Aufruf kann Minuten dauern - je Beitrag ein Claude-Aufruf. Er
+        läuft trotzdem geradeaus und nicht im Hintergrund: Ein halb angelegter
+        Wochenplan wäre schlimmer als eine Anzeige, die eine Weile wartet.
+        """
+        from .. import kampagnen
+        from ..kampagnenlauf import ausfuehren
+
+        kampagne = kampagnen.Kampagne(
+            thema=str(rumpf["thema"]).strip(),
+            projekt=str(rumpf["projekt"]),
+            kalenderwoche=int(rumpf["kalenderwoche"]),
+            jahr=int(rumpf["jahr"]),
+            kategorien=[str(k) for k in rumpf.get("kategorien", [])],
+            netzwerke=[str(n) for n in rumpf.get("netzwerke", ["facebook"])],
+            je_tag=int(rumpf.get("je_tag", 1)),
+            hersteller=[str(h) for h in rumpf.get("hersteller", [])],
+        )
+        with self._ablage() as a:
+            bericht = ausfuehren(a, kampagne)
+        self._json(bericht)
 
     def _bild_setzen(self, rumpf: dict[str, Any]) -> None:
         """Tauscht das Bild einer Fassung aus.

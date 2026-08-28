@@ -131,6 +131,77 @@ def _stamm_von(adresse: str) -> str:
     return treffer.group(1) if treffer else ""
 
 
+_KATEGORIE = re.compile(r"https?://[^/]+/(.+?)/?list\.html$", re.IGNORECASE)
+
+
+def kategorien(karte: str, bereich: str | None = None,
+               grenze: int = 5000) -> list[dict[str, object]]:
+    """Die Kategorieseiten aus der Seitenkarte, als flache Liste mit Tiefe.
+
+    Ein Shop hat seine Ordnung im Adresspfad: /shop-tueren/brandschutztueren/
+    t30-1_brandschutztueren_stahl_489/list.html sagt, was worunter liegt. Die
+    Seitenkarte kennt keine Verschachtelung, aber die Pfade tun es - und das
+    reicht, um dieselbe Gliederung anzubieten, die man im Shop sieht.
+
+    `bereich` schränkt auf einen Zweig ein, etwa »shop-tueren«.
+
+    Die Nummer am Ende jedes Namens ist die Kategorienummer des Shops. Sie
+    wird für die Anzeige abgeschnitten, bleibt aber in der Adresse - man
+    braucht sie zum Abrufen.
+    """
+    gefunden: list[dict[str, object]] = []
+    gesehen: set[str] = set()
+
+    for adresse in adressen(karte, grenze):
+        treffer = _KATEGORIE.match(adresse)
+        if not treffer:
+            continue
+        pfad = treffer.group(1)
+        if bereich and not pfad.startswith(bereich):
+            continue
+        if adresse in gesehen:
+            continue
+        gesehen.add(adresse)
+
+        teile = [t for t in pfad.split("/") if t]
+        letzter = teile[-1] if teile else ""
+        gefunden.append({
+            "adresse": adresse,
+            "pfad": pfad,
+            "tiefe": max(len(teile) - (1 if bereich else 0), 0),
+            "name": _lesbar(letzter),
+            "nummer": _nummer(letzter),
+        })
+
+    gefunden.sort(key=lambda e: str(e["pfad"]))
+    return gefunden
+
+
+def _lesbar(stueck: str) -> str:
+    """»t30-1_brandschutztueren_stahl_489« zu »T30-1 Brandschutztüren Stahl«."""
+    ohne_nummer = re.sub(r"_\d+$", "", stueck)
+    if not ohne_nummer:
+        return "Übersicht"
+    worte = ohne_nummer.replace("-", "-").split("_")
+    lesbar = " ".join(w.capitalize() if not re.match(r"^[a-z]\d", w) else w.upper()
+                      for w in worte if w)
+    # Umlaute, die in Adressen umschrieben sind, zurückholen. Nicht vollständig
+    # möglich - »tueren« wird zu »Türen«, »neue« bliebe »neue«. Deshalb nur
+    # die Fälle, die in Shopadressen tatsächlich häufig sind.
+    for falsch, richtig in (("Tueren", "Türen"), ("tueren", "türen"),
+                            ("Tuer", "Tür"), ("tuer", "tür"),
+                            ("Gefaelzt", "Gefälzt"), ("Schallschutz", "Schallschutz"),
+                            ("Aussen", "Außen"), ("Fluegelig", "flügelig"),
+                            ("fluegelig", "flügelig"), ("Groesse", "Größe")):
+        lesbar = lesbar.replace(falsch, richtig)
+    return lesbar
+
+
+def _nummer(stueck: str) -> int | None:
+    treffer = re.search(r"_(\d+)$", stueck)
+    return int(treffer.group(1)) if treffer else None
+
+
 def seite(adresse: str) -> dict[str, object]:
     """Liest eine einzelne Seite aus.
 
