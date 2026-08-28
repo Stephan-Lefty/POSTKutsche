@@ -109,6 +109,7 @@ def anweisung(
     fuer: list[str],
     projekt: str = "",
     zusatz: str = "",
+    frueher: dict[str, str] | None = None,
 ) -> str:
     """Baut die vollständige Anweisung für einen Beitrag.
 
@@ -150,6 +151,27 @@ def anweisung(
         "",
         GRUNDREGELN,
     ]
+    if frueher:
+        # Der frühere Text kommt mit, damit der neue anders klingt. Facebook
+        # und Instagram drosseln wortgleiche Wiederholungen - ein zweiter
+        # Beitrag mit denselben Sätzen erreicht weniger als gar keiner.
+        teile += [
+            "",
+            "## Dieses Produkt war schon einmal dran",
+            "",
+            "Unten steht, was damals veröffentlicht wurde. **Schreib etwas "
+            "anderes.** Dieselbe Aussage, aber ein anderer Einstieg, ein "
+            "anderer Blickwinkel, andere Sätze. Wortgleiche Wiederholungen "
+            "werden von den Netzwerken zurückgehalten.",
+            "",
+            "Wechsle den Blickwinkel, statt Wörter zu tauschen: Ging es beim "
+            "ersten Mal um die Eigenschaft, geht es jetzt um die Anwendung. "
+            "Stand vorher der Einbau im Vordergrund, jetzt der Zweck.",
+            "",
+        ]
+        for netz, alt in frueher.items():
+            teile += [f"### Damals für {netzwerke.netzwerk(netz).name}", "", alt, ""]
+
     if zusatz:
         teile += ["", "## Zusätzlich für diesen Beitrag", "", zusatz]
     teile += [

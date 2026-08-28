@@ -487,6 +487,9 @@ class Behandler(BaseHTTPRequestHandler):
         )
         bestaetigt = bool(rumpf.get("bestaetigt"))
         umgang = str(rumpf.get("wiederholungen", "fragen"))
+        # Immer neu formulieren, ohne Wahlmöglichkeit: Es gibt keinen Fall,
+        # in dem wortgleich besser wäre. Facebook und Instagram halten solche
+        # Beiträge zurück, und bei Mastodon liest sie niemand zweimal.
         if Behandler.lauf.get("aktiv"):
             return self._fehler("Es läuft schon eine Planung.", 409)
 

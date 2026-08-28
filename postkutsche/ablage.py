@@ -722,6 +722,60 @@ class Ablage:
         )
         self.db.commit()
 
+    def verfallene(self, karenz_tage: int = 2) -> list[sqlite3.Row]:
+        """Entwürfe, deren Termin vorbei ist und die nie veröffentlicht wurden.
+
+        Wer auf einen Vorschlag nicht reagiert, hat entschieden - nur eben
+        durch Nichtstun. Solche Beiträge im Kalender stehen zu lassen hat zwei
+        Nachteile: Er füllt sich mit Dingen, die nie passiert sind, und die
+        Vier-Wochen-Regel sperrt Produkte, die nie beworben wurden.
+
+        Die Karenz von zwei Tagen ist Absicht: Wer am Montag krank ist, soll
+        seine Dienstagsbeiträge am Mittwoch noch vorfinden.
+        """
+        grenze = zeiten_modul().schreiben(
+            zeiten_modul().lesen(zeiten_modul().jetzt_utc())
+            - __import__("datetime").timedelta(days=karenz_tage)
+        )
+        return list(self.db.execute(
+            """SELECT b.*, p.name AS projekt_name, i.titel AS inhalt_titel
+               FROM beitraege b
+               JOIN projekte p ON p.id = b.projekt_id
+               LEFT JOIN inhalte i ON i.id = b.inhalt_id
+               WHERE b.geplant < ?
+                 AND b.id NOT IN (
+                     SELECT beitrag_id FROM fassungen WHERE zustand IN (?, ?)
+                 )
+               ORDER BY b.geplant""",
+            (grenze, FASSUNG_GESENDET, FASSUNG_ABGEHOLT),
+        ))
+
+    def aufraeumen(self, karenz_tage: int = 2) -> list[str]:
+        """Entfernt verfallene Entwürfe. Gibt zurück, was weggeräumt wurde.
+
+        **Veröffentlichtes wird nie angefasst.** Ein Beitrag, der draußen war,
+        ist ein Beleg - er bleibt, auch wenn er zehn Jahre alt ist.
+
+        Der zugehörige Inhalt wird mitgelöscht, wenn er an keinem anderen
+        Beitrag mehr hängt: Sonst gilt das Produkt weiter als »kürzlich
+        beworben«, obwohl der Beitrag nie erschienen ist.
+        """
+        weg = []
+        for zeile in self.verfallene(karenz_tage):
+            titel = zeile["inhalt_titel"] or zeile["notiz"] or f"#{zeile['id']}"
+            weg.append(f"{zeile['projekt_name']}: {titel[:60]}")
+            inhalt_id = zeile["inhalt_id"]
+            self.db.execute("DELETE FROM beitraege WHERE id = ?", (zeile["id"],))
+            if inhalt_id is not None:
+                uebrig = self.db.execute(
+                    "SELECT COUNT(*) FROM beitraege WHERE inhalt_id = ?",
+                    (inhalt_id,),
+                ).fetchone()[0]
+                if not uebrig:
+                    self.db.execute("DELETE FROM inhalte WHERE id = ?", (inhalt_id,))
+        self.db.commit()
+        return weg
+
     def zuletzt_beworben(self, projekt_id: int,
                          adressen: list[str]) -> dict[str, str]:
         """Wann diese Produkte zuletzt im Kalender standen.
@@ -744,6 +798,27 @@ class Ablage:
             (projekt_id, *adressen, BEITRAG_VERWORFEN),
         )
         return {str(z["adresse"]): str(z["wann"]) for z in zeilen}
+
+    def frueherer_text(self, projekt_id: int, adresse: str) -> dict[str, str]:
+        """Womit dieses Produkt zuletzt beworben wurde, je Netzwerk.
+
+        Wird gebraucht, wenn dasselbe Produkt erneut drankommt: Der neue Text
+        soll anders klingen, und dafür muss Claude den alten kennen.
+        """
+        zeilen = self.db.execute(
+            """SELECT f.netzwerk, f.text
+               FROM fassungen f
+               JOIN beitraege b ON b.id = f.beitrag_id
+               JOIN inhalte i ON i.id = b.inhalt_id
+               WHERE b.projekt_id = ? AND i.adresse = ?
+               ORDER BY b.geplant DESC""",
+            (projekt_id, adresse),
+        )
+        gefunden: dict[str, str] = {}
+        for zeile in zeilen:
+            # Nur den jüngsten je Netzwerk - die Reihenfolge sorgt dafür.
+            gefunden.setdefault(str(zeile["netzwerk"]), str(zeile["text"]))
+        return gefunden
 
     def kategorien_zuletzt(self, projekt_id: int) -> dict[str, str]:
         """Wann eine Kategorie zuletzt bespielt wurde, je Kategoriepfad.
@@ -843,7 +918,12 @@ def _zu_projekt(zeile: sqlite3.Row) -> Projekt:
     )
 
 
-def _jetzt() -> str:
-    from .zeiten import jetzt_utc
+def zeiten_modul():
+    """Spät geladen, weil `zeiten` seinerseits nichts aus der Ablage braucht."""
+    from . import zeiten
 
-    return jetzt_utc()
+    return zeiten
+
+
+def _jetzt() -> str:
+    return zeiten_modul().jetzt_utc()

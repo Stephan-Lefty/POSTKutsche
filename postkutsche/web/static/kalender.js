@@ -305,6 +305,15 @@ function berichtZeigen(bericht) {
     });
   }
 
+  if (bericht.weggeraeumt?.length) {
+    const hinweis = document.createElement("p");
+    hinweis.className = "schlagworte";
+    hinweis.textContent =
+      `${bericht.weggeraeumt.length} verfallene Entwürfe wurden entfernt – ` +
+      "Vorschläge, deren Termin ohne Freigabe verstrichen ist.";
+    kasten.append(hinweis);
+  }
+
   if (bericht.nicht_zugeordnet.length) {
     const hinweis = document.createElement("p");
     hinweis.className = "schlagworte";
@@ -485,6 +494,11 @@ async function kampagneAbschicken(e) {
         $("#k-stand").textContent = "Abgebrochen – nichts angelegt.";
         return;
       }
+
+      // Bei einer Wiederholung wird immer neu formuliert - ohne Rückfrage.
+      // Es gibt keinen Fall, in dem wortgleich besser wäre: Facebook und
+      // Instagram halten solche Beiträge zurück, und bei Mastodon liest sie
+      // niemand zweimal.
       $("#k-stand").textContent = wahl === "ersetzen"
         ? "Andere Produkte werden gesucht …"
         : "Entwürfe entstehen …";

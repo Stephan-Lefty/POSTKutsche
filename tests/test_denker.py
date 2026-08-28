@@ -106,6 +106,34 @@ class Anweisung(unittest.TestCase):
         self.assertIn("Thema der Woche: Türen", a)
 
 
+class Wiederholung(unittest.TestCase):
+    """Kommt ein Produkt erneut dran, muss der Text anders klingen.
+
+    Facebook und Instagram halten wortgleiche Wiederholungen zurück - derselbe
+    Beitrag zweimal erreicht weniger als einer.
+    """
+
+    def test_frueherer_text_kommt_in_die_anweisung(self):
+        a = vorlagen.anweisung(INHALT, ["facebook"],
+                               frueher={"facebook": "So stand es im August."})
+        self.assertIn("So stand es im August.", a)
+        self.assertIn("Schreib etwas anderes", a)
+
+    def test_verlangt_anderen_blickwinkel_statt_wortsalat(self):
+        a = vorlagen.anweisung(INHALT, ["facebook"], frueher={"facebook": "alt"})
+        self.assertIn("Wechsle den Blickwinkel", a)
+
+    def test_ohne_frueheren_text_steht_nichts_davon_drin(self):
+        a = vorlagen.anweisung(INHALT, ["facebook"])
+        self.assertNotIn("schon einmal dran", a)
+
+    def test_nur_die_genannten_netzwerke(self):
+        a = vorlagen.anweisung(INHALT, ["facebook"],
+                               frueher={"facebook": "alt-fb", "mastodon": "alt-ma"})
+        self.assertIn("alt-fb", a)
+        self.assertIn("alt-ma", a)
+
+
 class AntwortLesen(unittest.TestCase):
     def test_saubere_antwort(self):
         roh = _antwort(mastodon=_fassung("Kurz und gut.", ["technik"]))

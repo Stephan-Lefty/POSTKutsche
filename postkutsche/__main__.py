@@ -427,6 +427,10 @@ def _senden(ablage: Ablage, args: argparse.Namespace) -> int:
 
     konten = versand.konten_lesen(ablage)
     gut, schlecht = versand.senden(ablage, konten, probelauf=args.probelauf)
+    if not args.probelauf:
+        # Danach, nicht davor: Erst wird gesendet, was fällig ist, dann
+        # weggeräumt, was verfallen ist.
+        versand.aufraeumen(ablage)
     if gut or schlecht:
         wort = "würden rausgehen" if args.probelauf else "gesendet"
         print(f"\n{gut} {wort}, {schlecht} gescheitert.")

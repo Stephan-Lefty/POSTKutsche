@@ -40,10 +40,16 @@ def schreiben(
     projekt: str = "",
     zusatz: str = "",
     weg: str = KOMMANDO,
+    frueher: dict[str, str] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Lässt die Fassungen schreiben – über den gewählten Weg."""
+    """Lässt die Fassungen schreiben – über den gewählten Weg.
+
+    `frueher` sind die Texte, mit denen dasselbe Produkt schon einmal beworben
+    wurde. Sie werden mitgegeben, damit der neue Beitrag anders klingt.
+    """
     if weg == KOMMANDO:
-        return kommando.fassungen(inhalt, fuer, projekt, zusatz)
+        return kommando.fassungen(inhalt, fuer, projekt, zusatz,
+                                  frueher=frueher)
     if weg == API:
         raise NotImplementedError(
             "Der Weg über die Anthropic-Schnittstelle ist noch nicht gebaut. "

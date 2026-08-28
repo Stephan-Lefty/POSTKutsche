@@ -106,6 +106,22 @@ def senden(ablage, konten: dict[str, dict[str, Any]], bis: str | None = None,
     return gut, schlecht
 
 
+def aufraeumen(ablage, melden=print) -> list[str]:
+    """Entfernt verfallene Entwürfe.
+
+    **Erst senden, dann aufräumen** - nie umgekehrt. Ein Beitrag, dessen
+    Termin gerade verstrichen ist, wäre sonst weg, bevor er rausgeht. Die
+    Karenz in `ablage.aufraeumen` schützt zwar davor, aber die Reihenfolge
+    soll nicht davon abhängen.
+    """
+    weg = ablage.aufraeumen()
+    if weg:
+        melden(f"{len(weg)} verfallene Entwürfe entfernt:")
+        for eintrag in weg:
+            melden(f"  {eintrag}")
+    return weg
+
+
 def faillige_pruefen(eintraege: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sortiert nach Termin – Ältestes zuerst, damit die Reihenfolge stimmt."""
     return sorted(eintraege, key=lambda e: e["geplant"])

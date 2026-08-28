@@ -88,7 +88,10 @@ class Wiederholungen(unittest.TestCase):
         )
         self.zeiten = zeiten
 
-    def _beitrag_fuer(self, adresse, vor_tagen):
+    def _beitrag_fuer(self, adresse, vor_tagen, gesendet=True):
+        """Legt einen Beitrag an. Standardmäßig als gesendet vermerkt, damit
+        das Aufräumen ihn stehen lässt - hier geht es um die
+        Wiederholungsprüfung, nicht ums Aufräumen."""
         from datetime import timedelta
 
         nummer, _ = self.ablage.inhalt_merken(
@@ -97,7 +100,13 @@ class Wiederholungen(unittest.TestCase):
         wann = self.zeiten.schreiben(
             self.zeiten.lesen(self.zeiten.jetzt_utc()) - timedelta(days=vor_tagen)
         )
-        return self.ablage.beitrag_anlegen(self.projekt.id, wann, inhalt_id=nummer)
+        beitrag = self.ablage.beitrag_anlegen(self.projekt.id, wann, inhalt_id=nummer)
+        if gesendet:
+            from postkutsche.ablage import FASSUNG_GESENDET
+
+            kennung = self.ablage.fassung_setzen(beitrag, "facebook", "Text")
+            self.ablage.fassung_vermerken(kennung, FASSUNG_GESENDET)
+        return beitrag
 
     def test_kuerzlich_beworbenes_wird_gefunden(self):
         from postkutsche import kampagnenlauf

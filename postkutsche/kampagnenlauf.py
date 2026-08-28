@@ -105,6 +105,12 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
     if not denker.verfuegbar():
         raise ValueError("»claude« ist nicht im Suchpfad oder nicht angemeldet.")
 
+    # Vor dem Planen aufräumen: Verfallene Entwürfe sperren sonst über die
+    # Vier-Wochen-Regel Produkte, die nie beworben wurden.
+    weggeraeumt = ablage.aufraeumen()
+    if weggeraeumt:
+        sagen(f"{len(weggeraeumt)} verfallene Entwürfe entfernt.")
+
     sagen("Produkte sammeln …")
     schritt(0, kampagne.anzahl, "Produkte sammeln …")
     alle = produkte_sammeln(kampagne)
@@ -168,9 +174,16 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
         sagen(f"{nummer + 1}/{len(gewaehlt)}: {produkt['titel'][:50]}")
         schritt(nummer, len(gewaehlt), produkt["titel"][:60])
         try:
+            # Bei einer Wiederholung den alten Text mitgeben, damit der neue
+            # anders klingt. Immer, ohne Schalter: Wortgleich ist in keinem
+            # Netzwerk besser - Facebook und Instagram halten es zurück, und
+            # bei Mastodon liest es niemand zweimal.
+            alt = ablage.frueherer_text(projekt.id, str(produkt["adresse"]))
+            frueher = {n: alt[n] for n in netze if n in alt} or None
+
             angelegt.append(
                 _ein_beitrag(ablage, projekt, produkt, termin, grund, netze,
-                             kampagne.thema)
+                             kampagne.thema, frueher)
             )
         except Exception as fehler:  # noqa: BLE001
             # Einzeln scheitern lassen: Acht Beiträge statt zehn sind
@@ -181,10 +194,11 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
             sagen(f"   gescheitert: {fehler}")
 
     schritt(len(gewaehlt), len(gewaehlt), "fertig")
-    return _bericht(angelegt, unklar, None, gescheitert)
+    return _bericht(angelegt, unklar, None, gescheitert, weggeraeumt)
 
 
-def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema):
+def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
+                 frueher=None):
     seite = seitenkarte.seite(produkt["adresse"])
 
     nummer, _ = ablage.inhalt_merken(
@@ -193,7 +207,8 @@ def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema):
     )
 
     zusatz = f"Diese Woche steht unter dem Thema: {thema}." if thema else ""
-    fassungen = denker.schreiben(seite, netze, projekt.name, zusatz)
+    fassungen = denker.schreiben(seite, netze, projekt.name, zusatz,
+                                 frueher=frueher)
 
     bild = None
     if seite.get("bild_adresse"):
@@ -229,14 +244,17 @@ def _kategoriename(adresse: str) -> str:
     return teile[-1] if teile else adresse
 
 
-def _bericht(angelegt, unklar, hinweis=None, gescheitert=None) -> dict[str, Any]:
+def _bericht(angelegt, unklar, hinweis=None, gescheitert=None,
+             weggeraeumt=None) -> dict[str, Any]:
     return {
         "angelegt": angelegt,
         "anzahl": len(angelegt),
+        "weggeraeumt": weggeraeumt,
         "gescheitert": gescheitert or [],
         # Was sich keinem Hersteller zuordnen ließ, wird genannt und nicht
         # verschwiegen: Sonst fehlen in einer Herstellerwoche zwei Türen, und
         # niemand erfährt, warum.
         "nicht_zugeordnet": [u["titel"] for u in unklar],
+        "weggeraeumt": weggeraeumt or [],
         "hinweis": hinweis,
     }

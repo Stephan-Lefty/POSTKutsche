@@ -53,13 +53,16 @@ def fassungen(
     projekt: str = "",
     zusatz: str = "",
     modell: str | None = None,
+    frueher: dict[str, str] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Lässt Claude die Fassungen für die genannten Netzwerke schreiben.
 
     Gibt je Netzwerk ein Wörterbuch mit »text«, »schlagworte« und
     »rueckfrage« zurück - genau das, was `ablage.fassung_setzen` erwartet.
     """
-    text = _aufrufen(vorlagen.anweisung(inhalt, fuer, projekt, zusatz), modell)
+    text = _aufrufen(
+        vorlagen.anweisung(inhalt, fuer, projekt, zusatz, frueher), modell
+    )
     return vorlagen.antwort_lesen(text, fuer)
 
 
