@@ -137,6 +137,21 @@ function kampagneVorbereiten() {
   });
   auswahl.onchange = kategorienLaden;
 
+  // Montag bis Freitag vorbelegt. Für das Handwerk ist das die Regel; das
+  // Wochenende ist wählbar, weil der Samstagvormittag für Bauherren eine
+  // gute Zeit ist - da plant, wer werktags auf der Baustelle steht.
+  const tage = $("#k-tage");
+  tage.innerHTML = "";
+  ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].forEach((name, nummer) => {
+    const feld = document.createElement("input");
+    feld.type = "checkbox";
+    feld.value = nummer;
+    feld.checked = nummer < 5;
+    const beschriftung = document.createElement("label");
+    beschriftung.append(document.createTextNode(name), feld);
+    tage.append(beschriftung);
+  });
+
   const netze = $("#k-netze");
   netze.innerHTML = "";
   Object.values(stand.netzwerke).forEach((n) => {
@@ -344,6 +359,10 @@ async function kampagneAbschicken(e) {
   const netze = [...$("#k-netze").querySelectorAll("input:checked")].map((f) => f.value);
   if (!netze.length) return melden("Wähle mindestens ein Netzwerk.", true);
 
+  const tage = [...$("#k-tage").querySelectorAll("input:checked")]
+    .map((f) => Number(f.value));
+  if (!tage.length) return melden("Wähle mindestens einen Wochentag.", true);
+
   // Erlaubnis erst hier erfragen, nicht beim Laden der Seite: Wer den Lauf
   // startet, wird die Benachrichtigung gleich brauchen.
   if ("Notification" in window && Notification.permission === "default") {
@@ -354,6 +373,7 @@ async function kampagneAbschicken(e) {
   knopf.disabled = true;
   $("#k-bericht").hidden = true;
   const jeTag = Number($("#k-jetag").value);
+  const anzahlTage = $("#k-tage").querySelectorAll("input:checked").length;
   // Ehrlich sagen, wie lange es dauert: Je Beitrag ein Claude-Aufruf, und
   // der braucht seine halbe Minute. Ohne Hinweis hält man es für abgestürzt.
   $("#k-stand").textContent = "Produkte werden gesammelt …";
@@ -382,6 +402,7 @@ async function kampagneAbschicken(e) {
       kategorien,
       netzwerke: netze,
       je_tag: jeTag,
+      tage,
       hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
     });
     // Das Formular bleibt offen und zeigt, was entstanden ist. Ein Lauf
@@ -518,6 +539,17 @@ function rasterZeichnen(beitraege) {
     // seiner Zeile, während oben die Juli-Tage vollständig dastanden. Was
     // vor dem Monat gezeigt wird, gehört auch danach gezeigt.
     if (i >= 35 && tag.getDay() === 1 && !eigen) break;
+
+    // Zu Beginn jeder Zeile die Kalenderwoche. Sie steht in einer eigenen
+    // Spalte und nicht im Montagsfeld - sonst wandert sie mit, sobald man
+    // die Spaltenbreite ändert.
+    if (i % 7 === 0) {
+      const kw = document.createElement("div");
+      kw.className = "kw";
+      kw.textContent = kalenderwoche(tag).woche;
+      kw.title = `Kalenderwoche ${kalenderwoche(tag).woche}`;
+      raster.append(kw);
+    }
 
     const kasten = document.createElement("div");
     kasten.className = "tag" + (eigen ? "" : " fremd") + (schluessel === heute ? " heute" : "");

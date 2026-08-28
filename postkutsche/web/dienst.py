@@ -356,6 +356,8 @@ class Behandler(BaseHTTPRequestHandler):
             kategorien=[str(k) for k in rumpf.get("kategorien", [])],
             netzwerke=[str(n) for n in rumpf.get("netzwerke", ["facebook"])],
             je_tag=int(rumpf.get("je_tag", 1)),
+            # Ohne Angabe die Werktage - so war es, bevor die Auswahl kam.
+            tage=tuple(int(t) for t in rumpf.get("tage", [0, 1, 2, 3, 4])),
             hersteller=[str(h) for h in rumpf.get("hersteller", [])],
         )
         if Behandler.lauf.get("aktiv"):

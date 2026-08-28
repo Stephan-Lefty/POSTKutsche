@@ -106,7 +106,22 @@ button { font: inherit; cursor: pointer; }
 
 /* -- Raster -------------------------------------------------------------- */
 
-.wochentage, .raster { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+/* Acht Spalten: die Kalenderwoche und die sieben Tage. Die erste ist
+   schmal - sie trägt zwei Ziffern, keinen Inhalt. */
+.wochentage, .raster {
+  display: grid;
+  grid-template-columns: 2.4rem repeat(7, 1fr);
+  gap: 6px;
+}
+.kw, .kw-kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+.kw { font-variant-numeric: tabular-nums; }
 .wochentage { margin-bottom: 6px; }
 .wochentage span { font-size: 12px; color: var(--text-leise); padding-left: 4px; }
 
@@ -378,3 +393,18 @@ button { font: inherit; cursor: pointer; }
 }
 .berichtzeile.schlecht { color: var(--rot); }
 .bericht .knopf { margin-top: 12px; }
+
+/* Wochentage der Kampagne. Vorbelegt sind Montag bis Freitag - für das
+   Handwerk die Regel. Wochenende ist wählbar, nicht ausgeschlossen: Für
+   Bauherren ist der Samstagvormittag eine gute Zeit. */
+.tage { display: flex; gap: 4px; margin-top: 4px; }
+.tage label {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  margin: 0; padding: 5px 0; flex: 1;
+  border: 1px solid var(--linie); border-radius: 6px;
+  font-size: 12px; color: var(--text-leise); cursor: pointer;
+}
+.tage label:has(input:checked) {
+  border-color: var(--blau); color: var(--blau); background: var(--flaeche);
+}
+.tage input { width: auto; margin: 0; }
