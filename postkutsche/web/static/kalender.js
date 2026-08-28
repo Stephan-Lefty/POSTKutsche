@@ -393,7 +393,7 @@ async function kampagneAbschicken(e) {
   }, 2000);
 
   try {
-    const bericht = await hole("/api/kampagne", {
+    let bericht = await hole("/api/kampagne", {
       projekt: $("#k-projekt").value,
       thema: $("#k-thema").value,
       kalenderwoche: Number($("#k-woche").value),
@@ -403,7 +403,38 @@ async function kampagneAbschicken(e) {
       je_tag: jeTag,
       tage,
       hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
+      bestaetigt: false,
     });
+
+    // Waren Produkte in den letzten vier Wochen schon dran, fragt der Lauf
+    // nach, statt sie stillschweigend zu übergehen oder zu wiederholen.
+    if (bericht.rueckfrage) {
+      const liste = bericht.wiederholungen
+        .map((w) => `• ${w.titel.slice(0, 60)} (${w.lesbar})`)
+        .join("\n");
+      const weiter = confirm(
+        `${bericht.wiederholungen.length} der ausgewählten Produkte waren in ` +
+        `den letzten vier Wochen schon dran:\n\n${liste}\n\n` +
+        "Trotzdem einplanen?"
+      );
+      if (!weiter) {
+        $("#k-stand").textContent = "Abgebrochen – nichts angelegt.";
+        return;
+      }
+      $("#k-stand").textContent = "Entwürfe entstehen …";
+      bericht = await hole("/api/kampagne", {
+        projekt: $("#k-projekt").value,
+        thema: $("#k-thema").value,
+        kalenderwoche: Number($("#k-woche").value),
+        jahr: Number($("#k-jahr").value),
+        kategorien,
+        netzwerke: netze,
+        je_tag: jeTag,
+        tage,
+        hersteller: $("#k-hersteller").value.split(",").map((h) => h.trim()).filter(Boolean),
+        bestaetigt: true,
+      });
+    }
     // Das Formular bleibt offen und zeigt, was entstanden ist. Ein Lauf
     // dauert Minuten - wer in der Zeit etwas anderes macht, soll das
     // Ergebnis noch vorfinden und nicht nur eine Meldung verpasst haben.

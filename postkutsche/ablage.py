@@ -722,6 +722,29 @@ class Ablage:
         )
         self.db.commit()
 
+    def zuletzt_beworben(self, projekt_id: int,
+                         adressen: list[str]) -> dict[str, str]:
+        """Wann diese Produkte zuletzt im Kalender standen.
+
+        Gibt Adresse → Zeitpunkt des jüngsten Beitrags zurück; Produkte ohne
+        Eintrag fehlen im Ergebnis. Zählt auch Entwürfe: Ein Produkt, das für
+        nächste Woche schon geplant ist, soll nicht ein zweites Mal
+        eingeplant werden, nur weil der Beitrag noch nicht raus ist.
+        """
+        if not adressen:
+            return {}
+        platzhalter = ",".join("?" * len(adressen))
+        zeilen = self.db.execute(
+            f"""SELECT i.adresse, MAX(b.geplant) AS wann
+                FROM beitraege b
+                JOIN inhalte i ON i.id = b.inhalt_id
+                WHERE b.projekt_id = ? AND i.adresse IN ({platzhalter})
+                  AND b.zustand != ?
+                GROUP BY i.adresse""",
+            (projekt_id, *adressen, BEITRAG_VERWORFEN),
+        )
+        return {str(z["adresse"]): str(z["wann"]) for z in zeilen}
+
     def kategorien_zuletzt(self, projekt_id: int) -> dict[str, str]:
         """Wann eine Kategorie zuletzt bespielt wurde, je Kategoriepfad.
 

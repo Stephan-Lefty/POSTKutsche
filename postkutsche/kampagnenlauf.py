@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from datetime import timedelta
+
 from . import bilder, denker, kampagnen, sendezeiten, zeiten
 from .quellen import seitenkarte
 
@@ -39,13 +41,52 @@ def produkte_sammeln(kampagne: kampagnen.Kampagne,
     return gesammelt
 
 
+#: Wie lange ein Produkt als »neulich beworben« gilt. Vier Wochen sind lang
+#: genug, dass niemand die Wiederholung bemerkt hätte, und kurz genug, dass
+#: ein Sortiment mit hundert Artikeln nicht durchgesperrt wird.
+SCHONFRIST_TAGE = 28
+
+
+def wiederholungen_finden(ablage, projekt_id: int,
+                          produkte: list[dict[str, Any]],
+                          tage: int = SCHONFRIST_TAGE) -> list[dict[str, Any]]:
+    """Welche der Produkte in den letzten Wochen schon dran waren.
+
+    Gibt je Treffer Titel, Adresse und den letzten Termin zurück - genug, um
+    zu entscheiden, ob man es trotzdem will.
+    """
+    adressen = [str(p["adresse"]) for p in produkte]
+    bekannt = ablage.zuletzt_beworben(projekt_id, adressen)
+    if not bekannt:
+        return []
+
+    grenze = zeiten.schreiben(
+        zeiten.lesen(zeiten.jetzt_utc()) - timedelta(days=tage)
+    )
+    treffer = []
+    for produkt in produkte:
+        wann = bekannt.get(str(produkt["adresse"]))
+        if wann and wann >= grenze:
+            treffer.append({
+                "titel": produkt.get("titel", ""),
+                "adresse": produkt["adresse"],
+                "zuletzt": wann,
+                "lesbar": zeiten.lesbar(wann),
+            })
+    return treffer
+
+
 def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
-               fortschritt=None) -> dict[str, Any]:
+               fortschritt=None, bestaetigt: bool = False) -> dict[str, Any]:
     """Legt die Beiträge einer Kampagne an. Gibt einen Bericht zurück.
 
     `fortschritt(getan, gesamt, text)` wird nach jedem Schritt gerufen. Ein
     Lauf über zehn Produkte dauert Minuten - ohne Rückmeldung sieht das aus
     wie ein Absturz, und jemand bricht ab, während es noch läuft.
+
+    Waren Produkte in den letzten vier Wochen schon dran, bricht der Lauf ab
+    und meldet sie zurück - es sei denn, `bestaetigt` ist gesetzt. Der Aufruf
+    kommt also zweimal: einmal zum Prüfen, einmal zum Ausführen.
     """
     sagen = melden or (lambda *_: None)
     schritt = fortschritt or (lambda *_: None)
@@ -71,6 +112,20 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
                             "Kein Produkt dieser Hersteller in den Kategorien.")
 
     gewaehlt = kampagnen.streuen(alle, kampagne.anzahl)
+
+    # Was in den letzten vier Wochen schon dran war, wird gemeldet - nicht
+    # stillschweigend übersprungen. Vielleicht ist die Wiederholung gewollt.
+    wiederholt = wiederholungen_finden(ablage, projekt.id, gewaehlt)
+    if wiederholt and not bestaetigt:
+        return {
+            "rueckfrage": True,
+            "wiederholungen": wiederholt,
+            "anzahl": 0,
+            "angelegt": [],
+            "gescheitert": [],
+            "nicht_zugeordnet": [u["titel"] for u in unklar],
+            "hinweis": None,
+        }
     zielgruppe = sendezeiten.zielgruppe_von(projekt)
     netze = kampagne.netzwerke or ["facebook"]
     termine = kampagnen.termine(kampagne, netze[0], zielgruppe)

@@ -485,6 +485,7 @@ class Behandler(BaseHTTPRequestHandler):
             tage=tuple(int(t) for t in rumpf.get("tage", [0, 1, 2, 3, 4])),
             hersteller=[str(h) for h in rumpf.get("hersteller", [])],
         )
+        bestaetigt = bool(rumpf.get("bestaetigt"))
         if Behandler.lauf.get("aktiv"):
             return self._fehler("Es läuft schon eine Planung.", 409)
 
@@ -497,7 +498,8 @@ class Behandler(BaseHTTPRequestHandler):
                           "gesamt": kampagne.anzahl, "text": "beginnt …"}
         try:
             with self._ablage() as a:
-                bericht = ausfuehren(a, kampagne, fortschritt=melden_fortschritt)
+                bericht = ausfuehren(a, kampagne, fortschritt=melden_fortschritt,
+                                     bestaetigt=bestaetigt)
         finally:
             Behandler.lauf = {"aktiv": False}
         self._json(bericht)
