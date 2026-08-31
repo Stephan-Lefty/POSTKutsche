@@ -47,6 +47,9 @@ KEINE_PRODUKTE = (
     "/cart.", "/order.", "/warenkorb", "/checkout", "/login", "/konto",
     "/agb", "/impressum", "/datenschutz", "/widerruf", "/kontakt",
     "/list.html", "/suche", "/search", "/sitemap",
+    # Shopware führt diese unter englischen Pfaden - ohne sie stehen
+    # »Profil bearbeiten« und »Adressen« als Produkte in der Kategorie.
+    "/account", "/rechtliches", "/newsletter", "/merkzettel", "/wishlist",
 )
 
 
@@ -252,6 +255,54 @@ def _lesbar(stueck: str) -> str:
 def _nummer(stueck: str) -> int | None:
     treffer = re.search(r"_(\d+)$", stueck)
     return int(treffer.group(1)) if treffer else None
+
+
+def produkte_der_kategorie(adresse: str, grenze: int = 200) -> list[str]:
+    """Die Produkte, die auf einer Kategorieseite verlinkt sind.
+
+    Der Weg für Shops, deren Seitenkarte die Zugehörigkeit nicht verrät.
+    Shopware legt Produkte flach ab, nicht unterhalb der Kategorie - wer in
+    der Seitenkarte nach dem Kategoriepfad filtert, findet dort nur die
+    Kategorieseite selbst und hält den Shop für leer.
+
+    **Woran ein Produkt zu erkennen ist:** Es endet nicht auf einem
+    Schrägstrich. Kategorien tun das (`/Fenstersicherung/`), Produkte tragen
+    hinten die Artikelnummer (`/ADE-Sicherungsstange-S.../ADE-S`). Diese
+    Regel ist nicht schön, aber sie kommt von der Seite selbst und nicht aus
+    einer Vermutung über Shopware-Themes - Klassennamen wechseln mit jeder
+    Fassung, die Adressform bleibt.
+
+    Was der Shop mehrfach verlinkt (Bild und Titel derselben Kachel), steht
+    hier trotzdem nur einmal, in der Reihenfolge der Seite.
+    """
+    roh = text_holen(adresse)
+    stamm = _stamm_von(adresse)
+
+    gefunden: list[str] = []
+    gesehen: set[str] = set()
+    for treffer in re.findall(r"""<a[^>]+href\s*=\s*["\']([^"\'#?]+)""",
+                              roh, re.IGNORECASE):
+        voll = treffer if treffer.startswith("http") else f"{stamm}{treffer}"
+        if not voll.startswith(stamm) or voll.endswith("/"):
+            continue
+        if _ist_keine_produktseite(voll) or _ist_beiwerk(voll):
+            continue
+        # Zwei Ebenen: /Produktname/Artikelnummer. Weniger ist eine
+        # Übersicht, mehr gibt es in diesen Shops nicht.
+        if len(voll[len(stamm):].strip("/").split("/")) < 2:
+            continue
+        if voll in gesehen:
+            continue
+        gesehen.add(voll)
+        gefunden.append(voll)
+        if len(gefunden) >= grenze:
+            break
+    return gefunden
+
+
+def _ist_beiwerk(adresse: str) -> bool:
+    unten = adresse.lower()
+    return any(stueck in unten for stueck in KEINE_PRODUKTE)
 
 
 def seite(adresse: str) -> dict[str, object]:

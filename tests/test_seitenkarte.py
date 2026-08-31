@@ -32,3 +32,46 @@ class FortgezogeneAdressen(unittest.TestCase):
         roh = "<p>" + ("a" * 500 + "</p><p>") * 40 + "</p>"
         self.assertLessEqual(len(seitenkarte._fliesstext(roh)),
                              seitenkarte.TEXTGRENZE)
+
+
+class ProdukteEinerKategorie(unittest.TestCase):
+    """Shopware legt Produkte flach ab, nicht unter der Kategorie."""
+
+    SEITE = """
+      <a href="/Fenstersicherung/">Kategorie</a>
+      <a href="/ADE-Sicherungsstange-S/ADE-S">Stange</a>
+      <a href="/ADE-Sicherungsstange-S/ADE-S"><img></a>
+      <a href="/ADE-Verbindungsplatte/ADE-VP-Z20">Platte</a>
+      <a href="/account/profile">Mein Profil</a>
+      <a href="/Rechtliches/Versand-Zahlungen/">Versand</a>
+      <a href="https://fremd.example/Ding/X1">fremd</a>
+      <a href="/Angebote">flach</a>
+    """
+
+    def _lesen(self):
+        from unittest import mock
+        with mock.patch.object(seitenkarte, "text_holen",
+                               return_value=self.SEITE):
+            return seitenkarte.produkte_der_kategorie(
+                "https://x.example/Fenstersicherung/")
+
+    def test_findet_die_produkte(self):
+        self.assertEqual(self._lesen(), [
+            "https://x.example/ADE-Sicherungsstange-S/ADE-S",
+            "https://x.example/ADE-Verbindungsplatte/ADE-VP-Z20",
+        ])
+
+    def test_zaehlt_dieselbe_kachel_nur_einmal(self):
+        # Bild und Titel verweisen auf dasselbe Produkt.
+        self.assertEqual(len(self._lesen()), 2)
+
+    def test_kontoseiten_sind_keine_produkte(self):
+        # Ohne die Sperre stuenden »Profil« und »Adressen« in jeder Kategorie.
+        self.assertNotIn("https://x.example/account/profile", self._lesen())
+
+    def test_fremde_adressen_bleiben_draussen(self):
+        self.assertFalse([a for a in self._lesen() if "fremd.example" in a])
+
+    def test_eine_ebene_ist_keine_produktadresse(self):
+        # /Angebote ist eine Uebersicht, kein Artikel.
+        self.assertNotIn("https://x.example/Angebote", self._lesen())
