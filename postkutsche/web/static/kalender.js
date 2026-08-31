@@ -109,6 +109,7 @@ function kalenderwoche(d) {
 }
 
 let kategorienAlle = [];
+let kategorienHinweis = null;
 
 function kampagneVorbereiten() {
   const kasten = $("#kampagne");
@@ -202,9 +203,18 @@ async function kategorienLaden() {
   const liste = $("#k-kategorien");
   liste.innerHTML = '<p class="schlagworte">Kategorien werden geholt …</p>';
   try {
-    kategorienAlle = await hole(`/api/kategorien?projekt=${$("#k-projekt").value}`);
+    const antwort = await hole(`/api/kategorien?projekt=${$("#k-projekt").value}`);
+    /* Beide Antwortformen lesen. Statische Dateien liefert der Dienst
+       direkt von der Platte - neues JavaScript läuft also schon, während
+       der Python-Teil noch der alte ist, solange niemand den Dienst neu
+       gestartet hat. Am 2026-08-31 genau so passiert: Die Bereiche
+       verschwanden mitten in der Arbeit, weil das JS ein Feld suchte, das
+       der laufende Dienst noch nicht schickte. */
+    kategorienAlle = Array.isArray(antwort) ? antwort : (antwort.kategorien || []);
+    kategorienHinweis = Array.isArray(antwort) ? null : (antwort.hinweis || null);
   } catch (fehler) {
     kategorienAlle = [];
+    kategorienHinweis = null;
     liste.innerHTML = `<p class="schlagworte">${fehler.message}</p>`;
     return;
   }
@@ -252,6 +262,16 @@ function kategorienZeichnen() {
   );
   liste.innerHTML = "";
 
+  /* Was der Abgleich mit der Navigation aussortiert hat, steht über der
+     Liste. Wenn von 158 Kategorien 136 verschwinden, will man wissen, warum
+     die Liste kürzer geworden ist, und nicht rätseln, ob etwas kaputt ist. */
+  if (kategorienHinweis) {
+    const zeile = document.createElement("p");
+    zeile.className = "schlagworte";
+    zeile.textContent = kategorienHinweis;
+    liste.append(zeile);
+  }
+
   // Kategorien ohne Produkte sind Übersichtsseiten - sie anzubieten führt
   // nur zu leeren Kampagnen.
   const bereich = $("#k-bereich").value;
@@ -261,7 +281,12 @@ function kategorienZeichnen() {
       && (!suche || k.name.toLowerCase().includes(suche))
   );
   if (!treffer.length) {
-    liste.innerHTML = '<p class="schlagworte">Nichts gefunden.</p>';
+    // Anhängen statt ersetzen: Der Hinweis darüber erklärt oft genau, warum
+    // hier nichts steht.
+    const leer = document.createElement("p");
+    leer.className = "schlagworte";
+    leer.textContent = "Nichts gefunden.";
+    liste.append(leer);
     return;
   }
 

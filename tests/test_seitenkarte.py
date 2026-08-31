@@ -187,6 +187,133 @@ class ZweiShopformen(unittest.TestCase):
                 len(seitenkarte.kategorie("https://x.example/kat_1/list.html", 5)), 5)
 
 
+class NavigationAlsWahrheit(unittest.TestCase):
+    """Die Seitenkarte ist ein Versprechen, die Navigation ist der Bestand.
+
+    Am 2026-08-31 nachgemessen: Die Karte des Eigenbaus nannte 158
+    Kategorien, verlinkt waren 43. Von zehn nicht verlinkten, denen die Karte
+    zusammen 270 Produkte zuschrieb, lieferte keine mehr als drei.
+    """
+
+    START = """
+      <a href="/shop-tueren/list.html">Türen</a>
+      <a href="https://x.example/shop-tueren/list.html">Türen Shop</a>
+      <a href="/shop-zubehoer/list.html">Shop für Sicherheit &amp; Zubehör</a>
+      <a href="/shop-tueren/haustueren_454/list.html">Haustüren</a>
+      <a href="/info_service/kontakt.html">Kontakt</a>
+    """
+
+    BEREICH = """
+      <a href="/shop-tueren/kellertueren_525/list.html">Kellertüren</a>
+    """
+
+    SEITEN = {
+        "https://x.example/": START,
+        "https://x.example/shop-tueren/list.html": BEREICH,
+        "https://x.example/shop-zubehoer/list.html": "",
+    }
+
+    def _lesen(self, seiten=None):
+        seiten = seiten or self.SEITEN
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=lambda a: seiten[a]):
+            return seitenkarte.verlinkte_kategorien("https://x.example/")
+
+    def test_bereiche_werden_nachgeladen(self):
+        # Ohne die Bereichsseiten fiele »Kellertueren« weg, obwohl es die
+        # Kategorie gibt - die Startseite zeigt nur das Menue.
+        self.assertIn("/shop-tueren/kellertueren_525/list.html", self._lesen())
+
+    def test_nur_kategorieseiten(self):
+        self.assertFalse([p for p in self._lesen() if "kontakt" in p])
+
+    def test_schema_und_rechnername_stoeren_nicht(self):
+        # In der Seitenkarte steht http, in der Navigation https. Verglichen
+        # wird deshalb nur der Pfad.
+        gefunden = self._lesen()
+        self.assertIn("/shop-tueren/list.html", gefunden)
+        self.assertFalse([p for p in gefunden if p.startswith("http")])
+
+    def test_die_laengste_beschriftung_gewinnt(self):
+        # Dieselbe Kategorie steht mehrfach auf der Seite, im Menue kuerzer
+        # als im Fliesstext. Die laengste Fassung sagt am meisten.
+        gefunden = self._lesen()
+        self.assertEqual(gefunden["/shop-tueren/list.html"], "Türen Shop")
+        self.assertEqual(gefunden["/shop-zubehoer/list.html"],
+                         "Shop für Sicherheit & Zubehör")
+
+    def test_ein_stummer_bereich_reisst_nichts_mit(self):
+        def antworten(adresse):
+            if adresse.endswith("/shop-zubehoer/list.html"):
+                raise AbrufFehler("antwortet nicht")
+            return self.SEITEN[adresse]
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            gefunden = seitenkarte.verlinkte_kategorien("https://x.example/")
+        self.assertIn("/shop-tueren/kellertueren_525/list.html", gefunden)
+
+    def test_es_werden_nicht_beliebig_viele_bereiche_geholt(self):
+        viele = "".join(f'<a href="/shop-{n}/list.html">B</a>' for n in range(40))
+        geholt = []
+
+        def antworten(adresse):
+            geholt.append(adresse)
+            return viele if adresse == "https://x.example/" else ""
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            seitenkarte.verlinkte_kategorien("https://x.example/")
+        # Startseite plus hoechstens BEREICHSGRENZE Bereichsseiten. Sonst
+        # warten vierzig Abrufe lang alle auf das Formular.
+        self.assertLessEqual(len(geholt), seitenkarte.BEREICHSGRENZE + 1)
+
+
+class Abgleich(unittest.TestCase):
+    """Was die Karte kennt, gegen das, was die Seite noch verlinkt."""
+
+    def _eintrag(self, pfad, name="X", produkte=1):
+        return {"adresse": f"http://x.example{pfad}", "name": name,
+                "produkte": produkte}
+
+    def test_verlinktes_bleibt_unverlinktes_geht(self):
+        behalten, verworfen = seitenkarte.abgleichen(
+            [self._eintrag("/shop-tueren/haustueren_1/list.html"),
+             self._eintrag("/shop-tueren/passivhaustueren_2/list.html")],
+            {"/shop-tueren/haustueren_1/list.html": "Haustüren"})
+        self.assertEqual(len(behalten), 1)
+        self.assertEqual(len(verworfen), 1)
+
+    def test_die_beschriftung_der_seite_sticht(self):
+        # »Angebote & Express« steht in der Navigation; aus der Adresse
+        # »tueren_angebote_626« wird bestenfalls »Türen Angebote«.
+        behalten, _ = seitenkarte.abgleichen(
+            [self._eintrag("/shop-tueren/tueren_angebote_626/list.html",
+                           "Türen Angebote")],
+            {"/shop-tueren/tueren_angebote_626/list.html": "Angebote & Express"})
+        self.assertEqual(behalten[0]["name"], "Angebote & Express")
+
+    def test_eine_ebene_unter_einer_verlinkten_kategorie_bleibt(self):
+        # Was nicht im Menue steht, ist nicht zwangslaeufig tot - es kann
+        # eine Ebene tiefer haengen.
+        behalten, _ = seitenkarte.abgleichen(
+            [self._eintrag("/shop-tueren/brandschutz_1/t30_2/list.html")],
+            {"/shop-tueren/brandschutz_1/list.html": "Brandschutztüren"})
+        self.assertEqual(len(behalten), 1)
+
+    def test_unter_einem_bereich_allein_reicht_nicht(self):
+        # Sonst ueberlebt alles: Ein Bereich ist immer verlinkt, und der
+        # Abgleich taete nichts.
+        _, verworfen = seitenkarte.abgleichen(
+            [self._eintrag("/shop-tueren/passivhaustueren_2/list.html")],
+            {"/shop-tueren/list.html": "Türen"})
+        self.assertEqual(len(verworfen), 1)
+
+    def test_ein_leerer_name_ueberschreibt_nichts(self):
+        behalten, _ = seitenkarte.abgleichen(
+            [self._eintrag("/shop-tueren/haustueren_1/list.html", "Haustüren")],
+            {"/shop-tueren/haustueren_1/list.html": ""})
+        self.assertEqual(behalten[0]["name"], "Haustüren")
+
+
 class VorgegebeneKategorien(unittest.TestCase):
     """Wo die Seitenkarte die Zugehoerigkeit nicht verraet, nennt man sie."""
 

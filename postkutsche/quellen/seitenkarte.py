@@ -305,6 +305,161 @@ def kategorien(karte: str, bereich: str | None = None,
     return gefunden
 
 
+#: Ein Verweis auf eine Kategorieseite, samt seiner Beschriftung. Die
+#: Beschriftung wird mitgenommen, weil sie besser ist als jede aus der Adresse
+#: abgeleitete: In der Navigation steht »Angebote & Express«, aus der Adresse
+#: »tueren_angebote_626« wird bestenfalls »Türen Angebote«.
+_KATEGORIEVERWEIS = re.compile(
+    r"""<a[^>]+href\s*=\s*["']([^"']*list\.html)["'][^>]*>(.*?)</a>""",
+    re.IGNORECASE | re.DOTALL,
+)
+
+#: Wie viele Bereichsseiten höchstens nachgeladen werden. Drei sind es bei
+#: unserem Shop; die Grenze steht da, damit eine Seite mit vierzig Zweigen
+#: nicht vierzig Abrufe auslöst, während jemand auf das Formular wartet.
+BEREICHSGRENZE = 8
+
+#: Beschriftungen jenseits davon sind kein Name mehr, sondern ein Satz aus
+#: einem Werbebanner.
+NAMENSGRENZE = 60
+
+
+def verlinkte_kategorien(startseite: str,
+                         grenze: int = BEREICHSGRENZE) -> dict[str, str]:
+    """Welche Kategorien die Seite selbst noch verlinkt – Pfad → Beschriftung.
+
+    **Die Seitenkarte ist ein Versprechen, die Navigation ist der Bestand.**
+    Am 2026-08-31 nachgemessen: Die Karte des ersten Shops nannte 158
+    Kategorien, verlinkt waren davon 43. Von zehn nicht verlinkten, denen die
+    Karte zusammen 270 Produkte zuschrieb, lieferte keine einzige mehr als
+    drei. Wer »Passivhaustüren« ankreuzt, plant eine Woche über Ware, die es
+    nicht gibt.
+
+    Gelesen werden die Startseite und die Bereiche, die sie nennt – bei uns
+    vier Abrufe. Die Bereichsseiten müssen sein: Die Startseite zeigt nur das
+    Menü und ließe »Kellertüren« und die T30-Zweige unter den Tisch fallen,
+    obwohl es sie gibt. Jede Kategorie einzeln nachzusehen wären dagegen
+    hundert Abrufe, während jemand auf das Formular wartet.
+
+    Ein Bereich ist ein Verweis mit genau einer Pfadebene über `list.html`.
+    Tiefer wird nicht gestiegen: Was eine Bereichsseite nicht nennt, nennt
+    auch die Kategorie darunter nicht mehr – und die zweite Ebene wäre wieder
+    ein Abruf je Kategorie.
+
+    Die Pfade kommen ohne Schema und Rechnernamen zurück, damit `http://` aus
+    der Seitenkarte und `https://` aus der Navigation zusammenfinden.
+    """
+    genannt = _verweise_von(startseite)
+
+    # Nur Bereiche nachladen, die es überhaupt gibt, und nur so viele, wie die
+    # Grenze erlaubt - sortiert, damit derselbe Shop immer dieselben liefert.
+    bereiche = sorted(p for p in genannt if p.strip("/").count("/") == 1)
+    stamm = _stamm_von(startseite)
+    for pfad in bereiche[:grenze]:
+        try:
+            weitere = _verweise_von(f"{stamm}{pfad}")
+        except AbrufFehler:
+            # Ein Bereich, der gerade nicht antwortet, darf nicht dazu führen,
+            # dass alles darunter für tot erklärt wird. Der Abgleich fällt für
+            # diesen Zweig aus, mehr nicht.
+            continue
+        for schluessel, name in weitere.items():
+            if len(name) > len(genannt.get(schluessel, "")):
+                genannt[schluessel] = name
+
+    return genannt
+
+
+def _verweise_von(adresse: str) -> dict[str, str]:
+    """Alle Verweise einer Seite, die auf eine Kategorieseite zeigen."""
+    roh = text_holen(adresse)
+    gefunden: dict[str, str] = {}
+    for ziel, beschriftung in _KATEGORIEVERWEIS.findall(roh):
+        pfad = _nur_pfad(ziel)
+        if not pfad:
+            continue
+        name = entmarken(beschriftung)
+        if len(name) > NAMENSGRENZE:
+            name = ""
+        # Dieselbe Kategorie steht mehrfach auf der Seite, im Menü kürzer als
+        # im Fließtext: »Zubehör«, »Zubehör Shop«, »Shop für Sicherheit &
+        # Zubehör«. Die längste Fassung sagt am meisten.
+        if len(name) > len(gefunden.get(pfad, "")):
+            gefunden[pfad] = name
+        gefunden.setdefault(pfad, name)
+    return gefunden
+
+
+def _nur_pfad(adresse: str) -> str:
+    """»http://x.example/shop-tueren/list.html« zu »/shop-tueren/list.html«.
+
+    Ohne Schema und Rechnername, klein geschrieben: In der Seitenkarte steht
+    `http://` und in der Navigation `https://`, mal mit und mal ohne `www`.
+    Verglichen wird deshalb nur der Pfad.
+    """
+    ohne_wirt = re.sub(r"^https?://[^/]*", "", adresse.strip())
+    ohne_frage = ohne_wirt.split("?", 1)[0].split("#", 1)[0]
+    if not ohne_frage.startswith("/"):
+        return ""
+    return ohne_frage.lower()
+
+
+def abgleichen(kategorien: list[dict[str, object]],
+               verlinkt: dict[str, str]) -> tuple[list[dict[str, object]],
+                                                  list[dict[str, object]]]:
+    """Trennt, was die Seite noch verlinkt, von dem, was nur die Karte kennt.
+
+    Gibt (behalten, verworfen) zurück – beides, weil das Verworfene genannt
+    werden muss. Wenn von 158 Kategorien 136 verschwinden, will man wissen,
+    warum die Liste kürzer geworden ist, statt zu rätseln.
+
+    **Was nicht verlinkt ist, ist nicht zwangsläufig tot.** Eine Kategorie
+    kann eine Ebene unter einer verlinkten hängen, ohne selbst im Menü zu
+    stehen; sie bleibt deshalb erhalten. Nicht erhalten bleibt, was nur noch
+    unter einem *Bereich* hängt – sonst überlebte alles, denn ein Bereich ist
+    immer verlinkt, und der Abgleich täte nichts.
+
+    Wo die Navigation eine Beschriftung mitbringt, sticht sie den aus der
+    Adresse abgeleiteten Namen: »Angebote & Express« statt »Türen Angebote«.
+    """
+    behalten: list[dict[str, object]] = []
+    verworfen: list[dict[str, object]] = []
+
+    for eintrag in kategorien:
+        pfad = _nur_pfad(str(eintrag["adresse"]))
+        name = _verlinkt_als(pfad, verlinkt)
+        if name is None:
+            verworfen.append(eintrag)
+            continue
+        if name:
+            eintrag["name"] = name
+        behalten.append(eintrag)
+
+    return behalten, verworfen
+
+
+def _verlinkt_als(pfad: str, verlinkt: dict[str, str]) -> str | None:
+    """Die Beschriftung, unter der die Seite diese Kategorie verlinkt.
+
+    None heißt: weder sie selbst noch eine Kategorie über ihr ist verlinkt.
+    Der leere Text heißt: verlinkt, aber ohne brauchbare Beschriftung.
+    """
+    if pfad in verlinkt:
+        return verlinkt[pfad]
+
+    # Nach oben hangeln, aber nicht bis zum Bereich: Bei »/a/b/c/list.html«
+    # wird »/a/b/list.html« geprüft und dann Schluss. »/a/list.html« ist der
+    # Bereich, und der ist immer verlinkt.
+    ordner = pfad.rsplit("/", 1)[0]
+    while ordner.count("/") > 1:
+        ordner = ordner.rsplit("/", 1)[0]
+        if ordner.count("/") < 2:
+            break
+        if f"{ordner}/list.html" in verlinkt:
+            return ""
+    return None
+
+
 #: Wörter, die im Deutschen klein bleiben, auch wenn sie in einer Adresse
 #: zwischen zwei Hauptwörtern stehen. »Düsen und Adapter«, nicht »Düsen Und
 #: Adapter«. Die Liste ist kurz und wird länger, wenn etwas auffällt.

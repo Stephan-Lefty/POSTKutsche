@@ -30,8 +30,12 @@ STATISCH = Path(__file__).parent / "static"
 
 
 def kategorien_des_projekts(projekt: Any,
-                            bereich: str | None = None) -> list[dict[str, Any]]:
+                            bereich: str | None = None,
+                            melden=None) -> tuple[list[dict[str, Any]], str | None]:
     """Die Gliederung eines Shops – aus der Seitenkarte oder von Hand genannt.
+
+    Gibt die Kategorien und einen Hinweis zurück; der Hinweis ist None, wenn
+    es nichts zu sagen gibt.
 
     **Zwei Herkünfte, weil es zwei Shopformen gibt.** Der Regelfall steht in
     der Seitenkarte: Der Pfad einer Produktadresse nennt seine Kategorie,
@@ -43,7 +47,15 @@ def kategorien_des_projekts(projekt: Any,
     Für solche Shops stehen die gewünschten Kategorien unter »kategorien« in
     der Projektdatei. Sie zu zählen kostet einen Abruf je Kategorie – bei
     einer Handvoll ist das vertretbar, für 158 Kategorien wäre es das nicht.
-    Genau deshalb ist es kein Weg für alle, sondern die Ausnahme.
+    Genau deshalb ist es kein Weg für alle, sondern die Ausnahme. Diese
+    Vorgaben kommen vom Benutzer und werden nicht abgeglichen: Er hat
+    nachgesehen, wir nicht.
+
+    **Was aus der Seitenkarte kommt, wird gegen die Navigation geprüft.** Eine
+    Seitenkarte, die zehn Jahre nicht gepflegt wurde, nennt Kategorien, die es
+    nicht mehr gibt. Wer eine davon ankreuzt, plant eine Woche über Ware, die
+    niemand mehr kaufen kann. Ist die Seite selbst nicht erreichbar, bleibt
+    alles stehen – lieber zu viel anbieten als das Formular leer zu lassen.
 
     Steht hier statt im Behandler, damit es ohne laufenden Webdienst zu
     prüfen ist.
@@ -56,11 +68,45 @@ def kategorien_des_projekts(projekt: Any,
         if bereich:
             kategorien = [k for k in kategorien
                           if str(k["pfad"]).startswith(bereich)]
-        return kategorien
+        return kategorien, None
 
     karte = (projekt.einstellungen.get("seitenkarte")
              or f"{projekt.adresse.rstrip('/')}/sitemap.xml")
-    return seitenkarte.kategorien(karte, bereich)
+    kategorien = seitenkarte.kategorien(karte, bereich)
+
+    startseite = projekt.einstellungen.get("navigation") or projekt.adresse
+    try:
+        verlinkt = seitenkarte.verlinkte_kategorien(startseite)
+    except seitenkarte.AbrufFehler as schiefgegangen:
+        return kategorien, (
+            f"Ungeprüft: {startseite} war nicht zu lesen ({schiefgegangen}). "
+            f"Es kann sein, dass Kategorien dabei sind, die es nicht mehr gibt."
+        )
+
+    behalten, verworfen = seitenkarte.abgleichen(kategorien, verlinkt)
+    if not verworfen:
+        return behalten, None
+
+    hinweis = (
+        f"{len(verworfen)} von {len(kategorien)} Kategorien der Seitenkarte "
+        f"sind auf der Seite nicht mehr verlinkt und stehen deshalb nicht zur "
+        f"Auswahl – zum Beispiel {_beispiele(verworfen)}."
+    )
+    # Auch ins Protokoll: Wer im Dienst nachliest, warum eine Woche mager
+    # ausfiel, findet es dort und nicht nur in einem Fenster, das längst zu ist.
+    (melden or print)(hinweis)
+    return behalten, hinweis
+
+
+def _beispiele(verworfen: list[dict[str, Any]], wie_viele: int = 3) -> str:
+    """Die auffälligsten der weggefallenen Kategorien beim Namen nennen.
+
+    Nach Produktzahl, denn eine Kategorie, der die Karte vierzig Produkte
+    zuschreibt, vermisst man eher als eine mit zweien.
+    """
+    nach_gewicht = sorted(verworfen, key=lambda e: -int(e.get("produkte") or 0))
+    namen = [f"»{e['name']}«" for e in nach_gewicht[:wie_viele]]
+    return ", ".join(namen)
 
 
 class Behandler(BaseHTTPRequestHandler):
@@ -320,7 +366,7 @@ class Behandler(BaseHTTPRequestHandler):
                 f"nicht für {projekt.art}.", 400
             )
 
-        kategorien = kategorien_des_projekts(
+        kategorien, hinweis = kategorien_des_projekts(
             projekt, frage.get("bereich", [None])[0])
 
         with self._ablage() as a:
@@ -341,7 +387,11 @@ class Behandler(BaseHTTPRequestHandler):
             else:
                 eintrag["zuletzt"] = None
 
-        self._json(kategorien)
+        # Ein Objekt und keine Liste, damit der Hinweis mitkommt. Wer den
+        # Kalender im Browser stehen hat, muss nach einer Änderung hier hart
+        # neu laden - eine alte kalender.js bekäme sonst eine Liste ohne
+        # Einträge.
+        self._json({"kategorien": kategorien, "hinweis": hinweis})
 
     def _bild(self, fassung_id: int) -> None:
         """Liefert das Bild einer Fassung aus.
