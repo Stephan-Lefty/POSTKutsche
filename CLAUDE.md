@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-401 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+417 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -31,8 +31,26 @@ verschweigt 57 Kategorien, die es gibt, und führt 115, die es nicht mehr gibt
 (»Passivhaustüren«, angeblich 40 Produkte). Erst wurde sie deshalb gegen die
 Navigation *geprüft* – das war zu wenig, denn wer zwei Quellen schneidet,
 bekommt das Schlechteste aus beiden: 17 Kategorien statt 116. Gelesen wird
-jetzt allein, was die Seite selbst verlinkt. Für die Produktadressen bleibt
-die Seitenkarte zuständig, und sie ist der Rückfall, wenn die Seite schweigt.
+jetzt allein, was die Seite selbst verlinkt. Sie ist der Rückfall, wenn die
+Seite schweigt.
+
+**Auch die Produkte einer Kampagne kommen von der Kategorieseite**, nicht aus
+der Karte – das war schon immer so, stand aber nirgends. Am 2026-08-31
+nachgemessen, weil die Vermutung im Raum stand: Von 60 Adressen, die nur die
+Karte kennt und die Navigation nicht verlinkt, leben **sieben**. Die Karte
+zusätzlich heranzuziehen würde den Vorrat zu knapp der Hälfte mit toten
+Adressen füllen, und jede kostet beim Planen einen Platz in der Woche –
+`ausfuehren` wählt genau `anzahl` und sucht für ein gescheitertes keinen
+Ersatz. Eine einzelne Kategorie (`t30-1_brandschutztueren_aluminium_576`)
+sah anders aus: Dort leben alle fünf, die nur die Karte kennt. Sie ist die
+Ausnahme, nicht die Regel. Für das Erkennen neuer Seiten
+(`entwerfen.inhalte_holen`) bleibt die Karte die einzige Quelle, die etwas
+über den ganzen Shop sagt.
+
+**Eine Kategorie kann mehrere Seiten haben.** Drei von 119 haben eine zweite,
+zusammen zwölf Produkte; alle drei standen vorher bei genau 30. Gefolgt wird
+nur, was die Seite selbst verlinkt – »?page=2« zu raten geht schief, weil
+eine Seite, die es nicht gibt, selten mit 404 antwortet.
 
 **Der Shop ist dreistufig, obwohl seine Adressen flach sind.** Alles liegt
 unter `/shop-<bereich>/<name>_<nummer>/`, die Gliederung hat aber Bereich,
@@ -41,7 +59,7 @@ Kategorie und Unterkategorie. Startseite plus die drei Bereichsseiten nennen
 sonst nirgends stehen – darunter die T30-1-Zweige, in denen die Ware liegt.
 Wer nur vier Seiten liest, übersieht zwei Drittel des Sortiments.
 
-**Deshalb 129 Abrufe, acht gleichzeitig, und zwölf Stunden Zwischenspeicher**
+**Deshalb 132 Abrufe, acht gleichzeitig, und zwölf Stunden Zwischenspeicher**
 in `~/.local/share/postkutsche/bestand/`. Einmal am Morgen zwanzig Sekunden
 warten, danach geht das Formular sofort auf. Die Produktzahlen werden dabei
 mitgezählt und nicht mehr aus der Karte übernommen – die behauptete für eine

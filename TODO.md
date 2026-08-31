@@ -29,10 +29,12 @@ wurde.
   Sortiment) sowie zwei Kategorien, deren Beschriftung auf der Seite kaputt
   kodiert ist. Nichts davon auf Verdacht entfernt – wenn es stört, ein Wort
   genügt.
-- **Kategorien mit mehr als einer Seite.** Gelesen wird die erste Seite der
-  Kategorie. Bei zwölf Produkten fällt das nicht auf; bei einer Kategorie mit
-  achtzig bleibt der Rest ungesehen. Die Folgeseiten hängen bei Shopware an
-  `?p=2`.
+- **Nachschlag aus der Seitenkarte für magere Kategorien?** Von dem, was nur
+  die Karte kennt und die Navigation nicht verlinkt, leben gemessen elf
+  Prozent – zu wenig, um sie allgemein heranzuziehen. Eine Kategorie war die
+  Ausnahme: In `t30-1_brandschutztueren_aluminium_576` leben alle fünf. Wenn
+  sich das häuft, wäre ein Nachschlag für zu kleine Kategorien zu überlegen –
+  aber erst, wenn es beim Planen auffällt.
 - **Gelerntes nachschärfen, wenn es sich einspielt.** Offen ist, ob zwölf
   Einträge je Anweisung reichen und ob die neuesten die richtigen sind. Wenn
   eine Antwort zurückgenommen werden muss, geht das bisher nur durch
@@ -107,3 +109,7 @@ wurde.
   unter `~/Dokumente/POSTKutsche/<jahr>-KW<woche>/<projekt>/` ab, weil der
   Browser den Downloadordner bestimmt und eine Webseite daran nichts ändern
   kann. Eine Fassung trägt jetzt zwei Bilder, beide auf 4:5 zugeschnitten.
+- **Kategorien mit mehr als einer Seite** (2026-08-31): Drei von 119 haben
+  eine zweite, zusammen zwölf Produkte – alle drei standen vorher bei genau
+  30. Gefolgt wird nur, was die Seite selbst verlinkt; »?page=2« zu raten
+  geht schief, weil eine Seite, die es nicht gibt, selten mit 404 antwortet.

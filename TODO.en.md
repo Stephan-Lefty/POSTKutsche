@@ -9,9 +9,12 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
-- **Categories spanning more than one page.** Only the first page of a
-  category is read. With twelve products nobody notices; with eighty the rest
-  stays unseen. In Shopware the following pages hang off `?p=2`.
+- **A top-up from the sitemap for thin categories?** Of the addresses only the
+  sitemap knows and the navigation does not link, a measured eleven per cent
+  are still alive – too few to draw on in general. One category was the
+  exception: there all five are alive. If that turns out to be common, a
+  top-up for undersized categories would be worth considering – but only once
+  it shows up while planning.
 - **Odds and ends in the category list that nobody has named yet.**
   Configurators and pickup regions are out. Going through the 116 also turned
   up "offers" and "offers and pickup stock" (catch-alls rather than ranges)
@@ -95,3 +98,7 @@ aren't deleted, they move down — with the date they were done.
   them under `~/Dokumente/POSTKutsche/<year>-KW<week>/<project>/`, because the
   browser decides where a download lands and a web page cannot change that. A
   version now carries two images, both cropped to 4:5.
+- **Categories spanning more than one page** (2026-08-31): three of 119 have a
+  second page, twelve products in total – all three had been sitting at
+  exactly 30. Only pages the category links itself are followed; guessing
+  "?page=2" goes wrong because a page that doesn't exist rarely answers 404.

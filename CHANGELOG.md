@@ -58,7 +58,9 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   der Navigation sticht den aus der Adresse abgeleiteten Namen, und das
   Ergebnis liegt zwölf Stunden bereit – ein Shop stellt sein Sortiment nicht
   stündlich um. Konfiguratoren und Abholgebiete bleiben draußen: Dahinter
-  steht kein Produkt, das man zeigen und verlinken könnte.
+  steht kein Produkt, das man zeigen und verlinken könnte. Und eine Kategorie
+  darf mehrere Seiten haben – gefolgt wird nur, was sie selbst verlinkt, denn
+  eine Seite, die es nicht gibt, antwortet selten mit 404.
 - **Rückfragen.** Wo etwas unklar ist, entsteht kein fertiger Text, sondern
   eine Frage. Beiträge mit offenen Fragen lassen sich nicht freigeben.
 - **Beantwortete Rückfragen kommen nicht wieder.** Wer antwortet, sagt mit
@@ -89,7 +91,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 401 Tests.
+- 417 Tests.
 
 ### Erscheinungsbild
 
