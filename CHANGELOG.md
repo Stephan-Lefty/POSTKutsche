@@ -48,6 +48,13 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   daraus entstehen ein bis zwei Beiträge je Tag. Für Shops ist das der
   eigentliche Arbeitsweg: Dort ist kein Produkt »neu«, es wird ausgewählt.
   Wahlweise auf einen Hersteller eingeschränkt, quer durch alle Kategorien.
+- **Abbrechen bricht ab und räumt weg.** Während eines Laufs heißt der Knopf
+  »Planung abbrechen« und tut das auch: Der Lauf hält zwischen zwei Produkten
+  an und nimmt zurück, was er schon angelegt hat. Sonst gälten die
+  angefangenen Produkte vier Wochen als beworben, obwohl nie etwas erschienen
+  ist. Gesagt wird es dazu – »abgebrochen, 3 Entwürfe entfernt« statt eines
+  stillen Verschwindens. Bleibt ein Lauf doch einmal hängen, gilt er nach zehn
+  Minuten ohne Lebenszeichen als tot und gibt die Sperre frei.
 - **Der Bestand kommt aus der Navigation.** Eine Seitenkarte, die zehn Jahre
   nicht gepflegt wurde, nennt Kategorien, die es nicht mehr gibt, und
   verschweigt welche, die es gibt; wer eine tote ankreuzt, plant eine Woche
@@ -91,7 +98,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 417 Tests.
+- 435 Tests.
 
 ### Erscheinungsbild
 

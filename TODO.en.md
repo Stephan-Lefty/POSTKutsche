@@ -102,3 +102,8 @@ aren't deleted, they move down — with the date they were done.
   second page, twelve products in total – all three had been sitting at
   exactly 30. Only pages the category links itself are followed; guessing
   "?page=2" goes wrong because a page that doesn't exist rarely answers 404.
+- **Cancelling actually cancels** (2026-08-31): the button used to close the
+  window only – the run carried on inside the service, kept creating posts and
+  held the lock. Measured: stopping mid-run left five posts in the database
+  and five of ten products counted as promoted. The run now stops between two
+  products and takes back what it created.

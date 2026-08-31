@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-417 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+435 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -92,6 +92,17 @@ Sortierspalte eindeutig. Beim dritten wird die Tabelle fällig. Über die
 Schnittstelle geht nur das erste raus – das zweite ist dem Handbetrieb
 vorbehalten, und die Oberfläche sagt das. `SCHEMA_FASSUNG` steht seit dem
 2026-08-31 auf 2; `_wandeln` hängt die Spalte an bestehende Ablagen an.
+
+**Abbrechen heißt abbrechen und wegräumen.** Der Kampagnenlauf legt je Produkt
+an und nicht am Ende in einem Zug – acht von zehn Beiträgen sind brauchbar,
+ein Abbruch nach dem dritten wäre es nicht. Deshalb muss ein Abbruch
+zurücknehmen, was schon dasteht: Sonst gälten die angefangenen Produkte vier
+Wochen als beworben, obwohl nie etwas erschienen ist. Gefragt wird zwischen
+den Produkten (`ausfuehren(..., abbrechen=…)`), weggeräumt über
+`beitrag_entfernen` – mit derselben Regel wie überall, Veröffentlichtes
+bleibt. Der Lauf-Zustand im Dienst trägt einen Zeitstempel: Was zehn Minuten
+kein Lebenszeichen gibt, gilt als tot, denn eine Sperre, die niemand lösen
+kann, ist schlimmer als zwei Läufe.
 
 **Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,

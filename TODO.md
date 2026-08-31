@@ -113,3 +113,8 @@ wurde.
   eine zweite, zusammen zwölf Produkte – alle drei standen vorher bei genau
   30. Gefolgt wird nur, was die Seite selbst verlinkt; »?page=2« zu raten
   geht schief, weil eine Seite, die es nicht gibt, selten mit 404 antwortet.
+- **Abbrechen bricht ab** (2026-08-31): Bisher schloss der Knopf nur das
+  Fenster – der Lauf lief im Dienst weiter, legte Beiträge an und hielt die
+  Sperre. Gemessen: nach dem Anhalten mitten im Lauf standen fünf Beiträge in
+  der Ablage und fünf von zehn Produkten galten als beworben. Jetzt hält der
+  Lauf zwischen zwei Produkten an und nimmt zurück, was er angelegt hat.
