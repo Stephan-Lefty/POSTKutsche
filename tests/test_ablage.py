@@ -632,3 +632,52 @@ class BeitragZiehtNach(unittest.TestCase):
         f = self._fassung("mastodon")
         self.ablage.fassung_vermerken(f, FASSUNG_GESCHEITERT, fehler="kaputt")
         self.assertNotEqual(self.ablage.beitrag(self.b)["zustand"], BEITRAG_ERLEDIGT)
+
+
+class BeitraegeLoeschen(unittest.TestCase):
+    """Loeschen vor der Freigabe - aber nie, was schon draussen war."""
+
+    def setUp(self):
+        self.ablage = Ablage(":memory:")
+        self.addCleanup(self.ablage.schliessen)
+        self.p = self.ablage.projekt_anlegen("probe", "Probe",
+                                             "https://x.example", "seitenkarte")
+        self.b = self.ablage.beitrag_anlegen(self.p.id, "2026-09-07T06:30:00Z")
+
+    def _inhalt_da(self, inhalt_id):
+        return self.ablage.db.execute(
+            "SELECT 1 FROM inhalte WHERE id = ?", (inhalt_id,)).fetchone()
+
+    def test_entwurf_laesst_sich_loeschen(self):
+        self.ablage.fassung_setzen(self.b, "facebook", "Text")
+        self.ablage.beitrag_entfernen(self.b)
+        self.assertIsNone(self.ablage.beitrag(self.b))
+
+    def test_veroeffentlichtes_bleibt(self):
+        # Ein Beitrag, der draussen war, ist ein Beleg.
+        f = self.ablage.fassung_setzen(self.b, "facebook", "Text")
+        self.ablage.fassung_vermerken(f, FASSUNG_ABGEHOLT)
+        with self.assertRaises(HandarbeitWuerdeVerloren):
+            self.ablage.beitrag_entfernen(self.b)
+        self.assertIsNotNone(self.ablage.beitrag(self.b))
+
+    def test_inhalt_geht_mit(self):
+        # Sonst gaelte das Produkt vier Wochen als beworben, obwohl der
+        # Beitrag geloescht wurde.
+        i, _ = self.ablage.inhalt_merken(self.p.id, "x1", "Tuer",
+                                         "https://x.example/t/1")
+        b = self.ablage.beitrag_anlegen(self.p.id, "2026-09-08T06:30:00Z", i)
+        self.ablage.beitrag_entfernen(b)
+        self.assertFalse(self._inhalt_da(i))
+
+    def test_inhalt_bleibt_wenn_ein_anderer_daran_haengt(self):
+        i, _ = self.ablage.inhalt_merken(self.p.id, "x2", "Tuer",
+                                         "https://x.example/t/2")
+        b1 = self.ablage.beitrag_anlegen(self.p.id, "2026-09-08T06:30:00Z", i)
+        self.ablage.beitrag_anlegen(self.p.id, "2026-09-09T06:30:00Z", i)
+        self.ablage.beitrag_entfernen(b1)
+        self.assertTrue(self._inhalt_da(i))
+
+    def test_unbekannter_beitrag_meldet_sich(self):
+        with self.assertRaises(KeyError):
+            self.ablage.beitrag_entfernen(9999)

@@ -746,6 +746,44 @@ class Ablage:
                         for f in alle):
             self.beitrag_zustand(beitrag_id, BEITRAG_ERLEDIGT)
 
+    def beitrag_entfernen(self, beitrag_id: int) -> str:
+        """Löscht einen Beitrag, der noch nicht draußen war.
+
+        **Veröffentlichtes bleibt.** Ein Beitrag, der erschienen ist, ist ein
+        Beleg - er lässt sich hier nicht wegräumen, auch nicht versehentlich.
+        Wer ihn drüben löscht, tut das drüben; der Kalender hält fest, was
+        war.
+
+        Der Inhalt geht mit, wenn kein anderer Beitrag mehr an ihm hängt.
+        Sonst gälte das Produkt vier Wochen lang als beworben, obwohl der
+        Beitrag gelöscht wurde - und käme in der nächsten Wochenplanung nicht
+        mehr vor, ohne dass jemand wüsste, warum.
+        """
+        zeile = self.beitrag(beitrag_id)
+        if zeile is None:
+            raise KeyError(f"Beitrag {beitrag_id} gibt es nicht.")
+
+        draussen = [f for f in self.fassungen(beitrag_id)
+                    if f["zustand"] in (FASSUNG_GESENDET, FASSUNG_ABGEHOLT)]
+        if draussen:
+            netze = ", ".join(sorted({f["netzwerk"] for f in draussen}))
+            raise HandarbeitWuerdeVerloren(
+                f"Dieser Beitrag ist bei {netze} erschienen und bleibt als "
+                "Beleg stehen. Löschen lässt sich nur, was nie draußen war."
+            )
+
+        inhalt_id = zeile["inhalt_id"]
+        titel = zeile["notiz"] or ""
+        self.db.execute("DELETE FROM beitraege WHERE id = ?", (beitrag_id,))
+        if inhalt_id is not None:
+            uebrig = self.db.execute(
+                "SELECT COUNT(*) FROM beitraege WHERE inhalt_id = ?", (inhalt_id,)
+            ).fetchone()[0]
+            if not uebrig:
+                self.db.execute("DELETE FROM inhalte WHERE id = ?", (inhalt_id,))
+        self.db.commit()
+        return titel
+
     def verfallene(self, karenz_tage: int = 2) -> list[sqlite3.Row]:
         """Entwürfe, deren Termin vorbei ist und die nie veröffentlicht wurden.
 

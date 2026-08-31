@@ -152,16 +152,18 @@ function kampagneVorbereiten() {
   });
   auswahl.onchange = kategorienLaden;
 
-  // Montag bis Freitag vorbelegt. Für das Handwerk ist das die Regel; das
-  // Wochenende ist wählbar, weil der Samstagvormittag für Bauherren eine
-  // gute Zeit ist - da plant, wer werktags auf der Baustelle steht.
+  // Alle sieben Tage vorbelegt. Bis zum 2026-08-31 waren es Montag bis
+  // Freitag - das Wochenende hat sich aber als die bessere Zeit erwiesen:
+  // Wer werktags auf der Baustelle steht, plant samstags, und die
+  // Sendezeiten kennen dafür eigene Fenster (Sa 10:30 statt 6:30).
+  // Abwählen geht mit einem Klick, Nachtragen kostet sieben.
   const tage = $("#k-tage");
   tage.innerHTML = "";
   ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].forEach((name, nummer) => {
     const feld = document.createElement("input");
     feld.type = "checkbox";
     feld.value = nummer;
-    feld.checked = nummer < 5;
+    feld.checked = true;
     const beschriftung = document.createElement("label");
     beschriftung.append(document.createTextNode(name), feld);
     tage.append(beschriftung);
@@ -1035,6 +1037,27 @@ async function blattOeffnen(id) {
       }
     };
     knoepfe.append(frei);
+  }
+
+  /* Löschen gibt es nur, solange nichts erschienen ist. Die Ablage weist
+     Veröffentlichtes ohnehin ab; den Knopf hier trotzdem wegzulassen ist
+     freundlicher, als ihn anzubieten und dann abzulehnen. */
+  if (b.zustand !== "erledigt") {
+    const weg = document.createElement("button");
+    weg.className = "knopf leise";
+    weg.textContent = "Löschen";
+    weg.onclick = async () => {
+      if (!confirm("Diesen Beitrag löschen? Das lässt sich nicht rückgängig machen.")) return;
+      try {
+        await hole("/api/entfernen", { id });
+        melden("Gelöscht.");
+        blattSchliessen();
+        monatLaden();
+      } catch (fehler) {
+        melden(fehler.message, true);
+      }
+    };
+    knoepfe.append(weg);
   }
   inhalt.append(knoepfe);
 

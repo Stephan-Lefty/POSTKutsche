@@ -158,6 +158,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._bearbeiten(rumpf)
             if pfad == "/api/abgehakt":
                 return self._abgehakt(rumpf)
+            if pfad == "/api/entfernen":
+                return self._entfernen(rumpf)
             if pfad == "/api/bild":
                 return self._bild_setzen(rumpf)
             if pfad == "/api/projektfarbe":
@@ -584,6 +586,17 @@ class Behandler(BaseHTTPRequestHandler):
                          (str(pfad), fassung))
             a.db.commit()
         self._json({"fassung": fassung, "bild": f"/bild/{fassung}"})
+
+    def _entfernen(self, rumpf: dict[str, Any]) -> None:
+        """Löscht einen Beitrag, der noch nicht erschienen ist.
+
+        Was draußen war, weist die Ablage ab - hier wird das nicht noch
+        einmal geprüft, sondern die Begründung durchgereicht. Zwei Prüfungen
+        derselben Regel weichen irgendwann voneinander ab.
+        """
+        with self._ablage() as a:
+            a.beitrag_entfernen(int(rumpf["id"]))
+            self._json({"entfernt": int(rumpf["id"])})
 
     def _abgehakt(self, rumpf: dict[str, Any]) -> None:
         """»Von Hand veröffentlicht« – der Weg für Facebook und Instagram."""
