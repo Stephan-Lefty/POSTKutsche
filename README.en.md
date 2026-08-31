@@ -20,9 +20,9 @@ Developed on Arch Linux and Debian.
 
 ## What it does
 
-**It finds the occasions itself.** WordPress via the REST API, Shopware 6 via
-the Store API, sites without an API via their sitemap. A new blog post or
-product shows up in the calendar as a suggestion.
+**It finds the occasions itself.** WordPress via the REST API, shops via their
+sitemap and category pages – Shopware 6 included, and without an access key.
+A new blog post or product shows up in the calendar as a suggestion.
 
 **It writes differently for each network.** A Mastodon post has 500 characters,
 LinkedIn folds away everything after the first sentence, and on Instagram no

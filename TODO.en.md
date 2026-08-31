@@ -9,6 +9,13 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
+- **Sharpen the categories of the two shops.** Two each are connected. The
+  ranges also hold "accessories" in one shop and "seals and spare parts" plus
+  "assembly tools" in the other. Adding one means one more line under
+  `kategorien` in `~/.config/postkutsche/projekte.json`.
+- **Categories spanning more than one page.** Only the first page of a
+  category is read. With twelve products nobody notices; with eighty the rest
+  stays unseen. In Shopware the following pages hang off `?p=2`.
 - **Connect the sources.** WordPress via `/wp-json/wp/v2/posts?_embed`,
   Shopware 6 via the Store API, altbau.example via `sitemap.xml` and `og:` scraping.
   One test per source against a recorded response, no network in tests.
@@ -48,7 +55,6 @@ aren't deleted, they move down — with the date they were done.
 
 ### Questions to settle in operation
 
-- **Store API access keys for the two Shopware shops.** One per sales channel.
 - **Is by-hand enough?** If so, Meta's review is unnecessary altogether.
 - **Public or private repository?** Private costs Actions minutes; the workflow
   is already in its frugal form.
@@ -59,3 +65,7 @@ aren't deleted, they move down — with the date they were done.
   handling, network directory, posting times, repeats. 109 tests.
 - **Sources surveyed** (2026-08-28): which site has which interface is recorded
   in the [changelog](CHANGELOG.md).
+- **The two Shopware shops connected** (2026-08-31): through the sitemap, no
+  access key needed. They now carry the kind »seitenkarte« and can be picked
+  in "plan a week"; their categories are listed in the project file, because
+  with Shopware the sitemap doesn't reveal what a category contains.

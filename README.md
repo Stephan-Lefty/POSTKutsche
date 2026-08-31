@@ -21,9 +21,10 @@ Entwickelt unter Arch Linux und Debian.
 
 ## Was es tut
 
-**Es findet die Anlässe selbst.** WordPress über die REST-Schnittstelle,
-Shopware 6 über die Store-API, Seiten ohne Schnittstelle über ihre Seitenkarte.
-Ein neuer Blogbeitrag oder ein neues Produkt landet als Vorschlag im Kalender.
+**Es findet die Anlässe selbst.** WordPress über die REST-Schnittstelle, Shops
+über ihre Seitenkarte und ihre Kategorieseiten – auch Shopware 6, und zwar
+ohne Zugangsschlüssel. Ein neuer Blogbeitrag oder ein neues Produkt landet als
+Vorschlag im Kalender.
 
 **Es schreibt je Netzwerk anders.** Ein Mastodon-Beitrag hat 500 Zeichen, ein
 LinkedIn-Beitrag wird nach dem ersten Satz zugeklappt, bei Instagram ist kein

@@ -34,6 +34,16 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Dachdecker um zehn auf dem Dach ist.
 - **Quellen** für WordPress (REST-Schnittstelle), Shopware 6 (Store-API) und
   Seiten ohne jede Schnittstelle (Seitenkarte plus Auslesen der Seite).
+- **Shopware ohne Zugangsschlüssel.** Ein Shopware-Shop lässt sich auch als
+  Seite ohne Schnittstelle lesen: Seitenkarte, Kategorieseiten, `og:`-Angaben.
+  Eine einzige Funktion erkennt beide Shopformen; welche der beiden
+  Erkennungsregeln gilt, entscheidet die Adresse der Kategorieseite. Weil
+  Shopware Produkte flach ablegt und die Seitenkarte nicht verrät, was in
+  einer Kategorie liegt, werden die gewünschten Kategorien in der
+  Projektdatei genannt; ihre Produkte werden gezählt, indem die Seite gelesen
+  wird. Gelesen wird erst ab der Produktliste – über ihr stehen Schieber mit
+  Empfehlungen aus dem ganzen Shop, und eine Kategorie mit drei Produkten
+  meldete sonst elf.
 - **Kampagnen.** Ein Thema, eine Kalenderwoche, ein paar Kategorieadressen –
   daraus entstehen ein bis zwei Beiträge je Tag. Für Shops ist das der
   eigentliche Arbeitsweg: Dort ist kein Produkt »neu«, es wird ausgewählt.
@@ -47,7 +57,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 195 Tests.
+- 318 Tests.
 
 ### Erscheinungsbild
 

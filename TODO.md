@@ -20,11 +20,14 @@ wurde.
   zehn landeten auf einer Kategorieübersicht oder der Fehlerseite. Sie werden
   jetzt übersprungen, aber damit schrumpft der Vorrat auf etwa ein Fünftel.
   Klären, ob sich die Seitenkarte neu erzeugen lässt.
-- **Die beiden Shopware-Shops über die Seitenkarte anbinden**, nicht über die
-  Store-API. Beide Kategorieseiten liefern Produktverweise und `og:`-Angaben;
-  ein Zugangsschlüssel ist dafür nicht nötig, und niemand muss darauf warten.
-  Je Shop zwei Kategorien, die Adressen stehen in
-  `~/.config/postkutsche/projekte.json`.
+- **Die Kategorien der beiden Shops nachschärfen.** Angebunden sind je zwei.
+  Im Sortiment stehen außerdem »Zubehör« beim einen und »Dichtungen und
+  Ersatzteile« sowie »Montagewerkzeug« beim anderen. Nachtragen heißt: eine
+  Zeile mehr unter `kategorien` in `~/.config/postkutsche/projekte.json`.
+- **Kategorien mit mehr als einer Seite.** Gelesen wird die erste Seite der
+  Kategorie. Bei zwölf Produkten fällt das nicht auf; bei einer Kategorie mit
+  achtzig bleibt der Rest ungesehen. Die Folgeseiten hängen bei Shopware an
+  `?p=2`.
 - **Die Uhrzeit im Kalender ändern können.** Ziehen verschiebt bisher nur den
   Tag; die Uhrzeit lässt sich nur über die Vorschläge aus `sendezeiten.py`
   setzen.
@@ -60,7 +63,6 @@ wurde.
 
 ### Fragen, die im Betrieb zu klären sind
 
-- **Zugangsschlüssel für die beiden Shopware-Shops.** Je Verkaufskanal einer.
 - **Reicht der Handbetrieb?** Wenn ja, entfällt Metas Prüfung ganz.
 - **Öffentliches oder privates Repository?** Bei privat kosten Actions-Minuten
   Geld; der Workflow steht deshalb schon in der Sparfassung.
@@ -71,3 +73,7 @@ wurde.
   Zeitrechnung, Netzwerkverzeichnis, Sendezeiten, Wiederholungen. 109 Tests.
 - **Quellen geprüft** (2026-08-28): Welche Seite welche Schnittstelle hat, steht
   im [Änderungsprotokoll](CHANGELOG.md).
+- **Die beiden Shopware-Shops angebunden** (2026-08-31): über die Seitenkarte,
+  ohne Zugangsschlüssel. Sie stehen jetzt als Art »seitenkarte« und sind unter
+  »Woche planen« wählbar; ihre Kategorien stehen in der Projektdatei, weil die
+  Seitenkarte bei Shopware nicht verrät, was in einer Kategorie liegt.

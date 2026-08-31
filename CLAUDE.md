@@ -3,11 +3,20 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
-## Hier war Schluss (Stand 2026-08-28, abends)
+## Hier war Schluss (Stand 2026-08-31)
 
-280 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+318 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
+
+**Am 2026-08-31 angebunden:** Die beiden Shopware-Shops stehen jetzt als Art
+`seitenkarte` und sind unter »Woche planen« wählbar. Ihre Kategorien stehen
+unter `kategorien` in `~/.config/postkutsche/projekte.json`, weil die
+Seitenkarte bei Shopware nicht verrät, was in einer Kategorie liegt.
+Dabei aufgefallen: Über der Produktliste stehen Schieber mit Empfehlungen aus
+dem ganzen Shop. Eine Kategorie mit drei Produkten meldete elf, und weil die
+Schieber oben stehen, wären genau die falschen in der Kampagne gelandet.
+Gelesen wird deshalb erst ab dem Baustein `cms-element-product-listing`.
 
 **Am letzten Abend gefunden und behoben:** Claude bekam von einer Produktseite
 nur die `og:description` zu lesen – 172 Zeichen Werbung, während daneben 2.800
@@ -20,10 +29,13 @@ für Holztüren.
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,
 nicht mehr an der Quelle.
 
-**Entschieden am 2026-08-28:** Die beiden Shopware-Shops kommen über die
-Seitenkarte, nicht über die Store-API. Die Kategorieseiten liefern
-Produktverweise und `og:`-Angaben, ein Zugangsschlüssel wird nicht gebraucht.
-`quellen/shopware.py` gibt es deshalb nicht und soll es vorerst nicht geben.
+**Entschieden am 2026-08-28, umgesetzt am 2026-08-31:** Die beiden
+Shopware-Shops kommen über die Seitenkarte, nicht über die Store-API. Die
+Kategorieseiten liefern Produktverweise und `og:`-Angaben, ein
+Zugangsschlüssel wird nicht gebraucht. `quellen/shopware.py` gibt es deshalb
+nicht und soll es vorerst nicht geben. Die Art `shopware` bleibt in der
+Kommandozeile wählbar, führt aber ins Leere – die Meldungen sagen jetzt, dass
+`seitenkarte` der Weg ist.
 
 ## Wie es zusammenhängt
 
