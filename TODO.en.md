@@ -9,10 +9,6 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
-- **Sharpen the categories of the two shops.** Two each are connected. The
-  ranges also hold "accessories" in one shop and "seals and spare parts" plus
-  "assembly tools" in the other. Adding one means one more line under
-  `kategorien` in `~/.config/postkutsche/projekte.json`.
 - **Categories spanning more than one page.** Only the first page of a
   category is read. With twelve products nobody notices; with eighty the rest
   stays unseen. In Shopware the following pages hang off `?p=2`.

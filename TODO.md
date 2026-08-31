@@ -29,10 +29,6 @@ wurde.
   Sortiment) sowie zwei Kategorien, deren Beschriftung auf der Seite kaputt
   kodiert ist. Nichts davon auf Verdacht entfernt – wenn es stört, ein Wort
   genügt.
-- **Die Kategorien der beiden Shops nachschärfen.** Angebunden sind je zwei.
-  Im Sortiment stehen außerdem »Zubehör« beim einen und »Dichtungen und
-  Ersatzteile« sowie »Montagewerkzeug« beim anderen. Nachtragen heißt: eine
-  Zeile mehr unter `kategorien` in `~/.config/postkutsche/projekte.json`.
 - **Kategorien mit mehr als einer Seite.** Gelesen wird die erste Seite der
   Kategorie. Bei zwölf Produkten fällt das nicht auf; bei einer Kategorie mit
   achtzig bleibt der Rest ungesehen. Die Folgeseiten hängen bei Shopware an
