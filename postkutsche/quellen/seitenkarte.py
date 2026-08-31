@@ -718,6 +718,19 @@ def _nummer(stueck: str) -> int | None:
     return int(treffer.group(1)) if treffer else None
 
 
+def _letztes_stueck(pfad: str) -> str:
+    """Das namengebende Stueck eines Kategoriepfads.
+
+    Beim Eigenbau-Shop endet jede Kategorieadresse auf »/list.html«. Wer
+    schlicht das letzte Pfadstueck nimmt, nennt jede dieser Kategorien
+    »List.html« - und wenn zwei davon in einem Projekt stehen, sind sie in
+    der Auswahl nicht mehr zu unterscheiden. Am 2026-08-31 genau so
+    passiert, als zwei HaBeFa-Kategorien zu einem Shopware-Projekt kamen.
+    """
+    stuecke = [s for s in pfad.split("/") if s and s.lower() != "list.html"]
+    return stuecke[-1] if stuecke else pfad
+
+
 def vorgegebene_kategorien(vorgaben: list[object],
                            grenze: int = 200) -> list[dict[str, object]]:
     """Kategorien, die von Hand vorgegeben wurden, mit ihrer Produktzahl.
@@ -766,7 +779,7 @@ def vorgegebene_kategorien(vorgaben: list[object],
             # Tiefe 1, nicht 0: Die Oberfläche rückt nach `tiefe - 1` ein und
             # käme sonst auf einen negativen Abstand.
             "tiefe": 1,
-            "name": str(name) if name else _lesbar(pfad.rsplit("/", 1)[-1]),
+            "name": str(name) if name else _lesbar(_letztes_stueck(pfad)),
             "nummer": None,
             "produkte": anzahl,
             "fehler": fehler,

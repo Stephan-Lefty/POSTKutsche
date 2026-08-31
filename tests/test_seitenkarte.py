@@ -514,3 +514,20 @@ class TextEndetAufEinemSatz(unittest.TestCase):
         # Lieber nichts als ein Satz ohne Ende. Wer den Text braucht, sieht
         # ihn auf der Seite.
         self.assertEqual(seitenkarte._fliesstext(f"<p>{'C' * 5000}</p>"), "")
+
+
+class KategorienameBeimEigenbau(unittest.TestCase):
+    """»list.html« ist kein Name - und zweimal derselbe ist kein Name mehr."""
+
+    def test_list_html_wird_uebersprungen(self):
+        self.assertEqual(
+            seitenkarte._letztes_stueck("shop-zubehoer/einbruchschutz_fenster_608/list.html"),
+            "einbruchschutz_fenster_608")
+
+    def test_shopware_bleibt_wie_es_war(self):
+        self.assertEqual(seitenkarte._letztes_stueck("Fenstersicherung"),
+                         "Fenstersicherung")
+
+    def test_ein_pfad_aus_nichts_als_list_html(self):
+        # Nicht schoen, aber besser als eine leere Beschriftung.
+        self.assertEqual(seitenkarte._letztes_stueck("list.html"), "list.html")
