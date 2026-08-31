@@ -16,6 +16,18 @@ aren't deleted, they move down — with the date they were done.
 - **Categories spanning more than one page.** Only the first page of a
   category is read. With twelve products nobody notices; with eighty the rest
   stays unseen. In Shopware the following pages hang off `?p=2`.
+- **The product counts in the planning window are wrong.** They are counted
+  from the sitemap, and that is stale: one category reports twelve products
+  while the page shows one. Counting properly would mean one request per
+  category – possible only once the numbers are no longer needed the moment
+  the form opens.
+- **The sitemap of the first shop misses living categories.** Measured on
+  2026-08-31: 115 of its 158 categories no longer exist, and the site links 30
+  categories the sitemap doesn't know. Those are missing from the planning
+  window as well.
+- **The three sections sit in the category list.** One reports 1646 products
+  and delivers none: it is an overview page linking only to subcategories.
+  Picking it plans an empty week – `kampagnenlauf.py` at least says so.
 - **Connect the sources.** WordPress via `/wp-json/wp/v2/posts?_embed`,
   Shopware 6 via the Store API, altbau.example via `sitemap.xml` and `og:` scraping.
   One test per source against a recorded response, no network in tests.
@@ -69,3 +81,7 @@ aren't deleted, they move down — with the date they were done.
   access key needed. They now carry the kind »seitenkarte« and can be picked
   in "plan a week"; their categories are listed in the project file, because
   with Shopware the sitemap doesn't reveal what a category contains.
+- **Dead categories sorted out** (2026-08-31): the planning window offered
+  categories that no longer exist. They are now reconciled against the site's
+  own navigation; of 158 categories 43 remain, and what falls away is stated
+  above the list instead of vanishing quietly.

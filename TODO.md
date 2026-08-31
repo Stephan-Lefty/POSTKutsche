@@ -19,7 +19,19 @@ wurde.
   2026-08-28: von zwölf Produktadressen führte keine unverändert zum Ziel,
   zehn landeten auf einer Kategorieübersicht oder der Fehlerseite. Sie werden
   jetzt übersprungen, aber damit schrumpft der Vorrat auf etwa ein Fünftel.
-  Klären, ob sich die Seitenkarte neu erzeugen lässt.
+  Klären, ob sich die Seitenkarte neu erzeugen lässt. Seit dem 2026-08-31
+  gemessen: 115 der 158 Kategorien in der Karte gibt es nicht mehr, und
+  umgekehrt verlinkt die Seite 30 Kategorien, die in der Karte fehlen – die
+  fehlen damit auch im Planungsfenster.
+- **Die Produktzahlen im Planungsfenster stimmen nicht.** Sie werden aus der
+  Seitenkarte gezählt, und die ist veraltet: »Schallschutztüren« meldet zwölf,
+  die Seite zeigt eines. Richtig zählen hieße ein Abruf je Kategorie – das
+  geht erst, wenn die Zahlen nicht mehr beim Öffnen des Formulars gebraucht
+  werden.
+- **Die drei Bereiche stehen in der Kategorienliste.** »Türen Shop« meldet
+  1646 Produkte und liefert keines: Es ist eine Übersichtsseite, die nur auf
+  Unterkategorien verweist. Wer sie ankreuzt, plant eine leere Woche –
+  `kampagnenlauf.py` sagt das immerhin dazu.
 - **Die Kategorien der beiden Shops nachschärfen.** Angebunden sind je zwei.
   Im Sortiment stehen außerdem »Zubehör« beim einen und »Dichtungen und
   Ersatzteile« sowie »Montagewerkzeug« beim anderen. Nachtragen heißt: eine
@@ -77,3 +89,7 @@ wurde.
   ohne Zugangsschlüssel. Sie stehen jetzt als Art »seitenkarte« und sind unter
   »Woche planen« wählbar; ihre Kategorien stehen in der Projektdatei, weil die
   Seitenkarte bei Shopware nicht verrät, was in einer Kategorie liegt.
+- **Tote Kategorien aussortiert** (2026-08-31): Das Planungsfenster bot
+  Kategorien an, die es nicht mehr gibt – »Passivhaustüren« zum Beispiel.
+  Abgeglichen wird jetzt mit der Navigation der Seite; von 158 Kategorien
+  bleiben 43, und was wegfällt, steht als Hinweis über der Liste.

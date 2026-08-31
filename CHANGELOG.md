@@ -48,6 +48,13 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   daraus entstehen ein bis zwei Beiträge je Tag. Für Shops ist das der
   eigentliche Arbeitsweg: Dort ist kein Produkt »neu«, es wird ausgewählt.
   Wahlweise auf einen Hersteller eingeschränkt, quer durch alle Kategorien.
+- **Abgleich mit der Navigation.** Eine Seitenkarte, die zehn Jahre nicht
+  gepflegt wurde, nennt Kategorien, die es nicht mehr gibt; wer eine davon
+  ankreuzt, plant eine Woche über Ware, die niemand mehr kaufen kann. Zur
+  Auswahl steht deshalb nur, was die Seite selbst noch verlinkt – gelesen aus
+  der Startseite und den Bereichen, die sie nennt. Von 158 Kategorien blieben
+  43. Was wegfällt, wird genannt und nicht verschwiegen, und die Beschriftung
+  aus der Navigation sticht den aus der Adresse abgeleiteten Namen.
 - **Rückfragen.** Wo etwas unklar ist, entsteht kein fertiger Text, sondern
   eine Frage. Beiträge mit offenen Fragen lassen sich nicht freigeben.
 - **Schutz vor verlorener Handarbeit.** Ein von Hand bearbeiteter Text wird
@@ -57,7 +64,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 318 Tests.
+- 336 Tests.
 
 ### Erscheinungsbild
 

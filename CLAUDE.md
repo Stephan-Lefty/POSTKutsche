@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-318 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+336 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -24,6 +24,14 @@ Zeichen Fachtext standen. Daher kamen die vielen Rückfragen. Und die
 Seitenkarte des ersten Shops ist veraltet: von zwölf Adressen führte keine
 unverändert zum Ziel, eine als »Stahltür« benannte landete auf der Übersicht
 für Holztüren.
+
+**Die Seitenkarte ist ein Versprechen, die Navigation ist der Bestand.** Am
+2026-08-31 nachgemessen: Die Karte des ersten Shops nannte 158 Kategorien,
+verlinkt sind 43. Von zehn nicht verlinkten, denen die Karte zusammen 270
+Produkte zuschrieb, lieferte keine mehr als drei – »Passivhaustüren« mit
+angeblich 40 Produkten war eine davon. Das Planungsfenster gleicht deshalb ab:
+Startseite plus Bereichsseiten, vier Abrufe, und was dort nicht verlinkt ist,
+steht nicht zur Auswahl. Was wegfällt, wird gesagt statt verschwiegen.
 
 **Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,
