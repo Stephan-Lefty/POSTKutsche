@@ -8,9 +8,11 @@ from hilfen import OhneEigeneKonfiguration
 from postkutsche import erstbestueckung
 from postkutsche.ablage import (
     BEITRAG_ENTWURF,
+    BEITRAG_ERLEDIGT,
     BEITRAG_FREIGEGEBEN,
     BEITRAG_RUECKFRAGE,
     FASSUNG_ABGEHOLT,
+    FASSUNG_GESCHEITERT,
     FASSUNG_GESENDET,
     FASSUNG_OFFEN,
     PROJEKT_AKTIV,
@@ -598,3 +600,35 @@ class Konten(Basis):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BeitragZiehtNach(unittest.TestCase):
+    """Ist jede Fassung draussen, ist der Beitrag erledigt."""
+
+    def setUp(self):
+        self.ablage = Ablage(":memory:")
+        self.addCleanup(self.ablage.schliessen)
+        p = self.ablage.projekt_anlegen("probe", "Probe", "https://x.example",
+                                        "seitenkarte")
+        self.b = self.ablage.beitrag_anlegen(p.id, "2026-09-01T06:30:00Z")
+
+    def _fassung(self, netz):
+        return self.ablage.fassung_setzen(self.b, netz, "Text")
+
+    def test_eine_fassung_abgehakt_macht_erledigt(self):
+        f = self._fassung("facebook")
+        self.ablage.fassung_vermerken(f, FASSUNG_ABGEHOLT)
+        self.assertEqual(self.ablage.beitrag(self.b)["zustand"], BEITRAG_ERLEDIGT)
+
+    def test_eine_von_zwei_reicht_nicht(self):
+        # Das Kaertchen steht fuer beide Netzwerke. Solange eines aussteht,
+        # ist der Beitrag nicht erledigt.
+        f1 = self._fassung("facebook")
+        self._fassung("mastodon")
+        self.ablage.fassung_vermerken(f1, FASSUNG_ABGEHOLT)
+        self.assertNotEqual(self.ablage.beitrag(self.b)["zustand"], BEITRAG_ERLEDIGT)
+
+    def test_gescheiterte_fassung_macht_nicht_erledigt(self):
+        f = self._fassung("mastodon")
+        self.ablage.fassung_vermerken(f, FASSUNG_GESCHEITERT, fehler="kaputt")
+        self.assertNotEqual(self.ablage.beitrag(self.b)["zustand"], BEITRAG_ERLEDIGT)

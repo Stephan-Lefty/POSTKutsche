@@ -721,6 +721,30 @@ class Ablage:
             ),
         )
         self.db.commit()
+        self._beitrag_nachziehen(fassung_id)
+
+    def _beitrag_nachziehen(self, fassung_id: int) -> None:
+        """Setzt den Beitrag auf »erledigt«, sobald alle Fassungen draußen sind.
+
+        Ohne das bleibt ein Beitrag für immer auf »freigegeben« stehen, auch
+        wenn längst jede Fassung erschienen ist - und der Kalender fordert
+        einen auf, etwas einzustellen, das man schon eingestellt hat.
+
+        Erst wenn **alle** Fassungen durch sind: Ein Beitrag, der nach
+        Mastodon und Facebook geht, ist nicht erledigt, weil das eine raus
+        ist. Das Kärtchen steht für beides.
+        """
+        zeile = self.db.execute(
+            "SELECT beitrag_id FROM fassungen WHERE id = ?", (fassung_id,)
+        ).fetchone()
+        if zeile is None:
+            return
+        beitrag_id = int(zeile["beitrag_id"])
+
+        alle = self.fassungen(beitrag_id)
+        if alle and all(f["zustand"] in (FASSUNG_GESENDET, FASSUNG_ABGEHOLT)
+                        for f in alle):
+            self.beitrag_zustand(beitrag_id, BEITRAG_ERLEDIGT)
 
     def verfallene(self, karenz_tage: int = 2) -> list[sqlite3.Row]:
         """Entwürfe, deren Termin vorbei ist und die nie veröffentlicht wurden.
