@@ -991,20 +991,35 @@ async function blattOeffnen(id) {
 
   const knoepfe = document.createElement("div");
   knoepfe.className = "knoepfe";
-  const frei = document.createElement("button");
-  frei.className = "knopf";
-  frei.textContent = "Freigeben";
-  frei.onclick = async () => {
-    try {
-      await hole("/api/freigeben", { id });
-      melden("Freigegeben.");
-      monatLaden();
-      blattOeffnen(id);
-    } catch (fehler) {
-      melden(fehler.message, true);
-    }
-  };
-  knoepfe.append(frei);
+
+  /* Freigeben heißt »darf raus«, nicht »ist raus«. Bis der Beitrag draußen
+     ist, fehlen im Handbetrieb noch drei Schritte: kopieren, drüben
+     einstellen, hier abhaken. Wer nur den Knopf sieht, hält das eine für das
+     andere - deshalb sagt der Knopf jetzt, wo man steht, statt unverändert
+     stehenzubleiben und sich beliebig oft drücken zu lassen. */
+  if (b.zustand === "freigegeben" || b.zustand === "erledigt") {
+    const stand_ = document.createElement("span");
+    stand_.className = "schlagworte";
+    stand_.textContent = b.zustand === "erledigt"
+      ? "✓ erledigt - dieser Beitrag ist draußen"
+      : "✓ freigegeben - fehlt noch: bei jedem Netzwerk einstellen und abhaken";
+    knoepfe.append(stand_);
+  } else {
+    const frei = document.createElement("button");
+    frei.className = "knopf";
+    frei.textContent = "Freigeben";
+    frei.onclick = async () => {
+      try {
+        await hole("/api/freigeben", { id });
+        melden("Freigegeben. Zum Veröffentlichen noch kopieren und abhaken.");
+        monatLaden();
+        blattOeffnen(id);
+      } catch (fehler) {
+        melden(fehler.message, true);
+      }
+    };
+    knoepfe.append(frei);
+  }
   inhalt.append(knoepfe);
 
   $("#blatt").hidden = false;
