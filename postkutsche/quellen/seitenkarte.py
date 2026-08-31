@@ -128,8 +128,9 @@ _ARTIKELNUMMER_HTML = re.compile(r"_\d+\.html$", re.IGNORECASE)
 _VERWEIS = re.compile(r"""<a[^>]+href\s*=\s*["']([^"'#?]+)["']""", re.IGNORECASE)
 
 
-def kategorie(adresse: str, grenze: int = 100) -> list[str]:
-    """Die Produktadressen einer Kategorieseite.
+def kategorie(adresse: str, grenze: int = 100,
+              folgeseiten: bool = True) -> list[str]:
+    """Die Produktadressen einer Kategorieseite, über alle ihre Seiten.
 
     Der Weg für Kampagnen: Statt darauf zu warten, dass ein neues Produkt
     auftaucht, gibt man die Kategorie vor und holt sich, was darin steht.
@@ -162,15 +163,46 @@ def kategorie(adresse: str, grenze: int = 100) -> list[str]:
 
     Was der Shop mehrfach verlinkt – Bild und Titel derselben Kachel – steht
     hier nur einmal, in der Reihenfolge der Seite.
+
+    **Eine Kategorie kann mehrere Seiten haben.** Die weiteren werden
+    mitgelesen, sonst plant die Wochenplanung aus einem Ausschnitt, ohne dass
+    jemand merkt, dass es einer ist. Welche es gibt, sagt die Seite selbst –
+    siehe `_folgeseiten`.
     """
     roh = text_holen(adresse)
+
+    gefunden: list[str] = []
+    gesehen: set[str] = set()
+    _produkte_sammeln(roh, adresse, gefunden, gesehen, grenze)
+
+    if folgeseiten and len(gefunden) < grenze:
+        for weitere in _folgeseiten(roh, adresse):
+            try:
+                nachschlag = text_holen(weitere)
+            except AbrufFehler:
+                # Eine Folgeseite, die schweigt, kostet die Produkte darauf -
+                # nicht die der ersten Seite.
+                break
+            _produkte_sammeln(nachschlag, adresse, gefunden, gesehen, grenze)
+            if len(gefunden) >= grenze:
+                break
+
+    return gefunden
+
+
+def _produkte_sammeln(roh: str, adresse: str, gefunden: list[str],
+                      gesehen: set[str], grenze: int) -> None:
+    """Trägt die Produkte einer Seite in die laufende Liste ein.
+
+    Getrennt vom Abrufen, weil dieselbe Auswertung für die erste Seite und
+    für jede Folgeseite gilt - und weil die Reihenfolge über alle Seiten
+    hinweg stehen bleiben muss.
+    """
     stamm = _stamm_von(adresse)
     eigenbau = adresse.split("?", 1)[0].lower().endswith(".html")
     if not eigenbau:
         roh = _listenbereich(roh)
 
-    gefunden: list[str] = []
-    gesehen: set[str] = set()
     for verweis in _VERWEIS.findall(roh):
         voll = verweis if verweis.startswith("http") else f"{stamm}{verweis}"
         if _ist_keine_produktseite(voll) or _ist_beiwerk(voll):
@@ -182,8 +214,64 @@ def kategorie(adresse: str, grenze: int = 100) -> list[str]:
         gesehen.add(voll)
         gefunden.append(voll)
         if len(gefunden) >= grenze:
-            break
-    return gefunden
+            return
+
+
+#: Verweise samt ihrer Frage nach dem »?«. `_VERWEIS` schneidet sie ab, weil
+#: für ein Produkt nur der Pfad zählt; für die Blätterung ist gerade die
+#: Frage das Entscheidende.
+_VERWEIS_MIT_FRAGE = re.compile(
+    r"""<a[^>]+href\s*=\s*["']([^"'#]+)["']""", re.IGNORECASE)
+
+#: Wie viele Folgeseiten einer Kategorie höchstens gelesen werden. Beim
+#: Eigenbau sind es nie mehr als eine; die Grenze steht da, damit ein Shop
+#: mit vierzig Seiten nicht vierzig Abrufe auslöst.
+FOLGESEITEN_MAX = 10
+
+
+def _folgeseiten(roh: str, adresse: str) -> list[str]:
+    """Die weiteren Seiten derselben Kategorie – so, wie die Seite sie nennt.
+
+    **Geraten wird nicht.** »?page=2« anzuhängen und zu sehen, was kommt, ist
+    die naheliegende Lösung und die falsche: Eine Seite, die es nicht gibt,
+    antwortet bei solchen Shops selten mit 404. Oft kommt die erste Seite
+    noch einmal, und wer daraus schließt, es gebe sie, läuft im Kreis.
+    Gefolgt wird deshalb nur, was die Seite selbst verlinkt.
+
+    Erkannt wird eine Folgeseite daran, dass sie auf denselben Pfad zeigt und
+    sich nur in der Frage dahinter unterscheidet. Das gilt für »?page=2«
+    genauso wie für »?p=2« – ohne dass hier eine Liste von Shopsystemen
+    gepflegt werden müsste.
+
+    Am 2026-08-31 nachgemessen: Von 119 Kategorien haben drei eine zweite
+    Seite, zusammen zwölf Produkte. Wenig – aber es waren zwölf Produkte, die
+    stillschweigend fehlten.
+    """
+    eigener_pfad = _nur_pfad(adresse)
+    if not eigener_pfad:
+        return []
+    eigene_frage = adresse.split("?", 1)[1] if "?" in adresse else ""
+
+    gefunden: dict[str, str] = {}
+    for ziel in _VERWEIS_MIT_FRAGE.findall(roh):
+        voll = ziel if ziel.startswith("http") else f"{_stamm_von(adresse)}{ziel}"
+        if "?" not in voll:
+            continue
+        pfad, frage = voll.split("?", 1)
+        if _nur_pfad(pfad) != eigener_pfad or frage == eigene_frage:
+            continue
+        # »?page=1« ist die Seite, auf der wir schon stehen. Der Shop verlinkt
+        # sie mit, damit die Blätterleiste vollständig aussieht.
+        nummer = re.search(r"\d+", frage)
+        if nummer and int(nummer.group()) <= 1:
+            continue
+        gefunden.setdefault(frage, voll)
+
+    def rang(frage: str) -> tuple[int, str]:
+        nummer = re.search(r"\d+", frage)
+        return (int(nummer.group()) if nummer else 0, frage)
+
+    return [gefunden[f] for f in sorted(gefunden, key=rang)][:FOLGESEITEN_MAX]
 
 
 #: Der Baustein, in dem bei Shopware die Produkte der Kategorie stehen. Kein
@@ -472,7 +560,12 @@ def _stufe_lesen(stamm: str, pfade: list[str], gleichzeitig: int,
 
 
 def _seite_lesen(adresse: str) -> tuple[dict[str, str], int]:
-    """Kategorieverweise und Zahl der Produkte einer Seite."""
+    """Kategorieverweise und Zahl der Produkte einer Seite.
+
+    Die Folgeseiten zählen mit. Die Zahl im Planungsfenster muss zu dem
+    passen, was die Kampagne später wirklich findet – eine Kategorie, die 30
+    meldet und 37 hat, ist eine Kategorie, der man nicht mehr glaubt.
+    """
     roh = text_holen(adresse)
 
     verweise: dict[str, str] = {}
@@ -488,14 +581,28 @@ def _seite_lesen(adresse: str) -> tuple[dict[str, str], int]:
     # Dieselbe Regel wie in `kategorie`, damit die angezeigte Zahl zu dem
     # passt, was die Kampagne später wirklich findet.
     gefunden: set[str] = set()
-    for ziel in _VERWEIS.findall(roh):
-        pfad = _nur_pfad(ziel) or ziel
-        if _ist_keine_produktseite(pfad) or _ist_beiwerk(pfad):
-            continue
-        if _ARTIKELNUMMER_HTML.search(pfad):
-            gefunden.add(pfad)
+    for teil in [roh] + [_stumm_holen(w) for w in _folgeseiten(roh, adresse)]:
+        for ziel in _VERWEIS.findall(teil):
+            pfad = _nur_pfad(ziel) or ziel
+            if _ist_keine_produktseite(pfad) or _ist_beiwerk(pfad):
+                continue
+            if _ARTIKELNUMMER_HTML.search(pfad):
+                gefunden.add(pfad)
 
     return verweise, len(gefunden)
+
+
+def _stumm_holen(adresse: str) -> str:
+    """Holt eine Seite; schweigt sie, ist sie eben leer.
+
+    Für die Folgeseiten beim Zählen: Eine Kategorie, deren zweite Seite gerade
+    nicht antwortet, soll mit der Zahl der ersten dastehen und nicht die ganze
+    Bestandsaufnahme aufhalten.
+    """
+    try:
+        return text_holen(adresse)
+    except AbrufFehler:
+        return ""
 
 
 def _nur_pfad(adresse: str) -> str:

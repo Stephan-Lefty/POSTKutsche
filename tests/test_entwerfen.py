@@ -220,3 +220,63 @@ class Wiederholungen(unittest.TestCase):
 
         self.assertEqual(bericht["anzahl"], 0)
         self.assertIn("schon dran", bericht["hinweis"])
+
+
+class KampagnenLesenNichtDieSeitenkarte(unittest.TestCase):
+    """Die Produkte einer Kampagne kommen von der Kategorieseite.
+
+    Am 2026-08-31 nachgemessen, weil die Vermutung im Raum stand, sie kaemen
+    aus `sitemap.xml`: Von 60 Adressen, die nur die Seitenkarte kennt und die
+    Navigation nicht verlinkt, leben sieben - elf Prozent. Die Karte
+    zusaetzlich heranzuziehen wuerde den Vorrat zu knapp der Haelfte mit
+    toten Adressen fuellen, und jede davon kostet beim Planen einen Platz in
+    der Woche: `ausfuehren` waehlt genau `anzahl` Produkte und sucht fuer ein
+    gescheitertes keinen Ersatz.
+    """
+
+    def test_es_wird_nur_die_kategorieseite_geholt(self):
+        from unittest import mock
+
+        from postkutsche import kampagnen, kampagnenlauf
+        from postkutsche.quellen import seitenkarte
+
+        geholt = []
+
+        def antworten(adresse):
+            geholt.append(adresse)
+            return '<a href="/kat_1/tuer_1810.html">Tür</a>'
+
+        k = kampagnen.Kampagne(
+            thema="", projekt="shop", kalenderwoche=36, jahr=2026,
+            kategorien=["https://shop.example/kat_1/list.html"])
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            gefunden = kampagnenlauf.produkte_sammeln(k)
+
+        self.assertEqual(geholt, ["https://shop.example/kat_1/list.html"])
+        self.assertFalse([a for a in geholt if "sitemap" in a])
+        self.assertEqual(len(gefunden), 1)
+
+    def test_folgeseiten_kommen_in_die_kampagne(self):
+        from unittest import mock
+
+        from postkutsche import kampagnen, kampagnenlauf
+        from postkutsche.quellen import seitenkarte
+
+        kat = "https://shop.example/kat_1/list.html"
+        seiten = {
+            kat: ('<a href="/kat_1/a_1.html">A</a>'
+                  '<a href="/kat_1/list.html?page=2">2</a>'),
+            f"{kat}?page=2": '<a href="/kat_1/b_2.html">B</a>',
+        }
+        k = kampagnen.Kampagne(thema="", projekt="shop", kalenderwoche=36,
+                               jahr=2026, kategorien=[kat])
+
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=lambda a: seiten[a]):
+            gefunden = kampagnenlauf.produkte_sammeln(k)
+
+        self.assertEqual([p["adresse"] for p in gefunden], [
+            "https://shop.example/kat_1/a_1.html",
+            "https://shop.example/kat_1/b_2.html",
+        ])

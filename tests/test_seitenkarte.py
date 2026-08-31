@@ -90,6 +90,122 @@ class ProdukteEinerKategorie(unittest.TestCase):
         self.assertIs(seitenkarte.produkte_der_kategorie, seitenkarte.kategorie)
 
 
+class MehrereSeiten(unittest.TestCase):
+    """Eine Kategorie kann mehr als eine Seite haben.
+
+    Am 2026-08-31 nachgemessen: Von 119 Kategorien haben drei eine zweite
+    Seite, zusammen zwoelf Produkte. Wenig - aber es waren zwoelf Produkte,
+    die stillschweigend fehlten, und die Wochenplanung streute aus einem
+    Ausschnitt, ohne dass jemand merkte, dass es einer war.
+    """
+
+    KAT = "https://x.example/shop-tueren/t30_489/list.html"
+
+    EINS = """
+      <a href="/shop-tueren/t30_489/a_1.html">A</a>
+      <a href="/shop-tueren/t30_489/b_2.html">B</a>
+      <a href="/shop-tueren/t30_489/list.html?page=1">1</a>
+      <a href="/shop-tueren/t30_489/list.html?page=2">2</a>
+    """
+    ZWEI = """
+      <a href="/shop-tueren/t30_489/b_2.html">B</a>
+      <a href="/shop-tueren/t30_489/c_3.html">C</a>
+      <a href="/shop-tueren/t30_489/list.html?page=1">1</a>
+    """
+
+    def _seiten(self):
+        return {self.KAT: self.EINS, f"{self.KAT}?page=2": self.ZWEI}
+
+    def _lesen(self, **mehr):
+        seiten = self._seiten()
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=lambda a: seiten[a]):
+            return seitenkarte.kategorie(self.KAT, **mehr)
+
+    def test_die_zweite_seite_kommt_mit(self):
+        self.assertEqual(self._lesen(), [
+            "https://x.example/shop-tueren/t30_489/a_1.html",
+            "https://x.example/shop-tueren/t30_489/b_2.html",
+            "https://x.example/shop-tueren/t30_489/c_3.html",
+        ])
+
+    def test_was_auf_beiden_steht_zaehlt_einmal(self):
+        self.assertEqual(len(self._lesen()), 3)
+
+    def test_die_reihenfolge_bleibt_seite_fuer_seite(self):
+        # Das erste Produkt der ersten Seite bleibt das erste - die
+        # Wochenplanung nimmt die ersten.
+        self.assertTrue(self._lesen()[0].endswith("a_1.html"))
+
+    def test_seite_eins_wird_nicht_noch_einmal_geholt(self):
+        # Der Shop verlinkt »?page=1« mit, damit die Blaetterleiste
+        # vollstaendig aussieht. Wer ihr folgt, holt dieselbe Seite zweimal.
+        geholt = []
+        seiten = self._seiten()
+
+        def antworten(a):
+            geholt.append(a)
+            return seiten[a]
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            seitenkarte.kategorie(self.KAT)
+        self.assertEqual(geholt, [self.KAT, f"{self.KAT}?page=2"])
+
+    def test_ohne_blaetterverweise_wird_nichts_geraten(self):
+        # »?page=2« anzuhaengen und zu sehen, was kommt, waere die falsche
+        # Loesung: Eine Seite, die es nicht gibt, antwortet selten mit 404.
+        geholt = []
+
+        def antworten(a):
+            geholt.append(a)
+            return '<a href="/shop-tueren/t30_489/a_1.html">A</a>'
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            seitenkarte.kategorie(self.KAT)
+        self.assertEqual(geholt, [self.KAT])
+
+    def test_eine_stumme_folgeseite_kostet_nur_sich_selbst(self):
+        def antworten(a):
+            if "page=2" in a:
+                raise AbrufFehler("antwortet nicht")
+            return self.EINS
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            gefunden = seitenkarte.kategorie(self.KAT)
+        self.assertEqual(len(gefunden), 2)
+
+    def test_die_grenze_gilt_ueber_alle_seiten(self):
+        self.assertEqual(len(self._lesen(grenze=2)), 2)
+
+    def test_abschaltbar(self):
+        self.assertEqual(len(self._lesen(folgeseiten=False)), 2)
+
+    def test_fremde_frage_gilt_nicht_als_folgeseite(self):
+        # Nur derselbe Pfad mit anderer Frage. Ein Verweis auf eine andere
+        # Kategorie ist keine zweite Seite dieser.
+        seiten = self._seiten()
+        seiten[self.KAT] = (
+            self.EINS + '<a href="/shop-tueren/anders_1/list.html?page=2">X</a>')
+        geholt = []
+
+        def antworten(a):
+            geholt.append(a)
+            return seiten[a]
+
+        with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
+            seitenkarte.kategorie(self.KAT)
+        self.assertNotIn("anders_1", " ".join(geholt))
+
+    def test_die_zahl_im_bestand_zaehlt_die_folgeseiten_mit(self):
+        # Eine Kategorie, die 30 meldet und 37 hat, ist eine Kategorie, der
+        # man nicht mehr glaubt.
+        seiten = self._seiten()
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=lambda a: seiten[a]):
+            _, anzahl = seitenkarte._seite_lesen(self.KAT)
+        self.assertEqual(anzahl, 3)
+
+
 class ZweiShopformen(unittest.TestCase):
     """Eine Funktion, zwei Adressformen - entschieden wird an der Adresse.
 
