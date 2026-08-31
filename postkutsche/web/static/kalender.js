@@ -127,10 +127,20 @@ function kampagneVorbereiten() {
 
   const auswahl = $("#k-projekt");
   auswahl.innerHTML = "";
+  /* Kampagnen brauchen Kategorien, und die kommen bisher nur aus einer
+     Seitenkarte. Gesperrte Einträge sagen aber nicht, warum sie gesperrt
+     sind - wer nur »HaBeFa.de« sieht, hält die anderen Projekte für
+     verschwunden. Deshalb steht der Grund jetzt dabei. */
+  const GRUND = {
+    shopware: "Kategorien noch nicht angebunden",
+    wordpress: "Blog - Beiträge kommen von selbst, keine Kampagne",
+  };
   stand.projekte.forEach((p) => {
     const eintrag = document.createElement("option");
     eintrag.value = p.kennung;
-    eintrag.textContent = p.name;
+    eintrag.textContent = p.art === "seitenkarte"
+      ? p.name
+      : `${p.name} - ${GRUND[p.art] || "keine Kategorien"}`;
     if (p.art !== "seitenkarte") eintrag.disabled = true;
     auswahl.append(eintrag);
   });
