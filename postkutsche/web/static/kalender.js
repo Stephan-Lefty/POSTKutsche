@@ -835,6 +835,9 @@ function rollenBeobachten() {
 function kaertchen(b) {
   const kasten = document.createElement("button");
   kasten.className = "kaertchen";
+  // Beim Nachladen werden alle Kärtchen neu gebaut. Ohne das hier verlöre
+  // der gerade offene Beitrag seine Markierung, sobald man weiterscrollt.
+  if (stand.offen === b.id) kasten.classList.add("offen");
   kasten.draggable = true;
   kasten.dataset.id = b.id;
 
@@ -928,9 +931,21 @@ function ablegenErlauben(kasten) {
 
 // -- Blatt ------------------------------------------------------------------
 
+/* Markiert das Kärtchen, dessen Beitrag gerade offen ist.
+   Wird auch beim Zeichnen aufgerufen: Die Kärtchen werden bei jedem
+   Nachladen neu erzeugt, eine einmal gesetzte Klasse wäre danach weg. */
+function auswahlZeigen() {
+  document.querySelectorAll(".kaertchen.offen")
+    .forEach((k) => k.classList.remove("offen"));
+  if (stand.offen === null || stand.offen === undefined) return;
+  const kasten = document.querySelector(`.kaertchen[data-id="${stand.offen}"]`);
+  if (kasten) kasten.classList.add("offen");
+}
+
 function blattSchliessen() {
   $("#blatt").hidden = true;
   stand.offen = null;
+  auswahlZeigen();
 }
 
 async function blattOeffnen(id) {
@@ -941,6 +956,7 @@ async function blattOeffnen(id) {
     return melden(fehler.message, true);
   }
   stand.offen = id;
+  auswahlZeigen();
 
   const kaertchenDaten = document.querySelector(`.kaertchen[data-id="${id}"] .titel`);
   $("#blatt-titel").textContent = kaertchenDaten ? kaertchenDaten.textContent : `Beitrag ${id}`;

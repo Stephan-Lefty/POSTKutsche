@@ -172,6 +172,26 @@ button { font: inherit; cursor: pointer; }
 .kaertchen:active { cursor: grabbing; }
 .kaertchen.zieht { opacity: 0.4; }
 
+/* Das Kärtchen, dessen Beitrag gerade offen ist. Ohne diese Markierung
+   verliert man beim Bearbeiten die Spur: Das Blatt zeigt einen Text, und
+   welcher der vierzehn Termine dazugehört, muss man raten.
+
+   Rot ist hier eine Ausnahme von der eigenen Regel - sonst steht Rot in
+   dieser Oberfläche für »stimmt etwas nicht« (Rückfrage, Fehler, zu viele
+   Zeichen). Damit die Warnung ihre Kraft behält, sieht die Markierung anders
+   aus als eine Warnung: ein Ring um das ganze Kärtchen, nicht der linke
+   Balken einer Rückfrage. Und sie hängt nicht an der Farbe allein, sondern
+   ist auch deutlich dicker - wer Rot nicht von Grün unterscheidet, sieht
+   trotzdem, welches Kärtchen gemeint ist. */
+.kaertchen.offen {
+  border-color: var(--rot);
+  box-shadow: 0 0 0 2px var(--rot);
+}
+.kaertchen.offen:hover {
+  border-color: var(--rot);
+  box-shadow: 0 0 0 2px var(--rot);
+}
+
 /* Der Streifen oben ist in so viele Segmente geteilt, wie der Beitrag
    Netzwerke hat. Ein Beitrag, der in drei Netze geht, bleibt ein Kärtchen -
    andere Planer zeigen ihn dreimal und zwingen zu Uhrzeiten wie 15:01. */
