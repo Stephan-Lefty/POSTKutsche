@@ -29,6 +29,40 @@ from .. import netzwerke, zeiten
 STATISCH = Path(__file__).parent / "static"
 
 
+def kategorien_des_projekts(projekt: Any,
+                            bereich: str | None = None) -> list[dict[str, Any]]:
+    """Die Gliederung eines Shops – aus der Seitenkarte oder von Hand genannt.
+
+    **Zwei Herkünfte, weil es zwei Shopformen gibt.** Der Regelfall steht in
+    der Seitenkarte: Der Pfad einer Produktadresse nennt seine Kategorie,
+    damit ist die ganze Gliederung abzulesen, ohne eine einzige Seite
+    abzurufen. Shopware legt Produkte dagegen flach ab – dort verrät die
+    Seitenkarte nur, dass es eine Kategorie gibt, nicht, was darin liegt. Wer
+    dort nach dem Kategoriepfad filtert, hält den Shop für leer.
+
+    Für solche Shops stehen die gewünschten Kategorien unter »kategorien« in
+    der Projektdatei. Sie zu zählen kostet einen Abruf je Kategorie – bei
+    einer Handvoll ist das vertretbar, für 158 Kategorien wäre es das nicht.
+    Genau deshalb ist es kein Weg für alle, sondern die Ausnahme.
+
+    Steht hier statt im Behandler, damit es ohne laufenden Webdienst zu
+    prüfen ist.
+    """
+    from ..quellen import seitenkarte
+
+    vorgaben = projekt.einstellungen.get("kategorien")
+    if vorgaben:
+        kategorien = seitenkarte.vorgegebene_kategorien(vorgaben)
+        if bereich:
+            kategorien = [k for k in kategorien
+                          if str(k["pfad"]).startswith(bereich)]
+        return kategorien
+
+    karte = (projekt.einstellungen.get("seitenkarte")
+             or f"{projekt.adresse.rstrip('/')}/sitemap.xml")
+    return seitenkarte.kategorien(karte, bereich)
+
+
 class Behandler(BaseHTTPRequestHandler):
     """Bedient die Anfragen. Eine Instanz je Anfrage, wie bei http.server üblich."""
 
@@ -273,8 +307,6 @@ class Behandler(BaseHTTPRequestHandler):
         Wird beim Anlegen einer Kampagne gebraucht: Man wählt aus, was der
         Shop ohnehin hat, statt Adressen abzutippen.
         """
-        from ..quellen import seitenkarte
-
         kennung = frage.get("projekt", [""])[0]
         with self._ablage() as a:
             projekt = a.projekt(kennung)
@@ -286,15 +318,19 @@ class Behandler(BaseHTTPRequestHandler):
                 f"nicht für {projekt.art}.", 400
             )
 
-        karte = projekt.einstellungen.get("seitenkarte")
-        bereich = frage.get("bereich", [None])[0]
-        kategorien = seitenkarte.kategorien(karte, bereich)
+        kategorien = kategorien_des_projekts(
+            projekt, frage.get("bereich", [None])[0])
 
         with self._ablage() as a:
             zuletzt = a.kategorien_zuletzt(projekt.id)
 
+        # »Zuletzt bespielt« liest sich aus dem Pfad der beworbenen Produkte.
+        # Bei Shopware bleibt es leer, und das ist richtig so: Dort liegt das
+        # Produkt nicht im Pfad seiner Kategorie, also lässt sich aus der
+        # Adresse nicht ablesen, wozu es gehörte. Lieber nichts anzeigen als
+        # eine Woche behaupten, die nicht stimmt.
         for eintrag in kategorien:
-            ordner = str(eintrag["adresse"]).rsplit("/", 1)[0]
+            ordner = str(eintrag["adresse"]).rstrip("/").rsplit("/", 1)[0]
             wann = zuletzt.get(ordner)
             if wann:
                 jahr, woche = zeiten.kalenderwoche(wann)

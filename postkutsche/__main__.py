@@ -245,6 +245,13 @@ def _projekt_neu(ablage: Ablage, args: argparse.Namespace) -> int:
     if args.art == "shopware":
         print()
         print("Für Shopware fehlt noch der Zugangsschlüssel des Verkaufskanals.")
+        # Der kürzere Weg, und der einzige, der heute schon geht: Ein
+        # Shopware-Shop hat eine Seitenkarte und Kategorieseiten mit
+        # og:-Angaben. Wer darauf wartet, dass jemand einen Verkaufskanal
+        # einrichtet, wartet auf etwas, das er nicht braucht.
+        print("Ohne Schlüssel geht es über die Seitenkarte: --art seitenkarte, "
+              "die Kategorieadressen in ~/.config/postkutsche/projekte.json "
+              "unter »kategorien«.")
     return 0
 
 

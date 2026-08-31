@@ -127,12 +127,18 @@ function kampagneVorbereiten() {
 
   const auswahl = $("#k-projekt");
   auswahl.innerHTML = "";
-  /* Kampagnen brauchen Kategorien, und die kommen bisher nur aus einer
-     Seitenkarte. Gesperrte Einträge sagen aber nicht, warum sie gesperrt
-     sind - wer nur »HaBeFa.de« sieht, hält die anderen Projekte für
-     verschwunden. Deshalb steht der Grund jetzt dabei. */
+  /* Kampagnen brauchen Kategorien, und die kommen aus der Seitenkarte -
+     entweder abgelesen oder in der Projektdatei vorgegeben. Gesperrte
+     Einträge sagen aber nicht, warum sie gesperrt sind - wer nur
+     »HaBeFa.de« sieht, hält die anderen Projekte für verschwunden. Deshalb
+     steht der Grund jetzt dabei.
+
+     Die beiden Shopware-Shops stehen seit dem 2026-08-31 als »seitenkarte«
+     und sind damit wählbar. Der Grund für »shopware« bleibt trotzdem stehen:
+     Wer ein Projekt über die Kommandozeile mit dieser Art anlegt, soll
+     lesen, warum es nicht geht - und wohin es stattdessen gehört. */
   const GRUND = {
-    shopware: "Kategorien noch nicht angebunden",
+    shopware: "Store-API nicht angebunden - Art »seitenkarte« nehmen",
     wordpress: "Blog - Beiträge kommen von selbst, keine Kampagne",
   };
   stand.projekte.forEach((p) => {

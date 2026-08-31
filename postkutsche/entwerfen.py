@@ -40,7 +40,9 @@ def inhalte_holen(projekt, anzahl: int = 10) -> list[dict[str, Any]]:
     if projekt.art == "shopware":
         raise EntwurfFehler(
             f"Für {projekt.name} fehlt noch die Shopware-Anbindung. "
-            "Sie braucht den Zugangsschlüssel des Verkaufskanals."
+            "Sie braucht den Zugangsschlüssel des Verkaufskanals. "
+            "Ohne Schlüssel geht es über die Seitenkarte: Art auf "
+            "»seitenkarte« stellen."
         )
 
     raise EntwurfFehler(f"Unbekannte Projektart: {projekt.art!r}")
