@@ -71,6 +71,17 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   auszuschmücken ist. Anzusehen und zu streichen unter »Gelerntes« – eine
   Sammlung, die nur wächst und die niemand aufräumen kann, wird nach einem
   halben Jahr zur Last.
+- **Bilder mit Ablageort.** Wohin ein Download geht, entscheidet der Browser –
+  eine Webseite kann das nicht bestimmen. Also legt der Dienst die Bilder
+  selbst unter `~/Dokumente/POSTKutsche/` ab, nach Kalenderwoche und Projekt
+  geordnet, damit sich eine Woche in einem Handgriff wegräumen lässt. Wie der
+  Dokumentenordner heißt, wird beim System erfragt und nicht geraten. Der
+  Knopf zum Herunterladen bleibt daneben; das Ablegen kommt dazu.
+- **Zwei Bilder je Beitrag.** Beide auf 4:5 zugeschnitten, in fester
+  Reihenfolge – das erste ist, was in der Vorschau erscheint. Im Handbetrieb
+  stehen sie einzeln benannt zum Herunterladen bereit. Über die
+  Schnittstelle geht nur das erste raus, und die Oberfläche sagt das, statt
+  das zweite stillschweigend fallenzulassen.
 - **Schutz vor verlorener Handarbeit.** Ein von Hand bearbeiteter Text wird
   nicht überschrieben, wenn man »neu schreiben lassen« drückt – erst nach
   ausdrücklicher Bestätigung.
@@ -78,7 +89,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 372 Tests.
+- 401 Tests.
 
 ### Erscheinungsbild
 

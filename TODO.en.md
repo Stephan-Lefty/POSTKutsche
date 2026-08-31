@@ -25,6 +25,12 @@ aren't deleted, they move down — with the date they were done.
   whether twelve entries per instruction are enough, and whether the newest
   ones are the right ones. Taking an answer back currently means deleting it
   and answering again – there is no editing.
+- **A third image.** Two fit in two columns; a third calls for a table of its
+  own, with an order column. Doing it earlier would mean guessing how many
+  there will be.
+- **The second image through the API as well.** Mastodon would take four,
+  our sender attaches one. Until then the second image belongs to the
+  by-hand mode – the interface says so, but it isn't pretty.
 - **Connect the sources.** WordPress via `/wp-json/wp/v2/posts?_embed`,
   Shopware 6 via the Store API, altbau.example via `sitemap.xml` and `og:` scraping.
   One test per source against a recorded response, no network in tests.
@@ -89,3 +95,7 @@ aren't deleted, they move down — with the date they were done.
   answer, a switch says whether the answer holds in general or only for this
   product. General knowledge goes into every further draft, product knowledge
   only for its own address. Reviewed and deleted under "Gelerntes".
+- **Images get a place, and a post gets two** (2026-08-31): the service files
+  them under `~/Dokumente/POSTKutsche/<year>-KW<week>/<project>/`, because the
+  browser decides where a download lands and a web page cannot change that. A
+  version now carries two images, both cropped to 4:5.

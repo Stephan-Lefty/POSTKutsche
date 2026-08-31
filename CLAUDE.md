@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-372 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+401 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -60,6 +60,20 @@ seiner Adresse. Die Unterscheidung ist der Kern: Wer alles pauschal
 mitschickt, füttert Claude nach einem halben Jahr mit dreißig Sonderfällen und
 bekommt schlechtere Texte statt bessere. Angesehen und gestrichen wird unter
 »Gelerntes« in der linken Spalte.
+
+**Bilder liegen unter `~/Dokumente/POSTKutsche/<jahr>-KW<woche>/<projekt>/`.**
+Wohin ein Download geht, entscheidet der Browser; also legt der Dienst die
+Datei selbst hin – er läuft auf demselben Rechner. Die Woche steht vorn, weil
+danach aufgeräumt wird. Wie der Dokumentenordner heißt, wird gefragt und nicht
+geraten: `POSTKUTSCHE_DOKUMENTE`, `~/.config/user-dirs.dirs`, `xdg-user-dir`,
+ein vorhandenes »Dokumente« oder »Documents«.
+
+**Eine Fassung trägt bis zu zwei Bilder** (`bild_pfad`, `bild_pfad2`). Zwei
+Spalten und keine Tabelle: Bei genau zweien ist die Reihenfolge ohne
+Sortierspalte eindeutig. Beim dritten wird die Tabelle fällig. Über die
+Schnittstelle geht nur das erste raus – das zweite ist dem Handbetrieb
+vorbehalten, und die Oberfläche sagt das. `SCHEMA_FASSUNG` steht seit dem
+2026-08-31 auf 2; `_wandeln` hängt die Spalte an bestehende Ablagen an.
 
 **Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,

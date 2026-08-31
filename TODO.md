@@ -49,6 +49,12 @@ wurde.
 - **»Von Hand veröffentlicht« bei Mastodon ausblenden.** Der Knopf gehört zum
   Handbetrieb für Facebook und Instagram und verwirrt, wo automatisch gesendet
   wird.
+- **Ein drittes Bild.** Zwei stecken in zwei Spalten; beim dritten ist eine
+  eigene Tabelle fällig, dann mit Sortierspalte. Vorher wäre es geraten, wie
+  viele es werden.
+- **Das zweite Bild auch über die Schnittstelle.** Mastodon nähme vier,
+  unser Sender gibt eines mit. Bis dahin bleibt das zweite dem Handbetrieb
+  vorbehalten – die Oberfläche sagt es, aber schön ist es nicht.
 
 ### Danach
 
@@ -101,3 +107,7 @@ wurde.
   sagt ein Schalter, ob die Auskunft allgemein gilt oder nur für dieses
   Produkt. Allgemeines geht in jeden weiteren Entwurf mit, Produktwissen nur
   zu seiner Adresse. Anzusehen und zu streichen unter »Gelerntes«.
+- **Bilder mit Ablageort, zwei je Beitrag** (2026-08-31): Der Dienst legt sie
+  unter `~/Dokumente/POSTKutsche/<jahr>-KW<woche>/<projekt>/` ab, weil der
+  Browser den Downloadordner bestimmt und eine Webseite daran nichts ändern
+  kann. Eine Fassung trägt jetzt zwei Bilder, beide auf 4:5 zugeschnitten.
