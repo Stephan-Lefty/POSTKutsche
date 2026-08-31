@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-336 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+343 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -25,13 +25,32 @@ Seitenkarte des ersten Shops ist veraltet: von zwölf Adressen führte keine
 unverändert zum Ziel, eine als »Stahltür« benannte landete auf der Übersicht
 für Holztüren.
 
-**Die Seitenkarte ist ein Versprechen, die Navigation ist der Bestand.** Am
-2026-08-31 nachgemessen: Die Karte des ersten Shops nannte 158 Kategorien,
-verlinkt sind 43. Von zehn nicht verlinkten, denen die Karte zusammen 270
-Produkte zuschrieb, lieferte keine mehr als drei – »Passivhaustüren« mit
-angeblich 40 Produkten war eine davon. Das Planungsfenster gleicht deshalb ab:
-Startseite plus Bereichsseiten, vier Abrufe, und was dort nicht verlinkt ist,
-steht nicht zur Auswahl. Was wegfällt, wird gesagt statt verschwiegen.
+**Die Navigation ist die Quelle, nicht der Filter.** Für die Kategorienliste
+des Planungsfensters ist die Seitenkarte des ersten Shops unbrauchbar: Sie
+verschweigt 57 Kategorien, die es gibt, und führt 115, die es nicht mehr gibt
+(»Passivhaustüren«, angeblich 40 Produkte). Erst wurde sie deshalb gegen die
+Navigation *geprüft* – das war zu wenig, denn wer zwei Quellen schneidet,
+bekommt das Schlechteste aus beiden: 17 Kategorien statt 116. Gelesen wird
+jetzt allein, was die Seite selbst verlinkt. Für die Produktadressen bleibt
+die Seitenkarte zuständig, und sie ist der Rückfall, wenn die Seite schweigt.
+
+**Der Shop ist dreistufig, obwohl seine Adressen flach sind.** Alles liegt
+unter `/shop-<bereich>/<name>_<nummer>/`, die Gliederung hat aber Bereich,
+Kategorie und Unterkategorie. Startseite plus die drei Bereichsseiten nennen
+73 Kategorien; 16 der Kategorieseiten darunter verlinken 54 weitere, die
+sonst nirgends stehen – darunter die T30-1-Zweige, in denen die Ware liegt.
+Wer nur vier Seiten liest, übersieht zwei Drittel des Sortiments.
+
+**Deshalb 129 Abrufe, acht gleichzeitig, und zwölf Stunden Zwischenspeicher**
+in `~/.local/share/postkutsche/bestand/`. Einmal am Morgen zwanzig Sekunden
+warten, danach geht das Formular sofort auf. Die Produktzahlen werden dabei
+mitgezählt und nicht mehr aus der Karte übernommen – die behauptete für eine
+Kategorie zwölf Produkte, wo eines stand.
+
+**Konfiguratoren und Abholgebiete stehen nicht zur Auswahl.** Dahinter steht
+kein Produkt, das man zeigen und verlinken könnte: ein Konfigurator ist ein
+Formular, ein Abholgebiet ein Ort. Gefiltert wird auf das Wort, nicht auf den
+Ortsnamen – »Garagentore Berlin« ist ein Sortiment und bleibt wählbar.
 
 **Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,
