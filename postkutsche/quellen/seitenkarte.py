@@ -788,16 +788,24 @@ def _fliesstext(roh: str) -> str:
     """
     stuecke: list[str] = []
     gesehen: set[str] = set()
+    laenge = 0
     for treffer in re.finditer(r"<(p|li|h1|h2|h3|h4)\b[^>]*>(.*?)</\1>",
                                roh, re.IGNORECASE | re.DOTALL):
         text = entmarken(treffer.group(2))
         if len(text) < KUERZESTER_ABSATZ or text in gesehen:
             continue
         gesehen.add(text)
-        stuecke.append(text)
-        if sum(len(s) for s in stuecke) >= TEXTGRENZE:
+        # Nur ganze Absätze. Wer hart auf die Grenze schneidet, übergibt
+        # Claude einen Text, der mitten im Wort endet - und bekommt dafür
+        # eine Rückfrage, die keine ist: »Der Quelltext bricht am Ende
+        # mitten im Wort ab ("Deshalb ist ein Obentürschli") - fehlt da
+        # etwas?« Am 2026-08-31 dreimal in einer Woche passiert. Ein
+        # Absatz weniger ist besser als ein Satz ohne Ende.
+        if laenge + len(text) > TEXTGRENZE:
             break
-    return "\n\n".join(stuecke)[:TEXTGRENZE]
+        laenge += len(text) + 2  # die beiden Zeilenumbrüche dazwischen
+        stuecke.append(text)
+    return "\n\n".join(stuecke)
 
 
 def _titel_aus(roh: str) -> str | None:

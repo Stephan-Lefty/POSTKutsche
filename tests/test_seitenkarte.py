@@ -376,3 +376,25 @@ class VorgegebeneKategorien(unittest.TestCase):
         self.assertEqual(len(eintraege), 1)
         self.assertEqual(eintraege[0]["produkte"], 0)
         self.assertIn("antwortet nicht", str(eintraege[0]["fehler"]))
+
+
+class TextEndetAufEinemSatz(unittest.TestCase):
+    """Ein Text, der mitten im Wort endet, erzeugt eine Rueckfrage, die keine ist."""
+
+    def test_kein_absatz_wird_zerschnitten(self):
+        # Absaetze knapp unter der Grenze: der letzte passt nicht mehr ganz.
+        gross = "A" * 1500
+        roh = "".join(f"<p>{gross}{n}</p>" for n in range(5))
+        ergebnis = seitenkarte._fliesstext(roh)
+        for absatz in ergebnis.split("\n\n"):
+            self.assertIn(absatz, roh, "ein Absatz wurde zerschnitten")
+
+    def test_haelt_die_grenze_trotzdem_ein(self):
+        roh = "".join(f"<p>{'B' * 900}{n}</p>" for n in range(12))
+        self.assertLessEqual(len(seitenkarte._fliesstext(roh)),
+                             seitenkarte.TEXTGRENZE)
+
+    def test_ein_einzelner_zu_langer_absatz_faellt_weg(self):
+        # Lieber nichts als ein Satz ohne Ende. Wer den Text braucht, sieht
+        # ihn auf der Seite.
+        self.assertEqual(seitenkarte._fliesstext(f"<p>{'C' * 5000}</p>"), "")
