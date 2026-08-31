@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import time
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,33 +30,40 @@ from .. import netzwerke, zeiten
 STATISCH = Path(__file__).parent / "static"
 
 
+#: Wie lange eine Bestandsaufnahme gilt. Ein Shop stellt sein Sortiment nicht
+#: stündlich um; zwölf Stunden heißt: einmal am Morgen wartet man zwanzig
+#: Sekunden, den Rest des Tages nicht mehr. Ohne diesen Zwischenspeicher
+#: kostete jedes Öffnen des Planungsfensters 130 Abrufe.
+BESTAND_STUNDEN = 12
+
+
 def kategorien_des_projekts(projekt: Any,
                             bereich: str | None = None,
-                            melden=None) -> tuple[list[dict[str, Any]], str | None]:
-    """Die Gliederung eines Shops – aus der Seitenkarte oder von Hand genannt.
+                            melden=None,
+                            speicher: Path | None = None,
+                            stunden: float = BESTAND_STUNDEN,
+                            ) -> tuple[list[dict[str, Any]], str | None]:
+    """Die Gliederung eines Shops – aus der Navigation oder von Hand genannt.
 
     Gibt die Kategorien und einen Hinweis zurück; der Hinweis ist None, wenn
     es nichts zu sagen gibt.
 
-    **Zwei Herkünfte, weil es zwei Shopformen gibt.** Der Regelfall steht in
-    der Seitenkarte: Der Pfad einer Produktadresse nennt seine Kategorie,
-    damit ist die ganze Gliederung abzulesen, ohne eine einzige Seite
-    abzurufen. Shopware legt Produkte dagegen flach ab – dort verrät die
-    Seitenkarte nur, dass es eine Kategorie gibt, nicht, was darin liegt. Wer
-    dort nach dem Kategoriepfad filtert, hält den Shop für leer.
+    **Von Hand genannt** wird bei Shopware. Dort liegen die Produkte flach,
+    nicht unterhalb ihrer Kategorie, und die Seitenkarte verrät nur, dass es
+    eine Kategorie gibt, nicht, was darin liegt. Diese Vorgaben kommen vom
+    Benutzer und werden nicht nachgeprüft: Er hat nachgesehen, wir nicht.
 
-    Für solche Shops stehen die gewünschten Kategorien unter »kategorien« in
-    der Projektdatei. Sie zu zählen kostet einen Abruf je Kategorie – bei
-    einer Handvoll ist das vertretbar, für 158 Kategorien wäre es das nicht.
-    Genau deshalb ist es kein Weg für alle, sondern die Ausnahme. Diese
-    Vorgaben kommen vom Benutzer und werden nicht abgeglichen: Er hat
-    nachgesehen, wir nicht.
+    **Sonst zählt, was die Seite selbst verlinkt.** Die Seitenkarte war für
+    diesen Zweck die schlechtere Quelle – sie verschwieg 57 Kategorien, die es
+    gibt, und führte 115, die es nicht mehr gibt. Gelesen wird deshalb die
+    Navigation; die Karte bleibt nur als Rückfall, wenn die Seite schweigt.
+    Für die Produktadressen selbst ist sie weiter zuständig, es geht allein um
+    die Liste im Planungsfenster.
 
-    **Was aus der Seitenkarte kommt, wird gegen die Navigation geprüft.** Eine
-    Seitenkarte, die zehn Jahre nicht gepflegt wurde, nennt Kategorien, die es
-    nicht mehr gibt. Wer eine davon ankreuzt, plant eine Woche über Ware, die
-    niemand mehr kaufen kann. Ist die Seite selbst nicht erreichbar, bleibt
-    alles stehen – lieber zu viel anbieten als das Formular leer zu lassen.
+    **Die Bereiche stehen nicht in der Liste.** »Türen Shop« ist eine
+    Übersichtsseite, die nur auf Unterkategorien verweist; sie meldete 1646
+    Produkte und lieferte keines. Die Bereiche sind das Auswahlfeld oben, nicht
+    die Liste unten.
 
     Steht hier statt im Behandler, damit es ohne laufenden Webdienst zu
     prüfen ist.
@@ -70,43 +78,128 @@ def kategorien_des_projekts(projekt: Any,
                           if str(k["pfad"]).startswith(bereich)]
         return kategorien, None
 
-    karte = (projekt.einstellungen.get("seitenkarte")
-             or f"{projekt.adresse.rstrip('/')}/sitemap.xml")
-    kategorien = seitenkarte.kategorien(karte, bereich)
+    kategorien, hinweis = _bestand(projekt, melden, speicher, stunden)
+
+    # Bereiche heraus, dann erst der gewählte Bereich - sonst filterte man
+    # eine Liste, in der die Übersichtsseiten noch stehen.
+    kategorien = [k for k in kategorien if not _ist_uebersicht(k)]
+    if bereich:
+        kategorien = [k for k in kategorien
+                      if str(k["pfad"]).startswith(bereich)]
+    return kategorien, hinweis
+
+
+def _bestand(projekt: Any, melden, speicher: Path | None,
+             stunden: float) -> tuple[list[dict[str, Any]], str | None]:
+    """Der Bestand, aus dem Zwischenspeicher oder frisch von der Seite."""
+    from ..quellen import seitenkarte
+
+    datei = speicher if speicher is not None else _bestandsdatei(projekt.kennung)
+    gemerkt = _bestand_lesen(datei, stunden)
+    if gemerkt is not None:
+        return gemerkt, None
 
     startseite = projekt.einstellungen.get("navigation") or projekt.adresse
+    angefangen = time.monotonic()
     try:
-        verlinkt = seitenkarte.verlinkte_kategorien(startseite)
+        kategorien, ausgelassen = seitenkarte.navigation(startseite)
     except seitenkarte.AbrufFehler as schiefgegangen:
-        return kategorien, (
-            f"Ungeprüft: {startseite} war nicht zu lesen ({schiefgegangen}). "
-            f"Es kann sein, dass Kategorien dabei sind, die es nicht mehr gibt."
+        # Die Seite schweigt. Dann lieber die veraltete Karte als ein leeres
+        # Formular - aber mit der Ansage, dass die Liste nicht stimmen muss.
+        karte = (projekt.einstellungen.get("seitenkarte")
+                 or f"{projekt.adresse.rstrip('/')}/sitemap.xml")
+        hinweis = (
+            f"{startseite} war nicht zu lesen ({schiefgegangen}). Die Liste "
+            f"kommt aus der Seitenkarte und kann Kategorien enthalten, die es "
+            f"nicht mehr gibt."
         )
+        (melden or print)(hinweis)
+        return seitenkarte.kategorien(karte), hinweis
 
-    behalten, verworfen = seitenkarte.abgleichen(kategorien, verlinkt)
-    if not verworfen:
-        return behalten, None
+    dauer = time.monotonic() - angefangen
+    _bestand_schreiben(datei, kategorien)
 
+    # Gezählt wird, was nachher wirklich zur Auswahl steht - die Bereiche
+    # fallen gleich heraus. Eine Zahl im Hinweis, die nicht zur Liste
+    # darunter passt, ist schlimmer als gar keine.
+    angeboten = sum(1 for k in kategorien if not _ist_uebersicht(k))
     hinweis = (
-        f"{len(verworfen)} von {len(kategorien)} Kategorien der Seitenkarte "
-        f"sind auf der Seite nicht mehr verlinkt und stehen deshalb nicht zur "
-        f"Auswahl – zum Beispiel {_beispiele(verworfen)}."
+        f"Bestand neu erhoben: {angeboten} Kategorien aus der Navigation "
+        f"von {startseite}, {dauer:.0f} Sekunden. Gilt {stunden:.0f} Stunden, "
+        f"bis dahin geht das Formular sofort auf."
     )
-    # Auch ins Protokoll: Wer im Dienst nachliest, warum eine Woche mager
-    # ausfiel, findet es dort und nicht nur in einem Fenster, das längst zu ist.
+    if ausgelassen:
+        hinweis += (f" Ausgelassen: {len(ausgelassen)} Konfiguratoren und "
+                    f"Abholgebiete – dahinter steht keine Ware.")
+    # Auch ins Protokoll: Wer im Dienst nachliest, warum das Formular einmal
+    # lange brauchte, findet es dort und nicht nur in einem Fenster, das
+    # längst wieder zu ist.
     (melden or print)(hinweis)
-    return behalten, hinweis
+    return kategorien, hinweis
 
 
-def _beispiele(verworfen: list[dict[str, Any]], wie_viele: int = 3) -> str:
-    """Die auffälligsten der weggefallenen Kategorien beim Namen nennen.
+def _ist_uebersicht(eintrag: dict[str, Any]) -> bool:
+    """Ob der Eintrag ein Bereich ist und keine Kategorie.
 
-    Nach Produktzahl, denn eine Kategorie, der die Karte vierzig Produkte
-    zuschreibt, vermisst man eher als eine mit zweien.
+    Ein Bereich liegt eine Pfadebene tief (»shop-tueren«) und verweist nur
+    auf das, was unter ihm hängt. »Türen Shop« meldete 1646 Produkte und
+    lieferte keines.
     """
-    nach_gewicht = sorted(verworfen, key=lambda e: -int(e.get("produkte") or 0))
-    namen = [f"»{e['name']}«" for e in nach_gewicht[:wie_viele]]
-    return ", ".join(namen)
+    return int(eintrag.get("tiefe") or 0) <= 1
+
+
+def _bestandsdatei(kennung: str) -> Path:
+    """Wo die Bestandsaufnahme eines Projekts liegt.
+
+    Neben der Ablage, aber nicht darin: Das hier ist weggeworfenes Wissen, das
+    sich jederzeit neu holen lässt. In der Datenbank hätte es eine Tabelle
+    gebraucht, eine Schemafassung und eine Wanderung – für etwas, das nach
+    zwölf Stunden ungültig ist.
+    """
+    return ablage_modul.standard_pfad().parent / "bestand" / f"{kennung}.json"
+
+
+def _bestand_lesen(datei: Path, stunden: float) -> list[dict[str, Any]] | None:
+    """Die gemerkte Bestandsaufnahme, falls sie noch frisch ist.
+
+    None heißt »neu holen«. Jeder Zweifel führt hierher: fehlende Datei,
+    kaputtes JSON, fehlender Zeitstempel. Ein Zwischenspeicher darf nie der
+    Grund sein, warum etwas nicht geht.
+    """
+    try:
+        daten = json.loads(datei.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+    gespeichert = str(daten.get("gespeichert") or "")
+    kategorien = daten.get("kategorien")
+    if not gespeichert or not isinstance(kategorien, list):
+        return None
+
+    try:
+        alter = zeiten.lesen(zeiten.jetzt_utc()) - zeiten.lesen(gespeichert)
+    except ValueError:
+        return None
+    # Auch ein Stempel aus der Zukunft gilt nicht: Nach einer verstellten Uhr
+    # bliebe die Liste sonst für immer stehen.
+    if alter < timedelta(0) or alter > timedelta(hours=stunden):
+        return None
+    return kategorien
+
+
+def _bestand_schreiben(datei: Path, kategorien: list[dict[str, Any]]) -> None:
+    try:
+        datei.parent.mkdir(parents=True, exist_ok=True)
+        datei.write_text(
+            json.dumps({"gespeichert": zeiten.jetzt_utc(),
+                        "kategorien": kategorien}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        # Ein Zwischenspeicher, der sich nicht schreiben lässt, macht den
+        # nächsten Aufruf langsam. Das Formular scheitern zu lassen wäre
+        # schlimmer.
+        pass
 
 
 class Behandler(BaseHTTPRequestHandler):

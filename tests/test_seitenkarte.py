@@ -187,131 +187,150 @@ class ZweiShopformen(unittest.TestCase):
                 len(seitenkarte.kategorie("https://x.example/kat_1/list.html", 5)), 5)
 
 
-class NavigationAlsWahrheit(unittest.TestCase):
-    """Die Seitenkarte ist ein Versprechen, die Navigation ist der Bestand.
+class NavigationAlsQuelle(unittest.TestCase):
+    """Die Navigation ist die Quelle, nicht der Filter.
 
-    Am 2026-08-31 nachgemessen: Die Karte des Eigenbaus nannte 158
-    Kategorien, verlinkt waren 43. Von zehn nicht verlinkten, denen die Karte
-    zusammen 270 Produkte zuschrieb, lieferte keine mehr als drei.
-    """
-
-    START = """
-      <a href="/shop-tueren/list.html">Türen</a>
-      <a href="https://x.example/shop-tueren/list.html">Türen Shop</a>
-      <a href="/shop-zubehoer/list.html">Shop für Sicherheit &amp; Zubehör</a>
-      <a href="/shop-tueren/haustueren_454/list.html">Haustüren</a>
-      <a href="/info_service/kontakt.html">Kontakt</a>
-    """
-
-    BEREICH = """
-      <a href="/shop-tueren/kellertueren_525/list.html">Kellertüren</a>
+    Die Seitenkarte war fuer die Kategorienliste die schlechtere Quelle: Am
+    2026-08-31 verschwieg sie 57 Kategorien, die es gibt, und fuehrte 115, die
+    es nicht mehr gibt. Gezaehlt wird jetzt, was die Seite selbst verlinkt.
     """
 
     SEITEN = {
-        "https://x.example/": START,
-        "https://x.example/shop-tueren/list.html": BEREICH,
-        "https://x.example/shop-zubehoer/list.html": "",
+        "https://x.example/": """
+          <a href="/shop-tueren/list.html">Türen Shop</a>
+          <a href="https://x.example/shop-tueren/list.html">Türen</a>
+          <a href="/info_service/kontakt.html">Kontakt</a>
+        """,
+        "https://x.example/shop-tueren/list.html": """
+          <a href="/shop-tueren/brandschutz_455/list.html">Brandschutztüren</a>
+          <a href="/shop-tueren/muenchen_680/list.html">Abholgebiet Raum München</a>
+          <a href="/shop-tueren/tuerkonfigurator_99/list.html">Konfigurator</a>
+        """,
+        # Die dritte Ebene: Diese Unterkategorie steht weder auf der
+        # Startseite noch auf der Bereichsseite. Genau hier liegt die Ware.
+        "https://x.example/shop-tueren/brandschutz_455/list.html": """
+          <a href="/shop-tueren/t30-1_stahl_489/list.html">T30-1 Stahltüren</a>
+          <a href="/shop-tueren/brandschutz_455/tuer_1810.html">Tür</a>
+        """,
+        "https://x.example/shop-tueren/t30-1_stahl_489/list.html": """
+          <a href="/shop-tueren/t30-1_stahl_489/a_1.html">A</a>
+          <a href="/shop-tueren/t30-1_stahl_489/b_2.html">B</a>
+          <a href="/shop-tueren/t30-1_stahl_489/b_2.html"><img></a>
+        """,
     }
 
-    def _lesen(self, seiten=None):
-        seiten = seiten or self.SEITEN
+    def _lesen(self, seiten=None, **mehr):
+        seiten = seiten if seiten is not None else self.SEITEN
         with mock.patch.object(seitenkarte, "text_holen",
                                side_effect=lambda a: seiten[a]):
-            return seitenkarte.verlinkte_kategorien("https://x.example/")
+            return seitenkarte.navigation("https://x.example/", **mehr)
 
-    def test_bereiche_werden_nachgeladen(self):
-        # Ohne die Bereichsseiten fiele »Kellertueren« weg, obwohl es die
-        # Kategorie gibt - die Startseite zeigt nur das Menue.
-        self.assertIn("/shop-tueren/kellertueren_525/list.html", self._lesen())
+    def test_die_dritte_ebene_kommt_mit(self):
+        # Startseite und Bereichsseite allein haetten »T30-1 Stahltueren«
+        # uebersehen - und dort liegen die Produkte.
+        kategorien, _ = self._lesen()
+        self.assertIn("T30-1 Stahltüren", [k["name"] for k in kategorien])
 
-    def test_nur_kategorieseiten(self):
-        self.assertFalse([p for p in self._lesen() if "kontakt" in p])
+    def test_produkte_werden_beim_lesen_gezaehlt(self):
+        # Nicht aus der Seitenkarte uebernommen: Die behauptete fuer eine
+        # Kategorie zwoelf Produkte, auf der Seite stand eines.
+        kategorien, _ = self._lesen()
+        nach_namen = {k["name"]: k["produkte"] for k in kategorien}
+        self.assertEqual(nach_namen["T30-1 Stahltüren"], 2)
+        self.assertEqual(nach_namen["Brandschutztüren"], 1)
 
-    def test_schema_und_rechnername_stoeren_nicht(self):
-        # In der Seitenkarte steht http, in der Navigation https. Verglichen
-        # wird deshalb nur der Pfad.
-        gefunden = self._lesen()
-        self.assertIn("/shop-tueren/list.html", gefunden)
-        self.assertFalse([p for p in gefunden if p.startswith("http")])
+    def test_der_bereich_ist_dabei_aber_als_tiefe_eins(self):
+        # Aussortiert wird er erst in der Oberflaeche - hier steht er, weil
+        # das Auswahlfeld oben ihn braucht.
+        kategorien, _ = self._lesen()
+        bereiche = [k for k in kategorien if k["tiefe"] == 1]
+        self.assertEqual([k["name"] for k in bereiche], ["Türen Shop"])
 
     def test_die_laengste_beschriftung_gewinnt(self):
-        # Dieselbe Kategorie steht mehrfach auf der Seite, im Menue kuerzer
-        # als im Fliesstext. Die laengste Fassung sagt am meisten.
-        gefunden = self._lesen()
-        self.assertEqual(gefunden["/shop-tueren/list.html"], "Türen Shop")
-        self.assertEqual(gefunden["/shop-zubehoer/list.html"],
-                         "Shop für Sicherheit & Zubehör")
+        kategorien, _ = self._lesen()
+        self.assertIn("Türen Shop", [k["name"] for k in kategorien])
 
-    def test_ein_stummer_bereich_reisst_nichts_mit(self):
+    def test_abholgebiete_und_konfiguratoren_bleiben_draussen(self):
+        # Beide aus demselben Grund: Dahinter steht kein Produkt, das man
+        # zeigen und verlinken koennte. Ein Konfigurator ist ein Formular,
+        # ein Abholgebiet ein Ort.
+        kategorien, ausgelassen = self._lesen()
+        namen = [k["name"] for k in kategorien]
+        self.assertNotIn("Abholgebiet Raum München", namen)
+        self.assertFalse([n for n in namen if "onfigurator" in n])
+        self.assertEqual(len(ausgelassen), 2)
+
+    def test_ortsnamen_allein_reichen_nicht_zum_ausschluss(self):
+        # »Garagentore Berlin« ist ein Sortiment fuer eine Region und hat
+        # Ware. Das Merkmal ist das Wort »Abholgebiet«, nicht die Stadt.
+        seiten = dict(self.SEITEN)
+        seiten["https://x.example/shop-tueren/list.html"] = (
+            '<a href="/shop-tueren/berlin_540/list.html">Türen Berlin</a>')
+        seiten["https://x.example/shop-tueren/berlin_540/list.html"] = (
+            '<a href="/shop-tueren/berlin_540/a_1.html">A</a>')
+        kategorien, _ = self._lesen(seiten)
+        self.assertIn("Türen Berlin", [k["name"] for k in kategorien])
+
+    def test_nur_gelesene_seiten_kommen_zurueck(self):
+        # Eine Kategorie, die erst in der letzten Runde auftaucht, hat keine
+        # gezaehlten Produkte. Sie aufzunehmen hiesse, eine Null zu
+        # behaupten, die nichts bedeutet.
+        kategorien, _ = self._lesen(klicks=1)
+        self.assertEqual([k["name"] for k in kategorien], ["Türen Shop"])
+
+    def test_eine_stumme_seite_bricht_nichts_ab(self):
         def antworten(adresse):
-            if adresse.endswith("/shop-zubehoer/list.html"):
+            if "brandschutz_455" in adresse:
                 raise AbrufFehler("antwortet nicht")
             return self.SEITEN[adresse]
 
         with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
-            gefunden = seitenkarte.verlinkte_kategorien("https://x.example/")
-        self.assertIn("/shop-tueren/kellertueren_525/list.html", gefunden)
+            kategorien, _ = seitenkarte.navigation("https://x.example/")
+        self.assertIn("Türen Shop", [k["name"] for k in kategorien])
 
-    def test_es_werden_nicht_beliebig_viele_bereiche_geholt(self):
-        viele = "".join(f'<a href="/shop-{n}/list.html">B</a>' for n in range(40))
+    def test_eine_stumme_startseite_ist_ein_fehler(self):
+        # Antwortet sie nicht, ist die ganze Bestandsaufnahme wertlos, und
+        # der Aufrufer soll das erfahren, statt eine leere Liste fuer den
+        # Bestand zu halten.
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=AbrufFehler("stumm")):
+            with self.assertRaises(AbrufFehler):
+                seitenkarte.navigation("https://x.example/")
+
+    def test_die_seitengrenze_haelt(self):
+        viele = "".join(f'<a href="/shop-{n}/list.html">B {n}</a>'
+                        for n in range(60))
+        seiten = {"https://x.example/": viele}
+        for n in range(60):
+            seiten[f"https://x.example/shop-{n}/list.html"] = ""
         geholt = []
 
         def antworten(adresse):
             geholt.append(adresse)
-            return viele if adresse == "https://x.example/" else ""
+            return seiten[adresse]
 
         with mock.patch.object(seitenkarte, "text_holen", side_effect=antworten):
-            seitenkarte.verlinkte_kategorien("https://x.example/")
-        # Startseite plus hoechstens BEREICHSGRENZE Bereichsseiten. Sonst
-        # warten vierzig Abrufe lang alle auf das Formular.
-        self.assertLessEqual(len(geholt), seitenkarte.BEREICHSGRENZE + 1)
+            seitenkarte.navigation("https://x.example/", seitengrenze=10)
+        self.assertLessEqual(len(geholt), 10)
 
+    def test_schaltflaechen_sind_keine_namen(self):
+        # »anzeigen >>« steht auf der Tuerenseite zweimal als Verweistext.
+        seiten = {
+            "https://x.example/": '<a href="/shop-x/list.html">anzeigen &gt;&gt;</a>',
+            "https://x.example/shop-x/list.html": "",
+        }
+        kategorien, _ = self._lesen(seiten)
+        self.assertEqual(kategorien[0]["name"], "Shop X")
 
-class Abgleich(unittest.TestCase):
-    """Was die Karte kennt, gegen das, was die Seite noch verlinkt."""
-
-    def _eintrag(self, pfad, name="X", produkte=1):
-        return {"adresse": f"http://x.example{pfad}", "name": name,
-                "produkte": produkte}
-
-    def test_verlinktes_bleibt_unverlinktes_geht(self):
-        behalten, verworfen = seitenkarte.abgleichen(
-            [self._eintrag("/shop-tueren/haustueren_1/list.html"),
-             self._eintrag("/shop-tueren/passivhaustueren_2/list.html")],
-            {"/shop-tueren/haustueren_1/list.html": "Haustüren"})
-        self.assertEqual(len(behalten), 1)
-        self.assertEqual(len(verworfen), 1)
-
-    def test_die_beschriftung_der_seite_sticht(self):
-        # »Angebote & Express« steht in der Navigation; aus der Adresse
-        # »tueren_angebote_626« wird bestenfalls »Türen Angebote«.
-        behalten, _ = seitenkarte.abgleichen(
-            [self._eintrag("/shop-tueren/tueren_angebote_626/list.html",
-                           "Türen Angebote")],
-            {"/shop-tueren/tueren_angebote_626/list.html": "Angebote & Express"})
-        self.assertEqual(behalten[0]["name"], "Angebote & Express")
-
-    def test_eine_ebene_unter_einer_verlinkten_kategorie_bleibt(self):
-        # Was nicht im Menue steht, ist nicht zwangslaeufig tot - es kann
-        # eine Ebene tiefer haengen.
-        behalten, _ = seitenkarte.abgleichen(
-            [self._eintrag("/shop-tueren/brandschutz_1/t30_2/list.html")],
-            {"/shop-tueren/brandschutz_1/list.html": "Brandschutztüren"})
-        self.assertEqual(len(behalten), 1)
-
-    def test_unter_einem_bereich_allein_reicht_nicht(self):
-        # Sonst ueberlebt alles: Ein Bereich ist immer verlinkt, und der
-        # Abgleich taete nichts.
-        _, verworfen = seitenkarte.abgleichen(
-            [self._eintrag("/shop-tueren/passivhaustueren_2/list.html")],
-            {"/shop-tueren/list.html": "Türen"})
-        self.assertEqual(len(verworfen), 1)
-
-    def test_ein_leerer_name_ueberschreibt_nichts(self):
-        behalten, _ = seitenkarte.abgleichen(
-            [self._eintrag("/shop-tueren/haustueren_1/list.html", "Haustüren")],
-            {"/shop-tueren/haustueren_1/list.html": ""})
-        self.assertEqual(behalten[0]["name"], "Haustüren")
+    def test_kaputte_kodierung_wird_nicht_angezeigt(self):
+        # Auf einer Seite steht »H<?>rmann ThermoSafe Haust<?>ren«. Lieber
+        # den hoelzernen Namen aus der Adresse als kaputte Zeichen.
+        seiten = {
+            "https://x.example/": '<a href="/shop-x/list.html">H�rmann</a>',
+            "https://x.example/shop-x/list.html": "",
+        }
+        kategorien, _ = self._lesen(seiten)
+        self.assertEqual(kategorien[0]["name"], "Shop X")
 
 
 class VorgegebeneKategorien(unittest.TestCase):

@@ -201,7 +201,14 @@ function kampagneVorbereiten() {
 
 async function kategorienLaden() {
   const liste = $("#k-kategorien");
-  liste.innerHTML = '<p class="schlagworte">Kategorien werden geholt …</p>';
+  /* Beim ersten Mal am Tag wird der Bestand des Shops neu erhoben - über
+     hundert Seiten, gut zwanzig Sekunden. Danach liegt er zwölf Stunden
+     bereit. Wer das nicht weiß, hält das Formular für hängengeblieben und
+     lädt neu, womit die Erhebung von vorn beginnt. */
+  liste.innerHTML =
+    '<p class="schlagworte">Kategorien werden geholt … Beim ersten Mal am Tag' +
+    ' liest POSTKutsche dafür den ganzen Shop durch, das dauert etwa eine' +
+    ' halbe Minute.</p>';
   try {
     const antwort = await hole(`/api/kategorien?projekt=${$("#k-projekt").value}`);
     /* Beide Antwortformen lesen. Statische Dateien liefert der Dienst
