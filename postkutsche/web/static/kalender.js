@@ -1550,19 +1550,14 @@ function fassungsblock(beitragId, f, quelle) {
 
   knoepfe.append(alles, sichern, nurText);
 
-  /* Für den Handbetrieb: Bild auf die Platte holen, dann bei Facebook oder
-     Instagram hochladen. Bei zwei Bildern zwei Knöpfe, einzeln benannt -
-     wer sie in der falschen Reihenfolge einfügt, hat ein anderes Titelbild
-     als geplant. */
-  [[1, f.bild], [2, f.bild2]].forEach(([nr, quelle]) => {
-    if (!quelle) return;
-    const holen = document.createElement("a");
-    holen.className = "knopf leise";
-    holen.href = quelle;
-    holen.download = `postkutsche-${f.netzwerk}-${f.id}-${nr}.jpg`;
-    holen.textContent = f.bild2 ? `Bild ${nr} speichern` : "Bild speichern";
-    knoepfe.append(holen);
-  });
+  /* »Bild speichern« stand hier bis zum 2026-08-31. Es lud über den Browser
+     herunter, und wohin, entschied der Browser - meist in die Downloads,
+     zwischen alles andere. Das Ablegen unter Dokumente kann dasselbe besser:
+     ein Ordner je Woche, den man gezielt leeren kann.
+
+     Zwei Knöpfe, die fast dasselbe tun, sind schlimmer als einer, der es
+     ganz tut - der Benutzer hat prompt den falschen erwischt und hielt das
+     Ablegen für kaputt. Deshalb ist der alte weg, nicht bloß umbenannt. */
 
   if (f.bild) {
     /* Der Weg, den der Benutzer eigentlich will: nicht in den Downloads
