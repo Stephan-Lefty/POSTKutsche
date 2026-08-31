@@ -50,6 +50,20 @@ def _befehl() -> str:
     return f"{sys.executable} -m postkutsche"
 
 
+def _suchpfad() -> str:
+    """Der Suchpfad, den der Dienst braucht - vor allem wegen `claude`.
+
+    Ein systemd-Benutzerdienst erbt **nicht** den Suchpfad der Anmeldesitzung,
+    sondern einen kargen Vorgabewert ohne `~/.local/bin`. Genau dort liegt
+    aber Claude Code, wenn man es mit npm installiert hat. Der Dienst läuft
+    dann monatelang klaglos - bis jemand einen Text nachbessern will und
+    »claude ist nicht im Suchpfad« liest, obwohl `which claude` im Terminal
+    einwandfrei antwortet. Am 2026-08-29 genau so passiert.
+    """
+    eigene = Path.home() / ".local" / "bin"
+    return f"{eigene}:/usr/local/bin:/usr/bin:/bin"
+
+
 def _wurzel() -> Path:
     """Das Verzeichnis, aus dem POSTKutsche läuft.
 
@@ -65,6 +79,7 @@ def _wurzel() -> Path:
 def einheiten(port: int = 8770) -> dict[str, str]:
     ruf = _befehl()
     wurzel = _wurzel()
+    pfad = _suchpfad()
     return {
         KALENDER: f"""[Unit]
 Description=POSTKutsche – Kalender
@@ -74,7 +89,8 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory={wurzel}
-Environment=PYTHONPATH={wurzel}
+Environment="PYTHONPATH={wurzel}"
+Environment="PATH={pfad}"
 ExecStart={ruf} kalender --port {port} --nicht-oeffnen
 Restart=on-failure
 RestartSec=10
@@ -94,7 +110,8 @@ Documentation=https://github.com/Stephan-Lefty/POSTKutsche
 [Service]
 Type=oneshot
 WorkingDirectory={wurzel}
-Environment=PYTHONPATH={wurzel}
+Environment="PYTHONPATH={wurzel}"
+Environment="PATH={pfad}"
 ExecStart={ruf} senden
 """,
         SENDEN_TIMER: """[Unit]
