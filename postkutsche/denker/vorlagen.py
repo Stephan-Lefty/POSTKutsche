@@ -104,17 +104,61 @@ def _netzwerkteil(kennung: str) -> str:
     return "\n".join(zeilen)
 
 
+def _wissensteil(wissen: list[dict[str, Any]]) -> list[str]:
+    """Was der Betreiber auf frühere Rückfragen geantwortet hat.
+
+    **Der eigentliche Sinn der Sammlung.** Ohne diesen Abschnitt fragt Claude
+    bei jedem Produkt derselben Art dasselbe, und der Betreiber beantwortet
+    wöchentlich, dass die Lieferzeit nicht in den Text gehört.
+
+    Der Ton ist derselbe wie bei der Nachbesserung: Das ist Auskunft vom
+    Betreiber, sie gilt, und sie wird nicht ausgeschmückt. Ohne diesen Satz
+    wird aus »T30-2 ist zweiflügelig« ein Absatz über die Vorzüge
+    zweiflügeliger Türen – erfunden aus einer Auskunft, die nur einen
+    Widerspruch klären sollte.
+    """
+    zeilen = [
+        "",
+        "## Was der Betreiber schon beantwortet hat",
+        "",
+        "Das steht hier, weil er es auf eine frühere Rückfrage geantwortet "
+        "hat. Es gilt, und du prüfst es nicht nach.",
+        "",
+        "**Übernimm es sinngemäß, wenn es zum Text passt, und schmücke es "
+        "nicht aus** - kein Wort mehr, als dort steht. Passt es nicht zu "
+        "diesem Produkt, lass es weg. Frag auf keinen Fall noch einmal "
+        "danach.",
+        "",
+    ]
+    for eintrag in wissen:
+        wofuer = ("für dieses Produkt" if eintrag.get("adresse")
+                  else "für das ganze Projekt")
+        frage = str(eintrag.get("frage") or "").strip()
+        # Die Frage kommt mit, wo es eine gibt: Eine Antwort ohne ihre Frage
+        # ist oft nicht zu deuten. »Ja, immer« sagt allein gar nichts.
+        if frage:
+            zeilen.append(f"- Auf »{frage}« ({wofuer}): {eintrag['antwort']}")
+        else:
+            zeilen.append(f"- ({wofuer}): {eintrag['antwort']}")
+    return zeilen
+
+
 def anweisung(
     inhalt: dict[str, Any],
     fuer: list[str],
     projekt: str = "",
     zusatz: str = "",
     frueher: dict[str, str] | None = None,
+    wissen: list[dict[str, Any]] | None = None,
 ) -> str:
     """Baut die vollständige Anweisung für einen Beitrag.
 
     `inhalt` ist, was eine Quelle geliefert hat: titel, text, adresse,
     bild_adresse, kategorien. `fuer` sind die Netzwerkkennungen.
+
+    `wissen` sind frühere Antworten des Betreibers auf Rückfragen - je
+    Eintrag »frage«, »antwort« und »adresse«. Wer sie mitgibt, bekommt
+    dieselbe Frage nicht zum vierten Mal gestellt.
     """
     if not fuer:
         raise ValueError("Ohne Netzwerk gibt es nichts zu schreiben.")
@@ -171,6 +215,9 @@ def anweisung(
         ]
         for netz, alt in frueher.items():
             teile += [f"### Damals für {netzwerke.netzwerk(netz).name}", "", alt, ""]
+
+    if wissen:
+        teile += _wissensteil(wissen)
 
     if zusatz:
         teile += ["", "## Zusätzlich für diesen Beitrag", "", zusatz]

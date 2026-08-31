@@ -567,6 +567,102 @@ class Handarbeit(Basis):
         self.assertFalse(self.ablage.fassungen(neu)[0]["von_hand"])
 
 
+class WissenAusRueckfragen(Basis):
+    """Nicht jede Antwort ist eine Regel - daran steht oder faellt es.
+
+    »Die Lieferzeit gehoert nicht in den Text« gilt fuer jeden Beitrag des
+    Projekts. »Welche Hoehen hat diese Tuer?« gilt fuer eine Adresse. Wer
+    beides gleich behandelt, fuettert Claude nach einem halben Jahr mit
+    dreissig Sonderfaellen und bekommt schlechtere Texte statt bessere.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.projekt = self.ablage.projekt_anlegen(
+            "shop", "Shop", "https://shop.example", "seitenkarte")
+
+    def test_allgemeines_gilt_ohne_adresse(self):
+        self.ablage.wissen_merken(self.projekt.id, "Lieferzeit nennen?", "Nein.")
+        gefunden = self.ablage.wissen(self.projekt.id)
+        self.assertEqual([z["antwort"] for z in gefunden], ["Nein."])
+
+    def test_produktwissen_kommt_nur_zu_seiner_adresse(self):
+        self.ablage.wissen_merken(self.projekt.id, "Welche Höhen?", "2000 und 2125.",
+                                  adresse="https://shop.example/tuer_1.html")
+        self.assertEqual(self.ablage.wissen(self.projekt.id), [])
+        self.assertEqual(
+            len(self.ablage.wissen(self.projekt.id,
+                                   "https://shop.example/tuer_1.html")), 1)
+
+    def test_fremdes_produktwissen_bleibt_draussen(self):
+        self.ablage.wissen_merken(self.projekt.id, "F", "A",
+                                  adresse="https://shop.example/tuer_1.html")
+        self.assertEqual(
+            self.ablage.wissen(self.projekt.id, "https://shop.example/tuer_2.html"),
+            [])
+
+    def test_allgemeines_kommt_auch_mit_adresse_mit(self):
+        self.ablage.wissen_merken(self.projekt.id, "Lieferzeit?", "Nein.")
+        self.ablage.wissen_merken(self.projekt.id, "Höhen?", "2000.",
+                                  adresse="https://shop.example/tuer_1.html")
+        gefunden = self.ablage.wissen(self.projekt.id,
+                                      "https://shop.example/tuer_1.html")
+        self.assertEqual(len(gefunden), 2)
+        # Das Allgemeine zuerst: Es gilt immer, das Produktwissen nur heute.
+        self.assertEqual(gefunden[0]["adresse"], "")
+
+    def test_dasselbe_zweimal_steht_nur_einmal(self):
+        erste = self.ablage.wissen_merken(self.projekt.id, "Lieferzeit?", "Nein.")
+        zweite = self.ablage.wissen_merken(self.projekt.id, "Anders gefragt?", "Nein.")
+        self.assertIsNotNone(erste)
+        self.assertIsNone(zweite)
+        self.assertEqual(len(self.ablage.wissen(self.projekt.id)), 1)
+
+    def test_leerzeichen_machen_keine_neue_antwort(self):
+        # Sonst gilt derselbe Satz mit einem Zeilenumbruch mehr als etwas
+        # Neues, und die Anweisung enthaelt ihn zweimal.
+        self.ablage.wissen_merken(self.projekt.id, "F", "Nein, nie.")
+        self.assertIsNone(
+            self.ablage.wissen_merken(self.projekt.id, "F", "Nein,\n  nie."))
+
+    def test_ohne_antwort_gibt_es_nichts_zu_merken(self):
+        with self.assertRaises(ValueError):
+            self.ablage.wissen_merken(self.projekt.id, "F", "   ")
+
+    def test_neuestes_zuerst_und_gedeckelt(self):
+        # Wer eine frueher gegebene Auskunft berichtigt, will die Berichtigung
+        # gelesen sehen und nicht das, was sie ersetzt.
+        for n in range(20):
+            self.ablage.wissen_merken(self.projekt.id, f"Frage {n}", f"Antwort {n}")
+        gefunden = self.ablage.wissen(self.projekt.id)
+        self.assertEqual(len(gefunden), Ablage.WISSENSGRENZE)
+        self.assertEqual(gefunden[0]["antwort"], "Antwort 19")
+
+    def test_alles_ist_ungedeckelt(self):
+        # Aufraeumen kann nur, wer alles sieht.
+        for n in range(20):
+            self.ablage.wissen_merken(self.projekt.id, f"F {n}", f"A {n}")
+        self.assertEqual(len(self.ablage.wissen_alles(self.projekt.id)), 20)
+
+    def test_streichen(self):
+        nummer = self.ablage.wissen_merken(self.projekt.id, "F", "A")
+        self.assertTrue(self.ablage.wissen_streichen(nummer))
+        self.assertEqual(self.ablage.wissen(self.projekt.id), [])
+        self.assertFalse(self.ablage.wissen_streichen(nummer))
+
+    def test_wissen_gehoert_zum_projekt(self):
+        zweites = self.ablage.projekt_anlegen(
+            "b", "B", "https://b.example", "wordpress")
+        self.ablage.wissen_merken(self.projekt.id, "F", "A")
+        self.assertEqual(self.ablage.wissen(zweites.id), [])
+
+    def test_geloeschtes_projekt_nimmt_sein_wissen_mit(self):
+        self.ablage.wissen_merken(self.projekt.id, "F", "A")
+        self.ablage.projekt_loeschen("shop")
+        self.assertEqual(
+            self.ablage.db.execute("SELECT COUNT(*) FROM wissen").fetchone()[0], 0)
+
+
 class Konten(Basis):
     def test_anlegen_und_zuordnen(self):
         projekt = self.ablage.projekt_anlegen("a", "A", "https://a.example", "wordpress")

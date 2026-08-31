@@ -41,15 +41,19 @@ def schreiben(
     zusatz: str = "",
     weg: str = KOMMANDO,
     frueher: dict[str, str] | None = None,
+    wissen: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Lässt die Fassungen schreiben – über den gewählten Weg.
 
     `frueher` sind die Texte, mit denen dasselbe Produkt schon einmal beworben
     wurde. Sie werden mitgegeben, damit der neue Beitrag anders klingt.
+
+    `wissen` sind frühere Antworten des Betreibers auf Rückfragen. Sie
+    ersparen ihm, dieselbe Frage jede Woche neu zu beantworten.
     """
     if weg == KOMMANDO:
         return kommando.fassungen(inhalt, fuer, projekt, zusatz,
-                                  frueher=frueher)
+                                  frueher=frueher, wissen=wissen)
     if weg == API:
         raise NotImplementedError(
             "Der Weg über die Anthropic-Schnittstelle ist noch nicht gebaut. "

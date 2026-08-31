@@ -138,6 +138,31 @@ CREATE TABLE IF NOT EXISTS projekt_konten (
     PRIMARY KEY (projekt_id, konto_id)
 );
 
+-- Was der Betreiber auf eine Rückfrage geantwortet hat. Ohne diese Tabelle
+-- endet jede Antwort beim einzelnen Beitrag, und beim nächsten Produkt
+-- derselben Art wird dasselbe wieder gefragt.
+--
+-- `adresse` unterscheidet die beiden Arten von Wissen. Leer heißt: gilt für
+-- das ganze Projekt und geht bei jedem Entwurf mit. Steht eine Adresse drin,
+-- gilt es nur für dieses eine Produkt. Der Unterschied ist der Kern der
+-- Sache: »Die Lieferzeit gehört nicht in den Text« ist eine Grundsatzent-
+-- scheidung, »diese Tür gibt es in 2000 und 2125 mm« ist eine Produktangabe.
+-- Wer beides gleich behandelt, füttert Claude nach einem halben Jahr mit
+-- dreißig Sonderfällen und bekommt schlechtere Texte statt bessere.
+--
+-- Leerer Text statt NULL, weil SQLite NULL-Werte in einem UNIQUE als
+-- verschieden ansieht - mit NULL liesse sich dieselbe allgemeine Antwort
+-- beliebig oft eintragen.
+CREATE TABLE IF NOT EXISTS wissen (
+    id         INTEGER PRIMARY KEY,
+    projekt_id INTEGER NOT NULL REFERENCES projekte(id) ON DELETE CASCADE,
+    adresse    TEXT    NOT NULL DEFAULT '',
+    frage      TEXT    NOT NULL DEFAULT '',
+    antwort    TEXT    NOT NULL,
+    angelegt   TEXT    NOT NULL,
+    UNIQUE (projekt_id, adresse, antwort)
+);
+
 CREATE TABLE IF NOT EXISTS schema_stand (
     fassung INTEGER NOT NULL
 );
@@ -911,6 +936,82 @@ class Ablage:
                     zuletzt[ordner] = wann
                 ordner = ordner.rsplit("/", 1)[0]
         return zuletzt
+
+    # -- Wissen aus Rückfragen ---------------------------------------------
+
+    #: Wie viele Einträge höchstens in eine Anweisung gehen. Vierzig
+    #: Sonderfälle machen keinen besseren Text, sondern einen, in dem der
+    #: eigentliche Auftrag untergeht - und jeder Eintrag kostet bei jedem
+    #: Entwurf aufs Neue. Zwölf sind genug für die Regeln, die wirklich
+    #: allgemein gelten.
+    WISSENSGRENZE = 12
+
+    def wissen_merken(self, projekt_id: int, frage: str, antwort: str,
+                      adresse: str = "") -> int | None:
+        """Merkt sich eine Antwort. Gibt None, wenn sie schon dastand.
+
+        Doppeltes bleibt draußen: Wer zweimal dasselbe antwortet, soll es
+        nicht zweimal in der Anweisung wiederfinden. Verglichen wird die
+        Antwort, nicht die Frage - dieselbe Auskunft kann auf zwei
+        verschieden formulierte Fragen kommen.
+
+        Leerzeichen werden dabei vereinheitlicht, sonst gilt derselbe Satz
+        mit einem Zeilenumbruch mehr als etwas Neues.
+        """
+        antwort = " ".join(antwort.split())
+        if not antwort:
+            raise ValueError("Ohne Antwort gibt es nichts zu merken.")
+
+        zeiger = self.db.execute(
+            """INSERT INTO wissen (projekt_id, adresse, frage, antwort, angelegt)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT (projekt_id, adresse, antwort) DO NOTHING""",
+            (projekt_id, adresse or "", " ".join(frage.split()), antwort, _jetzt()),
+        )
+        self.db.commit()
+        # lastrowid zeigt bei DO NOTHING auf die vorige Zeile; rowcount ist
+        # das verlässliche Zeichen dafür, ob wirklich eingefügt wurde.
+        return int(zeiger.lastrowid) if zeiger.rowcount else None
+
+    def wissen(self, projekt_id: int, adresse: str | None = None,
+               grenze: int | None = None) -> list[sqlite3.Row]:
+        """Was zu diesem Projekt bekannt ist – allgemein und zur Adresse.
+
+        Ohne `adresse` kommt nur das Allgemeine. Mit Adresse kommt beides,
+        denn beim Wiederholen desselben Produkts zählt auch, was damals
+        eigens dazu gesagt wurde.
+
+        Das Allgemeine steht vorn: Es gilt immer, das Produktwissen nur
+        heute. Innerhalb beider das Neueste zuerst - wer eine frühere
+        Auskunft berichtigt hat, will die Berichtigung gelesen sehen und
+        nicht das, was sie ersetzt.
+        """
+        zeilen = self.db.execute(
+            """SELECT * FROM wissen
+               WHERE projekt_id = ? AND (adresse = '' OR adresse = ?)
+               ORDER BY adresse ASC, angelegt DESC, id DESC""",
+            (projekt_id, adresse or ""),
+        ).fetchall()
+        grenze = self.WISSENSGRENZE if grenze is None else grenze
+        return zeilen[:grenze] if grenze >= 0 else zeilen
+
+    def wissen_alles(self, projekt_id: int) -> list[sqlite3.Row]:
+        """Alles Gesammelte eines Projekts, für die Ansicht zum Aufräumen.
+
+        Ungedeckelt und ohne Adressfilter: Eine Sammlung, die nur wächst und
+        die niemand durchsehen kann, steht nach einem halben Jahr voller
+        Sätze, die nicht mehr stimmen.
+        """
+        return self.db.execute(
+            """SELECT * FROM wissen WHERE projekt_id = ?
+               ORDER BY adresse ASC, angelegt DESC, id DESC""",
+            (projekt_id,),
+        ).fetchall()
+
+    def wissen_streichen(self, wissen_id: int) -> bool:
+        zeiger = self.db.execute("DELETE FROM wissen WHERE id = ?", (wissen_id,))
+        self.db.commit()
+        return zeiger.rowcount > 0
 
     # -- Konten ------------------------------------------------------------
 

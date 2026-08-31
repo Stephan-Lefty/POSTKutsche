@@ -413,6 +413,42 @@ button { font: inherit; cursor: pointer; }
 .kategorienliste .anzahl { color: var(--text-leise); font-size: 11px; margin-left: auto; flex: none; }
 .kategorienliste .anzahl.gelaufen { color: var(--blau); }
 
+/* Der Schalter unter dem Antwortfeld: Gilt die Antwort allgemein oder nur
+   für dieses Produkt? Er ist bewusst nicht vorbelegt und muss deshalb
+   auffallen, sonst geht die Unterscheidung im Gedränge unter. */
+.merkschalter {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 8px 0 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+.merkschalter input { width: auto; margin: 2px 0 0; flex: none; }
+
+/* Was aus Rückfragen gelernt wurde, zum Durchsehen und Streichen. */
+.wissenzeile {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--linie);
+}
+.wissenzeile:last-child { border-bottom: none; }
+.wissentext { flex: 1; min-width: 0; font-size: 13px; }
+.wissentext p { margin: 0 0 4px; line-height: 1.45; overflow-wrap: anywhere; }
+/* Die Marke steht hier unter dem Text und nicht am rechten Rand: Sie gehört
+   zum Eintrag, nicht in eine eigene Spalte. */
+.wissentext .anzahl {
+  display: inline-block;
+  color: var(--text-leise);
+  font-size: 11px;
+}
+.wissentext .anzahl.gelaufen { color: var(--blau); }
+.spaltenzeile { margin: 4px 0 0; }
+
 #k-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 #k-netze label {
   display: flex; align-items: center; gap: 5px; margin: 0;

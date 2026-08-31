@@ -207,8 +207,11 @@ def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
     )
 
     zusatz = f"Diese Woche steht unter dem Thema: {thema}." if thema else ""
+    # Was der Betreiber auf frühere Rückfragen geantwortet hat, geht mit:
+    # allgemein Geltendes immer, Produktwissen nur zu dieser Adresse.
+    wissen = [dict(z) for z in ablage.wissen(projekt.id, str(seite["adresse"]))]
     fassungen = denker.schreiben(seite, netze, projekt.name, zusatz,
-                                 frueher=frueher)
+                                 frueher=frueher, wissen=wissen)
 
     bild = None
     if seite.get("bild_adresse"):

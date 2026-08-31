@@ -105,7 +105,12 @@ def entwerfen(
     for nummer, inhalt in neue[:anzahl]:
         melden(f"\n» {inhalt['titel'][:70]}")
         melden("  Claude schreibt …")
-        fassungen = denker.schreiben(inhalt, netzwerke, projekt.name)
+        # Was der Betreiber auf frühere Rückfragen geantwortet hat, geht mit.
+        # Sonst wird bei jedem Produkt derselben Art dasselbe neu gefragt.
+        wissen = [dict(z) for z in ablage.wissen(projekt.id,
+                                                 str(inhalt.get("adresse") or ""))]
+        fassungen = denker.schreiben(inhalt, netzwerke, projekt.name,
+                                     wissen=wissen)
 
         # Der Termin richtet sich nach dem ersten Netzwerk; die übrigen
         # Fassungen gehen zur selben Zeit raus. Ein Beitrag ist ein Kärtchen.

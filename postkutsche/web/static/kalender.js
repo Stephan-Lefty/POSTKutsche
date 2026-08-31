@@ -90,6 +90,12 @@ async function anfangen() {
     // Ein Fehler in der Wochenplanung darf den Kalender nicht mitreißen.
     melden(`Wochenplanung nicht verfügbar: ${fehler.message}`, true);
   }
+
+  try {
+    wissenVorbereiten();
+  } catch (fehler) {
+    melden(`Gelerntes nicht verfügbar: ${fehler.message}`, true);
+  }
 }
 
 // -- Wochenplanung ----------------------------------------------------------
@@ -317,6 +323,112 @@ function kategorienZeichnen() {
     }
     beschriftung.append(feld, document.createTextNode(k.name), anzahl);
     liste.append(beschriftung);
+  });
+}
+
+/** Das Fenster »Gelerntes«: ansehen, was aus Rückfragen gesammelt wurde.
+ *
+ * Ohne diese Ansicht wäre die Sammlung eine Einbahnstraße. Nach einem halben
+ * Jahr steht dort etwas, das nicht mehr stimmt – ein Lieferant hat
+ * gewechselt, eine Norm ist abgelöst –, und Claude schreibt es weiter in
+ * jeden Beitrag, ohne dass jemand die Stelle findet.
+ */
+function wissenVorbereiten() {
+  const kasten = $("#wissen");
+  const auswahl = $("#w-projekt");
+
+  $("#wissen-auf").onclick = () => {
+    auswahl.innerHTML = "";
+    stand.projekte.forEach((p) => {
+      const eintrag = document.createElement("option");
+      eintrag.value = p.kennung;
+      eintrag.textContent = p.name;
+      auswahl.append(eintrag);
+    });
+    kasten.hidden = false;
+    wissenLaden();
+  };
+  $("#w-zu").onclick = () => (kasten.hidden = true);
+  kasten.onclick = (e) => { if (e.target === kasten) kasten.hidden = true; };
+  auswahl.onchange = wissenLaden;
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !kasten.hidden) kasten.hidden = true;
+  });
+}
+
+async function wissenLaden() {
+  const liste = $("#w-liste");
+  liste.innerHTML = '<p class="schlagworte">Wird geholt …</p>';
+  let daten;
+  try {
+    daten = await hole(`/api/wissen?projekt=${$("#w-projekt").value}`);
+  } catch (fehler) {
+    /* Der Endpunkt ist neu. Statische Dateien wirken sofort, der Python-Teil
+       erst nach einem Neustart des Dienstes - bis dahin gibt es hier eine
+       Fehlermeldung statt einer Liste, und die sollte sagen, was zu tun ist. */
+    liste.innerHTML =
+      `<p class="schlagworte">${fehler.message}<br>Falls der Dienst noch` +
+      ` läuft, seit diese Ansicht dazugekommen ist: einmal neu starten.</p>`;
+    return;
+  }
+
+  liste.innerHTML = "";
+  if (!daten.eintraege.length) {
+    liste.innerHTML =
+      '<p class="schlagworte">Noch nichts gelernt. Sobald du eine Rückfrage' +
+      ' beantwortest, steht sie hier.</p>';
+    return;
+  }
+
+  daten.eintraege.forEach((e) => {
+    const zeile = document.createElement("div");
+    zeile.className = "wissenzeile";
+
+    const text = document.createElement("div");
+    text.className = "wissentext";
+    if (e.frage) {
+      const frage = document.createElement("p");
+      frage.className = "fragetext";
+      frage.textContent = e.frage;
+      text.append(frage);
+    }
+    const antwort = document.createElement("p");
+    antwort.textContent = e.antwort;
+    text.append(antwort);
+
+    const marke = document.createElement("span");
+    marke.className = "anzahl";
+    /* Nicht nur Farbe: Was allgemein gilt, steht auch als Wort da. Und wer
+       mehr gesammelt hat, als in eine Anweisung passt, soll sehen, welche
+       Einträge stillschweigend nicht mitgehen. */
+    marke.textContent = e.allgemein
+      ? (e.in_anweisung ? "gilt allgemein" : `über der Grenze von ${daten.grenze}`)
+      : "nur dieses Produkt";
+    if (e.allgemein && e.in_anweisung) marke.classList.add("gelaufen");
+    if (!e.allgemein && e.adresse) marke.title = e.adresse;
+    text.append(marke);
+
+    const weg = document.createElement("button");
+    weg.type = "button";
+    weg.className = "schlicht";
+    weg.textContent = "×";
+    weg.title = "Diesen Eintrag streichen";
+    weg.setAttribute("aria-label", `Streichen: ${e.antwort.slice(0, 60)}`);
+    weg.onclick = async () => {
+      weg.disabled = true;
+      try {
+        await hole("/api/wissen/streichen", { wissen: e.id });
+        zeile.remove();
+        melden("Gestrichen.");
+      } catch (fehler) {
+        melden(fehler.message, true);
+        weg.disabled = false;
+      }
+    };
+
+    zeile.append(text, weg);
+    liste.append(zeile);
   });
 }
 
@@ -1199,6 +1311,23 @@ function fassungsblock(beitragId, f, quelle) {
     feld.placeholder = "Antwort … (Strg+Enter zum Absenden)";
     kasten.append(feld);
 
+    /* Der Schalter, an dem die ganze Sammelei haengt. Nicht jede Antwort ist
+       eine Regel: »Welche Hoehen hat diese Tuer?« gilt fuer dieses eine
+       Produkt, »die Lieferzeit gehoert nicht in den Text« fuer alles. Wer
+       beides gleich behandelt, fuettert Claude nach einem halben Jahr mit
+       dreissig Sonderfaellen.
+
+       Nicht vorbelegt, und das mit Absicht: Der Benutzer weiss es besser als
+       jeder Automat, und die harmlosere Annahme ist die engere. Eine falsch
+       verallgemeinerte Regel steht bei jedem kuenftigen Entwurf im Weg. */
+    const merken = document.createElement("label");
+    merken.className = "merkschalter";
+    const haken = document.createElement("input");
+    haken.type = "checkbox";
+    merken.append(haken, document.createTextNode(
+      " Gilt allgemein für dieses Projekt (sonst nur für dieses Produkt)"));
+    kasten.append(merken);
+
     const knopf = document.createElement("button");
     knopf.type = "button";
     knopf.className = "knopf";
@@ -1209,10 +1338,18 @@ function fassungsblock(beitragId, f, quelle) {
       knopf.disabled = true;
       knopf.textContent = "Claude bessert nach …";
       try {
-        const neu = await hole("/api/antwort", { fassung: f.id, antwort });
+        const neu = await hole("/api/antwort",
+          { fassung: f.id, antwort, allgemein: haken.checked });
+        /* »gemerkt« fehlt, solange der Dienst noch der alte ist - statische
+           Dateien wirken sofort, der Python-Teil erst nach einem Neustart.
+           Dann wird eben nichts ueber das Merken gesagt. */
+        const dazu = neu.gemerkt
+          ? (neu.allgemein ? " Gemerkt: gilt ab jetzt für das ganze Projekt."
+                           : " Gemerkt: gilt für dieses Produkt.")
+          : "";
         melden(neu.rueckfrage
-          ? "Nachgebessert – aber es ist noch eine Frage offen."
-          : "Nachgebessert.", Boolean(neu.rueckfrage));
+          ? "Nachgebessert – aber es ist noch eine Frage offen." + dazu
+          : "Nachgebessert." + dazu, Boolean(neu.rueckfrage));
         blattOeffnen(beitragId);
         monatLaden();
       } catch (fehler) {

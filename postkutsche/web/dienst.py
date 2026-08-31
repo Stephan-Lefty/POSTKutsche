@@ -271,6 +271,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._json(Behandler.lauf)
             if pfad == "/api/kategorien":
                 return self._kategorien(frage)
+            if pfad == "/api/wissen":
+                return self._wissen(frage)
             if pfad.startswith("/bild/"):
                 return self._bild(int(pfad.rsplit("/", 1)[-1]))
         except ValueError as fehler:
@@ -305,6 +307,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._projektfarbe(rumpf)
             if pfad == "/api/antwort":
                 return self._antwort(rumpf)
+            if pfad == "/api/wissen/streichen":
+                return self._wissen_streichen(rumpf)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
         except (ValueError, KeyError) as fehler:
@@ -552,10 +556,16 @@ class Behandler(BaseHTTPRequestHandler):
         antwort = str(rumpf.get("antwort", "")).strip()
         if not antwort:
             raise ValueError("Ohne Antwort lässt sich nichts nachbessern.")
+        # Der Schalter aus der Oberfläche. Fehlt er - etwa weil eine ältere
+        # Seite im Browser steht -, gilt die Antwort nur für dieses Produkt.
+        # Das ist die harmlosere Annahme: Produktwissen geht niemanden sonst
+        # etwas an, eine falsch verallgemeinerte Regel dagegen steht bei
+        # jedem künftigen Entwurf im Weg.
+        allgemein = bool(rumpf.get("allgemein"))
 
         with self._ablage() as a:
             zeile = a.db.execute(
-                """SELECT f.*, b.inhalt_id FROM fassungen f
+                """SELECT f.*, b.inhalt_id, b.projekt_id FROM fassungen f
                    JOIN beitraege b ON b.id = f.beitrag_id
                    WHERE f.id = ?""", (fassung_id,)
             ).fetchone()
@@ -599,13 +609,78 @@ class Behandler(BaseHTTPRequestHandler):
             a.db.commit()
             a._beitrag_nachfuehren(int(zeile["beitrag_id"]))
 
+            # Und dasselbe noch einmal, damit es beim nächsten Mal nicht
+            # wieder gefragt wird. Der Vermerk oben gehört zum Beitrag und
+            # erklärt ihn; hier geht es um das Projekt.
+            adresse = "" if allgemein else str(quelle["adresse"] or "")
+            # Ein Beitrag ohne Inhalt hat keine Adresse. Die Antwort dann als
+            # allgemein zu verbuchen wäre eine Unterstellung - lieber gar
+            # nicht merken als etwas zur Regel machen, was keine sein sollte.
+            gemerkt = (a.wissen_merken(int(zeile["projekt_id"]),
+                                       str(zeile["rueckfrage"]), antwort,
+                                       adresse=adresse)
+                       if allgemein or adresse else None)
+
         self._json({
             "fassung": fassung_id,
             "text": neu["text"],
             "schlagworte": neu["schlagworte"],
             # Claude darf erneut fragen - lieber zweimal fragen als einmal raten.
             "rueckfrage": neu["rueckfrage"],
+            "gemerkt": bool(gemerkt),
+            "allgemein": allgemein,
         })
+
+    def _wissen(self, frage: dict[str, list[str]]) -> None:
+        """Was ein Projekt aus Rückfragen gelernt hat – zum Durchsehen.
+
+        **Eine Sammlung, die nur wächst, wird zur Last.** Nach einem halben
+        Jahr steht dort etwas, das nicht mehr stimmt – ein Lieferant hat
+        gewechselt, eine Norm ist abgelöst –, und wenn niemand es findet,
+        schreibt Claude es weiter in jeden Beitrag. Deshalb ist diese Liste
+        genauso wichtig wie das Sammeln selbst.
+
+        Zurück kommt alles, nicht nur die zwölf, die in eine Anweisung gehen:
+        Aufräumen kann nur, wer alles sieht.
+        """
+        kennung = frage.get("projekt", [""])[0]
+        with self._ablage() as a:
+            projekt = a.projekt(kennung)
+            if projekt is None:
+                return self._fehler(f"Kein Projekt »{kennung}«.", 404)
+            zeilen = a.wissen_alles(projekt.id)
+            # Welche Einträge wirklich in jede Anweisung gehen: die
+            # allgemeinen, und davon nur so viele, wie die Grenze zulässt.
+            # Wer zwanzig gesammelt hat, soll sehen, dass acht davon
+            # stillschweigend nicht mitgehen.
+            in_anweisung = {int(z["id"]) for z in a.wissen(projekt.id)}
+
+        self._json({
+            "projekt": projekt.kennung,
+            "grenze": ablage_modul.Ablage.WISSENSGRENZE,
+            "eintraege": [
+                {
+                    "id": int(z["id"]),
+                    "frage": z["frage"],
+                    "antwort": z["antwort"],
+                    "adresse": z["adresse"],
+                    # Ohne Adresse gilt es für das ganze Projekt und geht bei
+                    # jedem Entwurf mit. Das ist der Unterschied, der zählt.
+                    "allgemein": not z["adresse"],
+                    "angelegt": z["angelegt"],
+                    "angelegt_ort": zeiten.nach_ortszeit(z["angelegt"]).isoformat(),
+                    "in_anweisung": int(z["id"]) in in_anweisung,
+                }
+                for z in zeilen
+            ],
+        })
+
+    def _wissen_streichen(self, rumpf: dict[str, Any]) -> None:
+        nummer = int(rumpf["wissen"])
+        with self._ablage() as a:
+            if not a.wissen_streichen(nummer):
+                return self._fehler("Diesen Eintrag gibt es nicht.", 404)
+        self._json({"gestrichen": nummer})
 
     def _projektfarbe(self, rumpf: dict[str, Any]) -> None:
         """Ändert die Farbe eines Projekts.

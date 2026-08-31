@@ -32,6 +32,11 @@
     <h2>Netzwerke</h2>
     <ul id="netzwerke" class="marken"></ul>
 
+    <h2>Gelerntes</h2>
+    <p class="spaltenzeile">
+      <button id="wissen-auf" class="schlicht">Antworten ansehen</button>
+    </p>
+
     <h2>Zeichen</h2>
     <dl class="legende">
       <dt aria-hidden="true">✎</dt><dd>Entwurf</dd>
@@ -123,6 +128,28 @@
     <p id="k-stand" class="schlagworte"></p>
     <div id="k-bericht" class="bericht" hidden></div>
   </form>
+</div>
+
+<div id="wissen" class="ueberlagerung" hidden>
+  <div class="kasten">
+    <h2>Was aus Rückfragen gelernt wurde</h2>
+    <p class="schlagworte">Antworten auf Rückfragen gehen in jeden weiteren
+      Entwurf mit ein – damit dieselbe Frage nicht jede Woche wiederkommt.
+      Was hier nicht mehr stimmt, streichst du besser, bevor Claude es
+      weiterschreibt.</p>
+
+    <label>Projekt
+      <select id="w-projekt"></select>
+    </label>
+
+    <div id="w-liste" class="kategorienliste">
+      <p class="schlagworte">Projekt wählen …</p>
+    </div>
+
+    <div class="knoepfe">
+      <button type="button" class="knopf leise" id="w-zu">Schließen</button>
+    </div>
+  </div>
 </div>
 
 <p id="meldung" class="meldung" hidden role="status"></p>

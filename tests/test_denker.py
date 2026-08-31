@@ -134,6 +134,48 @@ class Wiederholung(unittest.TestCase):
         self.assertIn("alt-ma", a)
 
 
+class WissenInDerAnweisung(unittest.TestCase):
+    """Antworten auf frühere Rueckfragen gehen mit, sonst kommt die Frage wieder.
+
+    Der Benutzer beantwortet sonst woechentlich dasselbe: dass die Lieferzeit
+    nicht in den Text gehoert, dass T30-2 zweifluegelig heisst.
+    """
+
+    ALLGEMEIN = {"frage": "Soll die Lieferzeit in den Text?",
+                 "antwort": "Nein, nie.", "adresse": ""}
+    ZUM_PRODUKT = {"frage": "Welche Höhen?", "antwort": "2000 und 2125 mm.",
+                   "adresse": "https://blog.example/tuer/"}
+
+    def test_frage_und_antwort_stehen_drin(self):
+        a = vorlagen.anweisung(INHALT, ["mastodon"], wissen=[self.ALLGEMEIN])
+        self.assertIn("Soll die Lieferzeit in den Text?", a)
+        self.assertIn("Nein, nie.", a)
+
+    def test_es_steht_dabei_wofuer_es_gilt(self):
+        a = vorlagen.anweisung(INHALT, ["mastodon"],
+                               wissen=[self.ALLGEMEIN, self.ZUM_PRODUKT])
+        self.assertIn("für das ganze Projekt", a)
+        self.assertIn("für dieses Produkt", a)
+
+    def test_ausschmuecken_ist_verboten(self):
+        # Sonst wird aus »T30-2 ist zweifluegelig« ein Absatz ueber die
+        # Vorzuege zweifluegeliger Tueren - erfunden aus einer Auskunft, die
+        # nur einen Widerspruch klaeren sollte.
+        a = vorlagen.anweisung(INHALT, ["mastodon"], wissen=[self.ALLGEMEIN])
+        self.assertIn("nicht aus", a)
+        self.assertIn("Frag auf keinen Fall noch einmal danach", a)
+
+    def test_ohne_wissen_steht_nichts_davon_drin(self):
+        a = vorlagen.anweisung(INHALT, ["mastodon"])
+        self.assertNotIn("schon beantwortet", a)
+
+    def test_eine_antwort_ohne_frage_geht_auch(self):
+        a = vorlagen.anweisung(INHALT, ["mastodon"],
+                               wissen=[{"frage": "", "antwort": "Gilt immer.",
+                                        "adresse": ""}])
+        self.assertIn("Gilt immer.", a)
+
+
 class AntwortLesen(unittest.TestCase):
     def test_saubere_antwort(self):
         roh = _antwort(mastodon=_fassung("Kurz und gut.", ["technik"]))

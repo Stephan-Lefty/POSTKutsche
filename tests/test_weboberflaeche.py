@@ -218,3 +218,117 @@ class Zwischenspeicher(OhneSpeicher):
     def test_je_projekt_eine_eigene_datei(self):
         self.assertNotEqual(dienst._bestandsdatei("habefa"),
                             dienst._bestandsdatei("naturlust"))
+
+
+class WissenImDienst(unittest.TestCase):
+    """Antworten enden nicht mehr beim einzelnen Beitrag.
+
+    Vorher wurde die Antwort am Beitrag vermerkt, und das war alles - beim
+    naechsten Produkt derselben Art kam dieselbe Frage wieder.
+    """
+
+    def setUp(self):
+        ordner = tempfile.TemporaryDirectory()
+        self.addCleanup(ordner.cleanup)
+
+        # Der Behandler baut sich seine Ablage je Anfrage neu. Eine Datei
+        # muss es deshalb sein - mit ":memory:" bekaeme jeder Aufruf eine
+        # frische, leere Datenbank.
+        pfad = Path(ordner.name) / "p.db"
+        vorher = dienst.Behandler.ablage_pfad
+        dienst.Behandler.ablage_pfad = pfad
+        self.addCleanup(setattr, dienst.Behandler, "ablage_pfad", vorher)
+
+        self.gesendet = []
+        for name, was in (("_json", lambda _s, d, code=200: self.gesendet.append(d)),
+                          ("_fehler", lambda _s, t, code=400:
+                           self.gesendet.append({"fehler": t, "code": code}))):
+            flicken = mock.patch.object(dienst.Behandler, name, was)
+            flicken.start()
+            self.addCleanup(flicken.stop)
+
+        self.behandler = object.__new__(dienst.Behandler)
+
+        from postkutsche.ablage import Ablage
+        self.Ablage = Ablage
+        with Ablage(pfad) as a:
+            projekt = a.projekt_anlegen("shop", "Shop", "https://shop.example",
+                                        "seitenkarte")
+            self.projekt_id = projekt.id
+            nummer, _ = a.inhalt_merken(projekt.id, "t1", "Eine Tür",
+                                        "https://shop.example/tuer_1.html")
+            beitrag = a.beitrag_anlegen(projekt.id, "2026-09-01T08:00:00Z",
+                                        inhalt_id=nummer)
+            a.fassung_setzen(beitrag, "mastodon", "Ein Text.", "",
+                             rueckfrage="Soll die Lieferzeit in den Text?")
+            self.fassung_id = int(a.fassungen(beitrag)[0]["id"])
+        self.pfad = pfad
+
+    def _antworten(self, antwort="Nein, nie.", allgemein=False):
+        nachgebessert = {"text": "Besser.", "schlagworte": "", "rueckfrage": None}
+        with mock.patch("postkutsche.denker.nachbessern",
+                        return_value=nachgebessert):
+            self.behandler._antwort({"fassung": self.fassung_id,
+                                     "antwort": antwort,
+                                     "allgemein": allgemein})
+        return self.gesendet[-1]
+
+    def _gesammelt(self):
+        with self.Ablage(self.pfad) as a:
+            return a.wissen_alles(self.projekt_id)
+
+    def test_die_antwort_wird_gemerkt(self):
+        ergebnis = self._antworten()
+        self.assertTrue(ergebnis["gemerkt"])
+        gesammelt = self._gesammelt()
+        self.assertEqual(len(gesammelt), 1)
+        self.assertEqual(gesammelt[0]["antwort"], "Nein, nie.")
+        self.assertEqual(gesammelt[0]["frage"], "Soll die Lieferzeit in den Text?")
+
+    def test_ohne_schalter_gilt_es_nur_fuer_das_produkt(self):
+        # Die harmlosere Annahme: Eine falsch verallgemeinerte Regel steht bei
+        # jedem kuenftigen Entwurf im Weg.
+        self._antworten(allgemein=False)
+        self.assertEqual(self._gesammelt()[0]["adresse"],
+                         "https://shop.example/tuer_1.html")
+
+    def test_mit_schalter_gilt_es_fuer_das_projekt(self):
+        self._antworten(allgemein=True)
+        self.assertEqual(self._gesammelt()[0]["adresse"], "")
+
+    def test_der_vermerk_am_beitrag_bleibt(self):
+        # Er erklaert den einzelnen Beitrag; die Sammlung erklaert das Projekt.
+        # Das eine ersetzt das andere nicht.
+        self._antworten()
+        with self.Ablage(self.pfad) as a:
+            notiz = a.db.execute("SELECT notiz FROM beitraege").fetchone()[0]
+        self.assertIn("Nein, nie.", notiz)
+
+    def test_die_liste_zeigt_was_in_die_anweisung_geht(self):
+        self._antworten(allgemein=True)
+        self.behandler._wissen({"projekt": ["shop"]})
+        daten = self.gesendet[-1]
+        self.assertEqual(len(daten["eintraege"]), 1)
+        self.assertTrue(daten["eintraege"][0]["allgemein"])
+        self.assertTrue(daten["eintraege"][0]["in_anweisung"])
+
+    def test_produktwissen_geht_nicht_in_jede_anweisung(self):
+        self._antworten(allgemein=False)
+        self.behandler._wissen({"projekt": ["shop"]})
+        eintrag = self.gesendet[-1]["eintraege"][0]
+        self.assertFalse(eintrag["allgemein"])
+        self.assertFalse(eintrag["in_anweisung"])
+
+    def test_streichen_geht(self):
+        self._antworten(allgemein=True)
+        nummer = int(self._gesammelt()[0]["id"])
+        self.behandler._wissen_streichen({"wissen": nummer})
+        self.assertEqual(self._gesammelt(), [])
+
+    def test_streichen_eines_unbekannten_meldet_sich(self):
+        self.behandler._wissen_streichen({"wissen": 9999})
+        self.assertEqual(self.gesendet[-1]["code"], 404)
+
+    def test_unbekanntes_projekt_meldet_sich(self):
+        self.behandler._wissen({"projekt": ["gibtsnicht"]})
+        self.assertEqual(self.gesendet[-1]["code"], 404)
