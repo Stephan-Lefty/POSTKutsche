@@ -274,7 +274,8 @@ class Behandler(BaseHTTPRequestHandler):
             if pfad == "/api/wissen":
                 return self._wissen(frage)
             if pfad.startswith("/bild/"):
-                return self._bild(int(pfad.rsplit("/", 1)[-1]))
+                return self._bild(int(pfad.rsplit("/", 1)[-1]),
+                                  int(frage.get("nr", ["1"])[0]))
         except ValueError as fehler:
             return self._fehler(str(fehler))
         except Exception as fehler:  # noqa: BLE001
@@ -303,6 +304,12 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._entfernen(rumpf)
             if pfad == "/api/bild":
                 return self._bild_setzen(rumpf)
+            if pfad == "/api/bild/weg":
+                return self._bild_weg(rumpf)
+            if pfad == "/api/ablegen":
+                return self._ablegen(rumpf)
+            if pfad == "/api/ordner":
+                return self._ordner_zeigen(rumpf)
             if pfad == "/api/projektfarbe":
                 return self._projektfarbe(rumpf)
             if pfad == "/api/antwort":
@@ -436,6 +443,12 @@ class Behandler(BaseHTTPRequestHandler):
                         "schlagworte": f["schlagworte"],
                         "bild_pfad": f["bild_pfad"],
                         "bild": f"/bild/{int(f['id'])}" if f["bild_pfad"] else None,
+                        # Das zweite Bild als eigene Felder und nicht als
+                        # Liste: Eine ältere Oberfläche liest »bild« weiter
+                        # und zeigt eben nur das erste, statt zu scheitern.
+                        "bild_pfad2": f["bild_pfad2"],
+                        "bild2": (f"/bild/{int(f['id'])}?nr=2"
+                                  if f["bild_pfad2"] else None),
                         "versandart": f["versandart"],
                         "zustand": f["zustand"],
                         "rueckfrage": f["rueckfrage"],
@@ -490,7 +503,7 @@ class Behandler(BaseHTTPRequestHandler):
         # Einträge.
         self._json({"kategorien": kategorien, "hinweis": hinweis})
 
-    def _bild(self, fassung_id: int) -> None:
+    def _bild(self, fassung_id: int, nummer: int = 1) -> None:
         """Liefert das Bild einer Fassung aus.
 
         Nur Dateien aus dem Bilderordner: Der Pfad kommt zwar aus unserer
@@ -501,13 +514,19 @@ class Behandler(BaseHTTPRequestHandler):
 
         with self._ablage() as a:
             zeile = a.db.execute(
-                "SELECT bild_pfad FROM fassungen WHERE id = ?", (fassung_id,)
+                "SELECT bild_pfad, bild_pfad2 FROM fassungen WHERE id = ?",
+                (fassung_id,)
             ).fetchone()
 
-        if zeile is None or not zeile["bild_pfad"]:
+        # »?nr=2« holt das zweite Bild. Als Frage und nicht als eigener Pfad,
+        # damit eine ältere Oberfläche ohne diesen Zusatz weiter das erste
+        # bekommt - statische Dateien wirken beim Benutzer sofort, der
+        # Dienst erst nach seinem Neustart.
+        spalte = "bild_pfad2" if nummer == 2 else "bild_pfad"
+        if zeile is None or not zeile[spalte]:
             return self._fehler("Zu dieser Fassung gibt es kein Bild.", 404)
 
-        datei = Path(zeile["bild_pfad"]).resolve()
+        datei = Path(zeile[spalte]).resolve()
         erlaubt = bilder.ordner().resolve()
         if not str(datei).startswith(str(erlaubt)) or not datei.is_file():
             return self._fehler("Das Bild liegt nicht mehr da.", 404)
@@ -788,22 +807,110 @@ class Behandler(BaseHTTPRequestHandler):
             raise ValueError("Das Bild ist zu groß.")
 
         fassung = int(rumpf["fassung"])
-        ziel = bilder.ordner() / f"eigenes-{fassung}.{treffer.group(1)}"
+        # Ohne Angabe das erste Bild: Eine ältere Oberfläche kennt die Nummer
+        # nicht und meint immer das erste.
+        nummer = 2 if int(rumpf.get("nummer") or 1) == 2 else 1
+        marke = "" if nummer == 1 else "-2"
+
+        ziel = bilder.ordner() / f"eigenes-{fassung}{marke}.{treffer.group(1)}"
         ziel.write_bytes(inhalt)
 
-        # Zuschneiden, wenn Pillow da ist - sonst bleibt es, wie es kam.
+        # Zuschneiden, wenn Pillow da ist - sonst bleibt es, wie es kam. Der
+        # Zuschnitt gilt für beide Bilder; ein Beitrag mit einem 4:5- und
+        # einem Querformatbild sieht im Karussell schief aus.
         pfad = ziel
         if bilder.pillow_da():
             try:
-                pfad = bilder._zuschneiden(ziel, bilder.ordner() / f"eigenes-{fassung}-4x5.jpg")
+                pfad = bilder._zuschneiden(
+                    ziel, bilder.ordner() / f"eigenes-{fassung}{marke}-4x5.jpg")
             except Exception:  # noqa: BLE001
                 pass
 
+        spalte = "bild_pfad2" if nummer == 2 else "bild_pfad"
         with self._ablage() as a:
-            a.db.execute("UPDATE fassungen SET bild_pfad = ? WHERE id = ?",
+            a.db.execute(f"UPDATE fassungen SET {spalte} = ? WHERE id = ?",
                          (str(pfad), fassung))
             a.db.commit()
-        self._json({"fassung": fassung, "bild": f"/bild/{fassung}"})
+        self._json({"fassung": fassung, "nummer": nummer,
+                    "bild": f"/bild/{fassung}?nr={nummer}"})
+
+    def _bild_weg(self, rumpf: dict[str, Any]) -> None:
+        """Nimmt ein Bild von der Fassung.
+
+        Betrifft nur den Eintrag, nicht die Datei: Dieselbe Datei kann an
+        einem anderen Beitrag hängen, und der Bilderordner wird ohnehin
+        aufgeräumt, nicht einzeln geleert.
+        """
+        fassung = int(rumpf["fassung"])
+        nummer = 2 if int(rumpf.get("nummer") or 1) == 2 else 1
+        spalte = "bild_pfad2" if nummer == 2 else "bild_pfad"
+        with self._ablage() as a:
+            a.db.execute(f"UPDATE fassungen SET {spalte} = NULL WHERE id = ?",
+                         (fassung,))
+            a.db.commit()
+        self._json({"fassung": fassung, "nummer": nummer})
+
+    def _ablegen(self, rumpf: dict[str, Any]) -> None:
+        """Legt die Bilder einer Fassung unter »Dokumente« ab.
+
+        **Warum der Dienst das tut und nicht der Browser.** Wohin ein
+        Download geht, entscheidet der Browser – meist »Downloads«, und eine
+        Webseite kann daran nichts ändern; ein `download`-Attribut setzt nur
+        den Dateinamen. Der Dienst läuft aber auf demselben Rechner und kann
+        die Datei hinlegen, wo sie hingehört. Der Knopf zum Herunterladen
+        bleibt daneben stehen: Er ist der Weg, das Bild in Facebook zu
+        bekommen.
+        """
+        from .. import bilder
+
+        fassung_id = int(rumpf["fassung"])
+        with self._ablage() as a:
+            zeile = a.db.execute(
+                """SELECT f.bild_pfad, f.bild_pfad2, f.netzwerk, b.geplant,
+                          p.kennung AS projekt, i.titel
+                   FROM fassungen f
+                   JOIN beitraege b ON b.id = f.beitrag_id
+                   JOIN projekte p ON p.id = b.projekt_id
+                   LEFT JOIN inhalte i ON i.id = b.inhalt_id
+                   WHERE f.id = ?""", (fassung_id,)
+            ).fetchone()
+
+        if zeile is None:
+            return self._fehler("Diese Fassung gibt es nicht.", 404)
+
+        titel = zeile["titel"] or zeile["projekt"]
+        gelegt: list[str] = []
+        for nummer, spalte in ((1, "bild_pfad"), (2, "bild_pfad2")):
+            if not zeile[spalte]:
+                continue
+            try:
+                gelegt.append(str(bilder.ablegen(
+                    zeile[spalte], zeile["projekt"], zeile["geplant"],
+                    zeile["netzwerk"], titel, fassung_id, nummer)))
+            except bilder.BildFehler as fehler:
+                return self._fehler(str(fehler))
+
+        if not gelegt:
+            return self._fehler("Zu dieser Fassung gibt es kein Bild.", 404)
+
+        self._json({
+            "fassung": fassung_id,
+            "dateien": gelegt,
+            "ordner": str(Path(gelegt[0]).parent),
+        })
+
+    def _ordner_zeigen(self, rumpf: dict[str, Any]) -> None:
+        """Öffnet den Ablageordner in der Dateiverwaltung.
+
+        Ohne Parameter, und das ist der Punkt: Der Pfad kommt aus dem
+        Programm. Ein Dienst, der einen Pfad aus der Anfrage öffnet, öffnet
+        irgendwann etwas anderes.
+        """
+        from .. import bilder
+
+        ziel = bilder.dokumentenordner() / bilder.SAMMELORDNER
+        ziel.mkdir(parents=True, exist_ok=True)
+        self._json({"ordner": str(ziel), "geoeffnet": bilder.ordner_zeigen(ziel)})
 
     def _entfernen(self, rumpf: dict[str, Any]) -> None:
         """Löscht einen Beitrag, der noch nicht erschienen ist.

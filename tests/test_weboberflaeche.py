@@ -332,3 +332,108 @@ class WissenImDienst(unittest.TestCase):
     def test_unbekanntes_projekt_meldet_sich(self):
         self.behandler._wissen({"projekt": ["gibtsnicht"]})
         self.assertEqual(self.gesendet[-1]["code"], 404)
+
+
+class BilderImDienst(unittest.TestCase):
+    """Ablegen, wo der Benutzer sie findet - und zwei je Beitrag."""
+
+    def setUp(self):
+        import os
+        from postkutsche.ablage import Ablage
+
+        ordner = tempfile.TemporaryDirectory()
+        self.addCleanup(ordner.cleanup)
+        self.heim = Path(ordner.name)
+
+        os.environ["POSTKUTSCHE_DOKUMENTE"] = str(self.heim / "Dokumente")
+        self.addCleanup(os.environ.pop, "POSTKUTSCHE_DOKUMENTE", None)
+
+        db = self.heim / "p.db"
+        vorher = dienst.Behandler.ablage_pfad
+        dienst.Behandler.ablage_pfad = db
+        self.addCleanup(setattr, dienst.Behandler, "ablage_pfad", vorher)
+
+        self.gesendet = []
+        for name, was in (("_json", lambda _s, d, code=200: self.gesendet.append(d)),
+                          ("_fehler", lambda _s, t, code=400:
+                           self.gesendet.append({"fehler": t, "code": code}))):
+            flicken = mock.patch.object(dienst.Behandler, name, was)
+            flicken.start()
+            self.addCleanup(flicken.stop)
+        self.behandler = object.__new__(dienst.Behandler)
+
+        self.eins = self.heim / "eins.jpg"
+        self.zwei = self.heim / "zwei.jpg"
+        self.eins.write_bytes(b"erstes")
+        self.zwei.write_bytes(b"zweites")
+
+        self.Ablage = Ablage
+        self.db = db
+        with Ablage(db) as a:
+            projekt = a.projekt_anlegen("habefa", "HaBeFa", "https://h.example",
+                                        "seitenkarte")
+            nummer, _ = a.inhalt_merken(projekt.id, "t1", "T30-2 Brandschutztür",
+                                        "https://h.example/t.html")
+            beitrag = a.beitrag_anlegen(projekt.id, "2026-09-01T08:00:00Z",
+                                        inhalt_id=nummer)
+            self.fassung = a.fassung_setzen(beitrag, "facebook", "Text",
+                                            bild_pfad=str(self.eins))
+
+    def _zweites_setzen(self):
+        with self.Ablage(self.db) as a:
+            a.db.execute("UPDATE fassungen SET bild_pfad2 = ? WHERE id = ?",
+                         (str(self.zwei), self.fassung))
+            a.db.commit()
+
+    def test_ein_bild_wird_abgelegt(self):
+        self.behandler._ablegen({"fassung": self.fassung})
+        daten = self.gesendet[-1]
+        self.assertEqual(len(daten["dateien"]), 1)
+        self.assertTrue(Path(daten["dateien"][0]).is_file())
+
+    def test_der_ordner_nennt_woche_und_projekt(self):
+        self.behandler._ablegen({"fassung": self.fassung})
+        ordner = Path(self.gesendet[-1]["ordner"])
+        self.assertEqual(ordner.name, "habefa")
+        self.assertEqual(ordner.parent.name, "2026-KW36")
+
+    def test_beide_bilder_werden_abgelegt(self):
+        self._zweites_setzen()
+        self.behandler._ablegen({"fassung": self.fassung})
+        dateien = self.gesendet[-1]["dateien"]
+        self.assertEqual(len(dateien), 2)
+        # Die Reihenfolge steht im Namen: Wer sie von Hand einfuegt, braucht
+        # sie in der richtigen Folge.
+        self.assertTrue(dateien[0].endswith("-1.jpg"))
+        self.assertTrue(dateien[1].endswith("-2.jpg"))
+
+    def test_ohne_bild_gibt_es_nichts_abzulegen(self):
+        with self.Ablage(self.db) as a:
+            a.db.execute("UPDATE fassungen SET bild_pfad = NULL WHERE id = ?",
+                         (self.fassung,))
+            a.db.commit()
+        self.behandler._ablegen({"fassung": self.fassung})
+        self.assertEqual(self.gesendet[-1]["code"], 404)
+
+    def test_unbekannte_fassung_meldet_sich(self):
+        self.behandler._ablegen({"fassung": 9999})
+        self.assertEqual(self.gesendet[-1]["code"], 404)
+
+    def test_zweites_bild_laesst_sich_entfernen(self):
+        self._zweites_setzen()
+        self.behandler._bild_weg({"fassung": self.fassung, "nummer": 2})
+        with self.Ablage(self.db) as a:
+            zeile = a.db.execute("SELECT * FROM fassungen WHERE id = ?",
+                                 (self.fassung,)).fetchone()
+        self.assertIsNone(zeile["bild_pfad2"])
+        # Das erste bleibt.
+        self.assertEqual(zeile["bild_pfad"], str(self.eins))
+
+    def test_der_ordnerknopf_nennt_den_pfad(self):
+        # Auch wenn kein xdg-open da ist, muss der Pfad kommen - sonst weiss
+        # der Benutzer nicht, wohin er greifen soll.
+        with mock.patch("postkutsche.bilder.ordner_zeigen", return_value=False):
+            self.behandler._ordner_zeigen({})
+        daten = self.gesendet[-1]
+        self.assertFalse(daten["geoeffnet"])
+        self.assertTrue(daten["ordner"].endswith("POSTKutsche"))

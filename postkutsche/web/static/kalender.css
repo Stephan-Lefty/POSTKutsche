@@ -256,6 +256,33 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 8px;
 }
 
+/* Zwei Bilder nebeneinander, in der Reihenfolge, in der sie herausgehen.
+   Nebeneinander und nicht untereinander, weil die Reihenfolge zählt: Das
+   linke ist das erste und damit das, was in der Vorschau erscheint. */
+.bildreihe { display: flex; gap: 8px; align-items: flex-start; }
+.bildreihe .vorschau { min-width: 0; flex: 1; }
+
+/* Wohin die Bilder gelegt wurden. Der Pfad steht in einem eigenen Feld und
+   nicht im Fließtext - man will ihn herausnehmen, nicht lesen. */
+.ablageort {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  background: var(--grund);
+}
+.ablageort p { margin: 0 0 6px; }
+.pfadfeld {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  padding: 5px 7px;
+  border: 1px solid var(--linie);
+  border-radius: 5px;
+  background: var(--flaeche);
+  color: var(--text);
+}
+
 /* Verweis und Emojileiste gehören zur Übergabe: Was man zum Einstellen von
    Hand braucht, soll auf dieser einen Seite liegen. */
 .quelle { font-size: 12px; margin: 6px 0 0; display: flex; gap: 6px; align-items: baseline; }

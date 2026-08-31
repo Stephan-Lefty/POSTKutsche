@@ -21,7 +21,9 @@ from typing import Any, Iterable, Iterator
 
 # Die Fassung des Schemas. Wird erhöht, sobald sich Tabellen ändern; `_wandeln`
 # hebt bestehende Ablagen dann Schritt für Schritt an.
-SCHEMA_FASSUNG = 1
+#
+# 2 (2026-08-31): ein zweites Bild je Fassung, Spalte `bild_pfad2`.
+SCHEMA_FASSUNG = 2
 
 # Zustände eines Projekts.
 PROJEKT_AKTIV = "aktiv"
@@ -102,6 +104,12 @@ CREATE TABLE IF NOT EXISTS fassungen (
     text        TEXT    NOT NULL DEFAULT '',
     schlagworte TEXT    NOT NULL DEFAULT '',   -- durch Leerzeichen getrennt, ohne Raute
     bild_pfad   TEXT,                          -- zugeschnittenes Bild auf der Platte
+    -- Das zweite Bild. Zwei Spalten statt einer eigenen Tabelle: Es sind
+    -- genau zwei, die Reihenfolge ist damit ohne Sortierspalte eindeutig,
+    -- und jede Lesestelle bleibt eine Abfrage ohne Verbund. Kommt einmal
+    -- ein drittes dazu, ist die Tabelle fällig - dann weiß man auch, wie
+    -- viele es werden.
+    bild_pfad2  TEXT,
     versandart  TEXT    NOT NULL DEFAULT 'schnittstelle',
     zustand     TEXT    NOT NULL DEFAULT 'offen',
     -- Was Claude nicht entscheiden konnte. Steht hier drin, ist der Beitrag
@@ -238,7 +246,33 @@ class Ablage:
         stand = self.db.execute("SELECT fassung FROM schema_stand").fetchone()
         if stand is None:
             self.db.execute("INSERT INTO schema_stand (fassung) VALUES (?)", (SCHEMA_FASSUNG,))
+        else:
+            self._wandeln(int(stand["fassung"]))
         self.db.commit()
+
+    def _wandeln(self, von: int) -> None:
+        """Hebt eine bestehende Ablage auf die aktuelle Schemafassung.
+
+        `CREATE TABLE IF NOT EXISTS` legt neue Tabellen an, aber es fügt einer
+        vorhandenen Tabelle keine Spalte hinzu. Genau dafür ist das hier da.
+
+        Jeder Schritt muss für sich stehen und darf nichts wegwerfen: Wer die
+        Ablage seit Wochen benutzt, hat darin Beiträge, die er nicht noch
+        einmal schreiben lassen will.
+        """
+        if von < 2:
+            # Ein zweites Bild je Fassung. ADD COLUMN hängt nur eine leere
+            # Spalte an - die vorhandenen Bilder bleiben, wo sie sind.
+            if "bild_pfad2" not in self._spalten("fassungen"):
+                self.db.execute("ALTER TABLE fassungen ADD COLUMN bild_pfad2 TEXT")
+
+        if von != SCHEMA_FASSUNG:
+            self.db.execute("UPDATE schema_stand SET fassung = ?",
+                            (SCHEMA_FASSUNG,))
+
+    def _spalten(self, tabelle: str) -> set[str]:
+        return {str(z["name"])
+                for z in self.db.execute(f"PRAGMA table_info({tabelle})")}
 
     # -- Projekte ----------------------------------------------------------
 
@@ -444,7 +478,7 @@ class Ablage:
         )
         if texte_uebernehmen:
             for fassung in self.fassungen(beitrag_id):
-                self.fassung_setzen(
+                nummer = self.fassung_setzen(
                     neu,
                     fassung["netzwerk"],
                     fassung["text"],
@@ -452,6 +486,13 @@ class Ablage:
                     fassung["bild_pfad"],
                     fassung["versandart"],
                 )
+                # Das zweite Bild wandert mit. Es war eine Handauswahl; wer
+                # denselben Beitrag wiederholt, will sie nicht neu treffen.
+                if fassung["bild_pfad2"]:
+                    self.db.execute(
+                        "UPDATE fassungen SET bild_pfad2 = ? WHERE id = ?",
+                        (fassung["bild_pfad2"], nummer))
+            self.db.commit()
         return neu
 
     def wiederholungen(self, beitrag_id: int) -> list[sqlite3.Row]:
@@ -613,6 +654,9 @@ class Ablage:
                 text = excluded.text,
                 schlagworte = excluded.schlagworte,
                 bild_pfad = excluded.bild_pfad,
+                -- Das zweite Bild bleibt stehen. Es kommt nicht aus der
+                -- Quelle, sondern wurde von Hand gewählt; neu schreiben
+                -- lassen betrifft den Text, nicht die Bildauswahl.
                 versandart = excluded.versandart,
                 zustand = ?,
                 rueckfrage = excluded.rueckfrage,
@@ -639,6 +683,7 @@ class Ablage:
         text: str,
         schlagworte: str | None = None,
         bild_pfad: str | None = None,
+        bild_pfad2: str | None = None,
     ) -> None:
         """Übernimmt, was von Hand geändert wurde.
 
@@ -654,6 +699,9 @@ class Ablage:
         if bild_pfad is not None:
             felder.append("bild_pfad = ?")
             werte.append(bild_pfad)
+        if bild_pfad2 is not None:
+            felder.append("bild_pfad2 = ?")
+            werte.append(bild_pfad2)
         werte.append(fassung_id)
 
         self.db.execute(

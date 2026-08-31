@@ -17,6 +17,7 @@ from postkutsche.ablage import (
     FASSUNG_OFFEN,
     PROJEKT_AKTIV,
     PROJEKT_PAUSIERT,
+    SCHEMA_FASSUNG,
     VERSAND_HAND,
     Ablage,
     HandarbeitWuerdeVerloren,
@@ -777,3 +778,126 @@ class BeitraegeLoeschen(unittest.TestCase):
     def test_unbekannter_beitrag_meldet_sich(self):
         with self.assertRaises(KeyError):
             self.ablage.beitrag_entfernen(9999)
+
+
+class SchemaWandern(unittest.TestCase):
+    """Wer die Ablage seit Wochen benutzt, darf nichts verlieren.
+
+    `CREATE TABLE IF NOT EXISTS` legt neue Tabellen an, fuegt einer
+    vorhandenen aber keine Spalte hinzu. Genau dafuer ist `_wandeln` da.
+    """
+
+    def setUp(self):
+        import sqlite3
+        import tempfile
+        from pathlib import Path
+
+        self.ordner = tempfile.TemporaryDirectory()
+        self.addCleanup(self.ordner.cleanup)
+        self.pfad = Path(self.ordner.name) / "alt.db"
+
+        # Eine Ablage im Stand von Fassung 1: Fassungen ohne »bild_pfad2«.
+        db = sqlite3.connect(self.pfad)
+        db.executescript("""
+            CREATE TABLE projekte (
+                id INTEGER PRIMARY KEY, kennung TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL, adresse TEXT NOT NULL, art TEXT NOT NULL,
+                farbe TEXT NOT NULL, zustand TEXT NOT NULL DEFAULT 'aktiv',
+                freigabe_noetig INTEGER NOT NULL DEFAULT 1,
+                einstellungen TEXT NOT NULL DEFAULT '{}',
+                angelegt TEXT NOT NULL, zuletzt_geholt TEXT);
+            CREATE TABLE beitraege (
+                id INTEGER PRIMARY KEY, projekt_id INTEGER NOT NULL,
+                inhalt_id INTEGER, geplant TEXT NOT NULL,
+                zustand TEXT NOT NULL DEFAULT 'entwurf',
+                notiz TEXT NOT NULL DEFAULT '', wiederholung_von INTEGER,
+                angelegt TEXT NOT NULL, geaendert TEXT NOT NULL);
+            CREATE TABLE fassungen (
+                id INTEGER PRIMARY KEY, beitrag_id INTEGER NOT NULL,
+                netzwerk TEXT NOT NULL, text TEXT NOT NULL DEFAULT '',
+                schlagworte TEXT NOT NULL DEFAULT '', bild_pfad TEXT,
+                versandart TEXT NOT NULL DEFAULT 'schnittstelle',
+                zustand TEXT NOT NULL DEFAULT 'offen', rueckfrage TEXT,
+                von_hand INTEGER NOT NULL DEFAULT 0, gesendet TEXT,
+                fremd_adresse TEXT, fehler TEXT,
+                UNIQUE (beitrag_id, netzwerk));
+            CREATE TABLE schema_stand (fassung INTEGER NOT NULL);
+            INSERT INTO schema_stand (fassung) VALUES (1);
+            INSERT INTO beitraege (id, projekt_id, geplant, angelegt, geaendert)
+                VALUES (1, 1, '2026-09-01T08:00:00Z', 'x', 'x');
+            INSERT INTO fassungen (beitrag_id, netzwerk, text, bild_pfad)
+                VALUES (1, 'facebook', 'Alter Text', '/bilder/alt.jpg');
+        """)
+        db.commit()
+        db.close()
+
+    def test_die_spalte_kommt_dazu(self):
+        with Ablage(self.pfad) as a:
+            self.assertIn("bild_pfad2", a._spalten("fassungen"))
+
+    def test_der_alte_beitrag_bleibt_unversehrt(self):
+        with Ablage(self.pfad) as a:
+            zeile = a.db.execute(
+                "SELECT text, bild_pfad, bild_pfad2 FROM fassungen").fetchone()
+        self.assertEqual(zeile["text"], "Alter Text")
+        self.assertEqual(zeile["bild_pfad"], "/bilder/alt.jpg")
+        self.assertIsNone(zeile["bild_pfad2"])
+
+    def test_der_stand_wird_nachgefuehrt(self):
+        with Ablage(self.pfad) as a:
+            stand = a.db.execute("SELECT fassung FROM schema_stand").fetchone()
+        self.assertEqual(int(stand["fassung"]), SCHEMA_FASSUNG)
+
+    def test_zweimal_oeffnen_geht_auch(self):
+        # ALTER TABLE ein zweites Mal waere ein Fehler - also wird vorher
+        # nachgesehen, ob die Spalte schon da ist.
+        with Ablage(self.pfad):
+            pass
+        with Ablage(self.pfad) as a:
+            self.assertIn("bild_pfad2", a._spalten("fassungen"))
+
+
+class ZweiBilder(Basis):
+    """Zwei Bilder je Fassung, in fester Reihenfolge."""
+
+    def setUp(self):
+        super().setUp()
+        projekt = self.ablage.projekt_anlegen("p", "P", "https://p.example",
+                                              "seitenkarte")
+        self.projekt = projekt
+        self.beitrag = self.ablage.beitrag_anlegen(projekt.id,
+                                                   "2026-09-01T08:00:00Z")
+        self.fassung = self.ablage.fassung_setzen(
+            self.beitrag, "facebook", "Text", bild_pfad="/bilder/eins.jpg")
+
+    def _zeile(self, fassung_id=None):
+        return self.ablage.db.execute(
+            "SELECT * FROM fassungen WHERE id = ?",
+            (fassung_id or self.fassung,)).fetchone()
+
+    def test_zweites_bild_laesst_sich_setzen(self):
+        self.ablage.fassung_bearbeiten(self.fassung, "Text",
+                                       bild_pfad2="/bilder/zwei.jpg")
+        zeile = self._zeile()
+        self.assertEqual(zeile["bild_pfad"], "/bilder/eins.jpg")
+        self.assertEqual(zeile["bild_pfad2"], "/bilder/zwei.jpg")
+
+    def test_neu_schreiben_laesst_das_zweite_stehen(self):
+        # Es kommt nicht aus der Quelle, sondern wurde von Hand gewaehlt.
+        self.ablage.fassung_bearbeiten(self.fassung, "Text",
+                                       bild_pfad2="/bilder/zwei.jpg")
+        self.ablage.fassung_setzen(self.beitrag, "facebook", "Neuer Text",
+                                   bild_pfad="/bilder/neu.jpg",
+                                   handarbeit_ueberschreiben=True)
+        zeile = self._zeile()
+        self.assertEqual(zeile["bild_pfad"], "/bilder/neu.jpg")
+        self.assertEqual(zeile["bild_pfad2"], "/bilder/zwei.jpg")
+
+    def test_wiederholen_nimmt_beide_mit(self):
+        self.ablage.fassung_bearbeiten(self.fassung, "Text",
+                                       bild_pfad2="/bilder/zwei.jpg")
+        neu = self.ablage.beitrag_wiederholen(self.beitrag,
+                                              "2026-10-01T08:00:00Z")
+        fassung = self.ablage.fassungen(neu)[0]
+        self.assertEqual(fassung["bild_pfad"], "/bilder/eins.jpg")
+        self.assertEqual(fassung["bild_pfad2"], "/bilder/zwei.jpg")

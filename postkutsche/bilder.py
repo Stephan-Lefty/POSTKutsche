@@ -17,6 +17,11 @@ trotzdem heruntergeladen - Mastodon braucht eine Datei, keine Adresse.
 from __future__ import annotations
 
 import hashlib
+import os
+import re
+import shutil
+import subprocess
+import unicodedata
 from pathlib import Path
 
 from .quellen.abrufen import AbrufFehler, holen
@@ -41,6 +46,155 @@ def ordner() -> Path:
     ziel = standard_pfad().parent / "bilder"
     ziel.mkdir(parents=True, exist_ok=True)
     return ziel
+
+
+#: Der Ordner unter »Dokumente«, in dem die abgelegten Bilder landen.
+SAMMELORDNER = "POSTKutsche"
+
+
+def dokumentenordner() -> Path:
+    """Wo der Benutzer seine Dokumente vermutet – gefragt, nicht geraten.
+
+    **Der Ordner heißt nicht überall gleich.** Auf einem deutschen System
+    »Dokumente«, auf einem englischen »Documents«, und wer ihn verschoben hat,
+    hat ihn woanders. Ein Werkzeug, das Dateien an einem Ort ablegt, den der
+    Benutzer nicht findet, ist schlimmer als eines, das gar nichts ablegt.
+
+    Vier Anläufe, vom Verlässlichsten zum Notbehelf:
+
+    1. `POSTKUTSCHE_DOKUMENTE` – für Tests und für alle, die es anders wollen.
+    2. `~/.config/user-dirs.dirs`, die Datei, aus der auch die
+       Dateiverwaltung liest. Reines Textlesen, kein fremdes Programm.
+    3. `xdg-user-dir DOCUMENTS`, falls die Datei fehlt oder nichts hergibt.
+    4. Ein vorhandener Ordner »Dokumente« oder »Documents« im Heimat-
+       verzeichnis. Gibt es keinen, wird »Dokumente« angelegt – POSTKutsche
+       spricht Deutsch, also ist das die bessere Wette als »Documents«.
+    """
+    aus_umgebung = os.environ.get("POSTKUTSCHE_DOKUMENTE")
+    if aus_umgebung:
+        return Path(aus_umgebung).expanduser()
+
+    return (_aus_user_dirs() or _aus_xdg_werkzeug() or _vorhandener_ordner()
+            or (Path.home() / "Dokumente"))
+
+
+def _aus_user_dirs() -> Path | None:
+    """Liest XDG_DOCUMENTS_DIR aus ~/.config/user-dirs.dirs."""
+    datei = Path.home() / ".config" / "user-dirs.dirs"
+    try:
+        roh = datei.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    treffer = re.search(r'^\s*XDG_DOCUMENTS_DIR\s*=\s*"?([^"\n]+)"?',
+                        roh, re.MULTILINE)
+    if not treffer:
+        return None
+    # In der Datei steht »$HOME/Dokumente«, nicht der ausgeschriebene Pfad.
+    pfad = treffer.group(1).replace("$HOME", str(Path.home())).strip()
+    return Path(pfad) if pfad else None
+
+
+def _aus_xdg_werkzeug() -> Path | None:
+    try:
+        lauf = subprocess.run(["xdg-user-dir", "DOCUMENTS"],
+                              capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        # Kein xdg-user-dir da (macOS, Windows, karge Systeme). Kein Fehler,
+        # nur ein Anlauf weniger.
+        return None
+    ziel = lauf.stdout.strip()
+    # Gibt es nichts zu sagen, gibt das Werkzeug das Heimatverzeichnis
+    # zurück - und das ist kein Dokumentenordner.
+    if lauf.returncode or not ziel or Path(ziel) == Path.home():
+        return None
+    return Path(ziel)
+
+
+def _vorhandener_ordner() -> Path | None:
+    for name in ("Dokumente", "Documents"):
+        pfad = Path.home() / name
+        if pfad.is_dir():
+            return pfad
+    return None
+
+
+def ablageordner(projekt: str, geplant: str) -> Path:
+    """Wohin ein Bild gehört: ein Ordner je Kalenderwoche, darin je Projekt.
+
+    **Die Woche steht vorn, weil danach aufgeräumt wird.** Der Benutzer will
+    »die Bilder der KW 36 löschen«, und das soll ein Handgriff sein und nicht
+    ein Gang durch fünf Projektordner. »2026-KW36« statt »KW36-2026«, damit
+    die Ordner in der Dateiverwaltung von selbst in der richtigen Reihenfolge
+    stehen.
+    """
+    from . import zeiten
+
+    jahr, woche = zeiten.kalenderwoche(geplant)
+    ziel = (dokumentenordner() / SAMMELORDNER / f"{jahr}-KW{woche:02d}"
+            / _dateiname_tauglich(projekt))
+    ziel.mkdir(parents=True, exist_ok=True)
+    return ziel
+
+
+def ablegen(quelle: Path | str, projekt: str, geplant: str, netzwerk: str,
+            titel: str, fassung: int, nummer: int = 1) -> Path:
+    """Legt ein Bild dort ab, wo der Benutzer es wiederfindet.
+
+    Der Browser entscheidet beim Herunterladen selbst, wohin – meist in
+    »Downloads«, und eine Webseite kann das nicht bestimmen. Also legt der
+    Dienst die Datei selbst ab; er läuft ohnehin auf demselben Rechner.
+
+    **Der Name muss den Beitrag verraten, ohne die Datenbank.** Datum,
+    Netzwerk, Titel, dazu die Nummer der Fassung, damit zwei Beiträge
+    desselben Tages mit ähnlichem Titel sich nicht überschreiben.
+    """
+    quelle = Path(quelle)
+    if not quelle.is_file():
+        raise BildFehler(f"Das Bild gibt es nicht: {quelle}")
+
+    tag = str(geplant)[:10]
+    name = (f"{tag}_{_dateiname_tauglich(netzwerk)}"
+            f"_{_dateiname_tauglich(titel)[:60]}"
+            f"_f{int(fassung)}-{int(nummer)}{quelle.suffix.lower() or '.jpg'}")
+    ziel = ablageordner(projekt, geplant) / name
+    try:
+        shutil.copyfile(quelle, ziel)
+    except OSError as fehler:
+        raise BildFehler(f"Das Bild ließ sich nicht ablegen: {fehler}") from fehler
+    return ziel
+
+
+def ordner_zeigen(pfad: Path | str) -> bool:
+    """Öffnet einen Ordner in der Dateiverwaltung. Sagt, ob es geklappt hat.
+
+    Eine Webseite kann das nicht, der Dienst schon – er läuft auf demselben
+    Rechner. Der Pfad kommt aus dem Programm und nicht aus der Anfrage; hier
+    ist nichts einzuschleusen.
+    """
+    for befehl in ("xdg-open", "open", "explorer"):
+        try:
+            subprocess.Popen([befehl, str(pfad)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except (OSError, subprocess.SubprocessError):
+            continue
+    return False
+
+
+def _dateiname_tauglich(text: str) -> str:
+    """Aus »T30-2 Brandschutztür« wird »T30-2-Brandschutztuer«.
+
+    Umlaute umgeschrieben und nicht weggeworfen: »Tr« wäre nicht mehr zu
+    lesen. Alles, was in einem Dateinamen Ärger macht, wird zum Bindestrich -
+    das ist stumpf, aber es geht hier um Wiederfinden, nicht um Schönheit.
+    """
+    ersetzt = (text.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue")
+               .replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue")
+               .replace("ß", "ss"))
+    ohne_zeichen = unicodedata.normalize("NFKD", ersetzt).encode(
+        "ascii", "ignore").decode("ascii")
+    sauber = re.sub(r"[^A-Za-z0-9]+", "-", ohne_zeichen).strip("-")
+    return sauber or "ohne-titel"
 
 
 def pillow_da() -> bool:

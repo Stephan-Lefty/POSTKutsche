@@ -326,6 +326,63 @@ function kategorienZeichnen() {
   });
 }
 
+/** Zeigt, wohin die Bilder gelegt wurden – mit Pfad zum Kopieren.
+ *
+ * Der Pfad steht in einem eigenen Feld und nicht im Fließtext: Man will ihn
+ * herausnehmen und in eine Dateiverwaltung einfügen, und aus einem Absatz
+ * markiert man dabei den halben Satz mit.
+ */
+function ordnerZeigen(block, wo) {
+  block.querySelectorAll(".ablageort").forEach((alt) => alt.remove());
+
+  const kasten = document.createElement("div");
+  kasten.className = "ablageort";
+
+  const zeile = document.createElement("p");
+  zeile.className = "schlagworte";
+  zeile.textContent = wo.dateien.length === 1
+    ? "Ein Bild liegt hier:" : `${wo.dateien.length} Bilder liegen hier:`;
+  kasten.append(zeile);
+
+  const pfad = document.createElement("input");
+  pfad.type = "text";
+  pfad.readOnly = true;
+  pfad.className = "pfadfeld";
+  pfad.value = wo.ordner;
+  pfad.onclick = () => pfad.select();
+  kasten.append(pfad);
+
+  const knoepfe = document.createElement("div");
+  knoepfe.className = "knoepfe";
+
+  const kopie = document.createElement("button");
+  kopie.className = "knopf leise";
+  kopie.textContent = "Pfad kopieren";
+  kopie.onclick = () => kopieren(wo.ordner, "Pfad kopiert.");
+  knoepfe.append(kopie);
+
+  /* Der Browser kann keinen Ordner öffnen - der Dienst schon, er läuft auf
+     demselben Rechner. Klappt es nicht (kein xdg-open, anderes System),
+     bleibt der Pfad zum Kopieren stehen. */
+  const auf = document.createElement("button");
+  auf.className = "knopf leise";
+  auf.textContent = "Ordner öffnen";
+  auf.onclick = async () => {
+    try {
+      const antwort = await hole("/api/ordner", {});
+      if (!antwort.geoeffnet) {
+        melden("Der Ordner ließ sich nicht öffnen – Pfad steht daneben.", true);
+      }
+    } catch (fehler) {
+      melden(fehler.message, true);
+    }
+  };
+  knoepfe.append(auf);
+
+  kasten.append(knoepfe);
+  block.append(kasten);
+}
+
 /** Das Fenster »Gelerntes«: ansehen, was aus Rückfragen gesammelt wurde.
  *
  * Ohne diese Ansicht wäre die Sammlung eine Einbahnstraße. Nach einem halben
@@ -1399,13 +1456,34 @@ function fassungsblock(beitragId, f, quelle) {
 
   if (f.bild) {
     // Das Bild gehört sichtbar dazu: Man gibt keinen Beitrag frei, dessen
-    // Bild man nicht gesehen hat.
-    const bild = document.createElement("img");
-    bild.src = f.bild;
-    bild.alt = "";
-    bild.className = "vorschau";
-    bild.loading = "lazy";
-    block.append(bild);
+    // Bild man nicht gesehen hat. Zwei Bilder stehen nebeneinander, in der
+    // Reihenfolge, in der sie herausgehen - das erste ist das, was in der
+    // Vorschau der Netzwerke erscheint.
+    const reihe = document.createElement("div");
+    reihe.className = "bildreihe";
+    [f.bild, f.bild2].filter(Boolean).forEach((quelle, i) => {
+      const bild = document.createElement("img");
+      bild.src = quelle;
+      bild.alt = "";
+      bild.className = "vorschau";
+      bild.loading = "lazy";
+      bild.title = i === 0 ? "Erstes Bild" : "Zweites Bild";
+      reihe.append(bild);
+    });
+    block.append(reihe);
+
+    /* Über die Schnittstelle geht nur das erste Bild raus. Das
+       stillschweigend zu tun waere die schlechtere Loesung: Wer zwei Bilder
+       ausgesucht hat, soll nicht erst am veroeffentlichten Beitrag merken,
+       dass eines fehlt. */
+    if (f.bild2 && f.versandart === "schnittstelle") {
+      const nur_eines = document.createElement("p");
+      nur_eines.className = "schlagworte";
+      nur_eines.textContent =
+        "Beim automatischen Senden geht nur das erste Bild raus." +
+        " Für beide: auf Handbetrieb stellen.";
+      block.append(nur_eines);
+    }
   } else if (netz.bild_pflicht) {
     const fehlt = document.createElement("p");
     fehlt.className = "frage";
@@ -1472,42 +1550,99 @@ function fassungsblock(beitragId, f, quelle) {
 
   knoepfe.append(alles, sichern, nurText);
 
-  if (f.bild) {
-    // Für den Handbetrieb: Bild auf die Platte holen, dann bei Facebook oder
-    // Instagram hochladen.
+  /* Für den Handbetrieb: Bild auf die Platte holen, dann bei Facebook oder
+     Instagram hochladen. Bei zwei Bildern zwei Knöpfe, einzeln benannt -
+     wer sie in der falschen Reihenfolge einfügt, hat ein anderes Titelbild
+     als geplant. */
+  [[1, f.bild], [2, f.bild2]].forEach(([nr, quelle]) => {
+    if (!quelle) return;
     const holen = document.createElement("a");
     holen.className = "knopf leise";
-    holen.href = f.bild;
-    holen.download = `postkutsche-${f.netzwerk}-${f.id}.jpg`;
-    holen.textContent = "Bild speichern";
+    holen.href = quelle;
+    holen.download = `postkutsche-${f.netzwerk}-${f.id}-${nr}.jpg`;
+    holen.textContent = f.bild2 ? `Bild ${nr} speichern` : "Bild speichern";
     knoepfe.append(holen);
-  }
+  });
 
-  // Eigenes Bild einsetzen, wenn das gewählte nicht passt.
-  const waehler = document.createElement("input");
-  waehler.type = "file";
-  waehler.accept = "image/*";
-  waehler.hidden = true;
-  waehler.onchange = () => {
-    const datei = waehler.files[0];
-    if (!datei) return;
-    const leser = new FileReader();
-    leser.onload = async () => {
+  if (f.bild) {
+    /* Der Weg, den der Benutzer eigentlich will: nicht in den Downloads
+       suchen, sondern einen Ordner haben, den er gezielt leeren kann.
+       Wohin ein Download geht, entscheidet der Browser; der Dienst läuft
+       aber auf demselben Rechner und kann die Datei hinlegen. */
+    const ablegen = document.createElement("button");
+    ablegen.className = "knopf leise";
+    ablegen.textContent = f.bild2 ? "Beide unter Dokumente ablegen"
+                                  : "Unter Dokumente ablegen";
+    ablegen.onclick = async () => {
+      ablegen.disabled = true;
       try {
-        await hole("/api/bild", { fassung: f.id, daten: leser.result });
-        melden("Bild ersetzt.");
-        blattOeffnen(beitragId);
+        const wo = await hole("/api/ablegen", { fassung: f.id });
+        ordnerZeigen(block, wo);
+        melden(`${wo.dateien.length} Bild(er) abgelegt.`);
       } catch (fehler) {
         melden(fehler.message, true);
       }
+      ablegen.disabled = false;
     };
-    leser.readAsDataURL(datei);
+    knoepfe.append(ablegen);
+  }
+
+  // Eigenes Bild einsetzen, wenn das gewählte nicht passt - und ein zweites
+  // dazunehmen, das die Quelle nicht hergibt.
+  const waehlen = (nr, knopf) => {
+    const waehler = document.createElement("input");
+    waehler.type = "file";
+    waehler.accept = "image/*";
+    waehler.hidden = true;
+    waehler.onchange = () => {
+      const datei = waehler.files[0];
+      if (!datei) return;
+      const leser = new FileReader();
+      leser.onload = async () => {
+        try {
+          await hole("/api/bild",
+                     { fassung: f.id, daten: leser.result, nummer: nr });
+          melden(nr === 1 ? "Bild gesetzt." : "Zweites Bild gesetzt.");
+          blattOeffnen(beitragId);
+        } catch (fehler) {
+          melden(fehler.message, true);
+        }
+      };
+      leser.readAsDataURL(datei);
+    };
+    knopf.onclick = () => waehler.click();
+    knoepfe.append(knopf, waehler);
   };
+
   const tauschen = document.createElement("button");
   tauschen.className = "knopf leise";
   tauschen.textContent = f.bild ? "Bild ersetzen" : "Bild wählen";
-  tauschen.onclick = () => waehler.click();
-  knoepfe.append(tauschen, waehler);
+  waehlen(1, tauschen);
+
+  // Das zweite erst anbieten, wenn es ein erstes gibt: Ein Beitrag mit
+  // Bild 2 und ohne Bild 1 waere keine Reihenfolge mehr.
+  if (f.bild) {
+    const zweites = document.createElement("button");
+    zweites.className = "knopf leise";
+    zweites.textContent = f.bild2 ? "Zweites Bild ersetzen" : "Zweites Bild";
+    waehlen(2, zweites);
+
+    if (f.bild2) {
+      const weg = document.createElement("button");
+      weg.className = "knopf leise";
+      weg.textContent = "Zweites Bild weg";
+      weg.onclick = async () => {
+        try {
+          await hole("/api/bild/weg", { fassung: f.id, nummer: 2 });
+          melden("Zweites Bild entfernt.");
+          blattOeffnen(beitragId);
+        } catch (fehler) {
+          melden(fehler.message, true);
+        }
+      };
+      knoepfe.append(weg);
+    }
+  }
 
   if (f.zustand !== "gesendet" && f.zustand !== "abgeholt") {
     const abhaken = document.createElement("button");

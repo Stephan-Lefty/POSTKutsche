@@ -57,6 +57,11 @@ def faellige(ablage, bis: str | None = None) -> list[dict[str, Any]]:
                 "netzwerk": fassung["netzwerk"],
                 "text": fassung["text"],
                 "schlagworte": fassung["schlagworte"],
+                # Nur das erste Bild. Eine Fassung kann zwei tragen, aber der
+                # Versand hängt eines an - Mastodon nähme vier, unser Sender
+                # gibt eines mit. Das zweite ist damit dem Handbetrieb
+                # vorbehalten; die Oberfläche sagt das, statt es
+                # stillschweigend fallenzulassen.
                 "bild_pfad": fassung["bild_pfad"],
             })
     return offen
