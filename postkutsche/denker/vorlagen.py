@@ -62,6 +62,11 @@ Was du nicht tust:
 
 - Keine Preise nennen, auch keine ungefähren. Sie ändern sich, der Beitrag
   bleibt stehen.
+- **Nichts zu Garantie oder Gewährleistung.** Keine Dauer, keine Bedingungen,
+  keine Einschränkungen - auch dann nicht, wenn es im Quelltext steht. Das
+  sind Zusagen mit rechtlicher Wirkung; sie ändern sich, und ein zwei Jahre
+  alter Beitrag mit überholten Bedingungen wird zum Vorwurf. Wer sie wissen
+  will, findet sie im Shop.
 - Nichts erfinden. Was nicht im Quelltext steht, steht nicht im Beitrag -
   keine Maße, keine Normen, keine Eigenschaften, keine Jahreszahlen.
 - Keine Versprechen zu Verfügbarkeit oder Eignung für einen bestimmten Zweck.

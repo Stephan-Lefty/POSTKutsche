@@ -34,3 +34,30 @@ class LieferzeitIstDieAusnahme(unittest.TestCase):
     def test_preise_bleiben_unverhandelbar(self):
         # Die Gegenprobe: Es gibt genau eine Ausnahme, nicht zwei.
         self.assertIn("Keine Preise nennen", vorlagen.GRUNDREGELN)
+
+
+class GarantieGehoertNichtInEinenBeitrag(unittest.TestCase):
+    """Zusagen mit rechtlicher Wirkung ueberleben den Beitrag nicht.
+
+    Ansage des Betreibers vom 2026-08-31: »Garantiebedingungen sollten nie in
+    einen Post rein.« Dieselbe Begruendung wie bei den Preisen - sie aendern
+    sich, der Beitrag bleibt stehen, und ein zwei Jahre alter Beitrag mit
+    ueberholten Bedingungen wird zum Vorwurf.
+    """
+
+    def test_garantie_ist_verboten(self):
+        einzeilig = " ".join(vorlagen.GRUNDREGELN.split())
+        self.assertIn("Nichts zu Garantie oder Gewährleistung", einzeilig)
+
+    def test_auch_wenn_es_im_quelltext_steht(self):
+        # Der entscheidende Zusatz. Ohne ihn schreibt Claude ab, was auf der
+        # Produktseite steht - und dort steht es oft.
+        einzeilig = " ".join(vorlagen.GRUNDREGELN.split())
+        self.assertIn("auch dann nicht, wenn es im Quelltext steht", einzeilig)
+
+    def test_ist_keine_ausnahme_wie_die_lieferzeit(self):
+        # Die Lieferzeit haengt an einer Vorgabe des Betreibers. Die Garantie
+        # nicht: Sie ist verboten, und dabei bleibt es.
+        stelle = vorlagen.GRUNDREGELN.index("Garantie")
+        abschnitt = " ".join(vorlagen.GRUNDREGELN[stelle:stelle + 400].split())
+        self.assertNotIn("Ausnahme", abschnitt.split("- Nichts erfinden")[0])
