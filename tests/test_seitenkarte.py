@@ -1,8 +1,10 @@
 """Seiten ohne Schnittstelle: was aus einer alten Seitenkarte zu holen ist."""
 
 import unittest
+from unittest import mock
 
 from postkutsche.quellen import seitenkarte
+from postkutsche.quellen.abrufen import AbrufFehler
 
 
 class FortgezogeneAdressen(unittest.TestCase):
@@ -49,7 +51,6 @@ class ProdukteEinerKategorie(unittest.TestCase):
     """
 
     def _lesen(self):
-        from unittest import mock
         with mock.patch.object(seitenkarte, "text_holen",
                                return_value=self.SEITE):
             return seitenkarte.produkte_der_kategorie(
@@ -75,3 +76,123 @@ class ProdukteEinerKategorie(unittest.TestCase):
     def test_eine_ebene_ist_keine_produktadresse(self):
         # /Angebote ist eine Uebersicht, kein Artikel.
         self.assertNotIn("https://x.example/Angebote", self._lesen())
+
+    def test_zweitname_zeigt_auf_dieselbe_funktion(self):
+        # produkte_der_kategorie ist seit dem Zusammenlegen nur noch ein
+        # Zweitname. Wer den Zweitnamen aendert, ohne es zu merken, sieht es
+        # hier.
+        self.assertIs(seitenkarte.produkte_der_kategorie, seitenkarte.kategorie)
+
+
+class ZweiShopformen(unittest.TestCase):
+    """Eine Funktion, zwei Adressformen - entschieden wird an der Adresse.
+
+    Der Eigenbau nennt seine Produkte »..._<Artikelnummer>.html«, Shopware
+    haengt die Artikelnummer als eigene Pfadebene an. Beides muss dieselbe
+    Funktion erkennen, ohne dass die eine Regel die andere verunreinigt.
+    """
+
+    EIGENBAU = """
+      <a href="/shop-tueren/brandschutz_489/t30_stahl_1810.html">Tuer</a>
+      <a href="/shop-tueren/brandschutz_489/t30_holz_1811.html">Tuer</a>
+      <a href="/shop-tueren/brandschutz_489/t30_holz_1811.html"><img></a>
+      <a href="/shop-tueren/brandschutz_490/list.html">Unterkategorie</a>
+      <a href="/info_service/versandkosten.html">Versandkosten</a>
+      <a href="/info_service/impressum.html">Impressum</a>
+    """
+
+    UEBERSICHT = """
+      <a href="/shop-garagentore/antriebe_542/list.html">Antriebe</a>
+      <a href="/info_service/versandkosten.html">Versandkosten</a>
+    """
+
+    def _lesen(self, roh, adresse):
+        with mock.patch.object(seitenkarte, "text_holen", return_value=roh):
+            return seitenkarte.kategorie(adresse)
+
+    def test_eigenbau_nimmt_nur_die_artikelnummern(self):
+        self.assertEqual(
+            self._lesen(self.EIGENBAU,
+                        "https://x.example/shop-tueren/brandschutz_489/list.html"),
+            ["https://x.example/shop-tueren/brandschutz_489/t30_stahl_1810.html",
+             "https://x.example/shop-tueren/brandschutz_489/t30_holz_1811.html"],
+        )
+
+    def test_versandkosten_bleiben_draussen(self):
+        # »/info_service/versandkosten.html« erfuellt die Shopware-Regel
+        # muehelos: zwei Ebenen, kein Schraegstrich am Ende. Wuerde beim
+        # Eigenbau auch nur ersatzweise danach gesucht, staende die Seite in
+        # der Kampagne.
+        gefunden = self._lesen(
+            self.EIGENBAU,
+            "https://x.example/shop-tueren/brandschutz_489/list.html")
+        self.assertFalse([a for a in gefunden if "info_service" in a])
+
+    def test_leere_uebersicht_bleibt_leer(self):
+        # Eine Kategorie der obersten Ebene hat kein eigenes Produkt. Das ist
+        # kein Fehler und darf nicht mit Beiwerk aufgefuellt werden.
+        self.assertEqual(
+            self._lesen(self.UEBERSICHT,
+                        "https://x.example/shop-garagentore/list.html"), [])
+
+    def test_shopware_wird_an_der_adresse_erkannt(self):
+        # Dieselbe Funktion, Adresse ohne ».html« - jetzt gilt die andere Regel.
+        self.assertEqual(
+            self._lesen(ProdukteEinerKategorie.SEITE,
+                        "https://x.example/Fenstersicherung/"),
+            ["https://x.example/ADE-Sicherungsstange-S/ADE-S",
+             "https://x.example/ADE-Verbindungsplatte/ADE-VP-Z20"],
+        )
+
+    def test_grenze_wird_eingehalten(self):
+        roh = "".join(f'<a href="/kat_1/artikel_{n}.html">A</a>' for n in range(50))
+        gefunden = self._lesen(roh, "https://x.example/kat_1/list.html")
+        self.assertEqual(len(gefunden), 50)
+        with mock.patch.object(seitenkarte, "text_holen", return_value=roh):
+            self.assertEqual(
+                len(seitenkarte.kategorie("https://x.example/kat_1/list.html", 5)), 5)
+
+
+class VorgegebeneKategorien(unittest.TestCase):
+    """Wo die Seitenkarte die Zugehoerigkeit nicht verraet, nennt man sie."""
+
+    SEITE = """
+      <a href="/ADE-Stange/ADE-S">Stange</a>
+      <a href="/ADE-Platte/ADE-VP">Platte</a>
+    """
+
+    def _lesen(self, vorgaben):
+        with mock.patch.object(seitenkarte, "text_holen", return_value=self.SEITE):
+            return seitenkarte.vorgegebene_kategorien(vorgaben)
+
+    def test_zaehlt_die_produkte_der_seite(self):
+        eintraege = self._lesen(["https://x.example/Fenstersicherung/"])
+        self.assertEqual(eintraege[0]["produkte"], 2)
+
+    def test_name_kommt_aus_der_adresse(self):
+        eintraege = self._lesen(["https://x.example/Tuersicherung/"])
+        self.assertEqual(eintraege[0]["name"], "Türsicherung")
+
+    def test_bindestriche_werden_zu_worten(self):
+        eintraege = self._lesen(["https://x.example/Duesen-und-Adapter/"])
+        self.assertEqual(eintraege[0]["name"], "Düsen und Adapter")
+
+    def test_eigener_name_sticht_die_adresse(self):
+        eintraege = self._lesen([
+            {"adresse": "https://x.example/Zubehoer/", "name": "Kleinkram"}])
+        self.assertEqual(eintraege[0]["name"], "Kleinkram")
+
+    def test_tiefe_ist_nie_null(self):
+        # Die Oberflaeche rueckt nach »tiefe - 1« ein und kaeme sonst auf
+        # einen negativen Abstand.
+        eintraege = self._lesen(["https://x.example/Zubehoer/"])
+        self.assertGreaterEqual(int(eintraege[0]["tiefe"]), 1)
+
+    def test_stumme_kategorie_verschwindet_nicht(self):
+        with mock.patch.object(seitenkarte, "text_holen",
+                               side_effect=AbrufFehler("antwortet nicht")):
+            eintraege = seitenkarte.vorgegebene_kategorien(
+                ["https://x.example/Weg/"])
+        self.assertEqual(len(eintraege), 1)
+        self.assertEqual(eintraege[0]["produkte"], 0)
+        self.assertIn("antwortet nicht", str(eintraege[0]["fehler"]))

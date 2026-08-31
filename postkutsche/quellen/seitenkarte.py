@@ -112,7 +112,14 @@ def produktadressen(karte: str, muster: str | None = None,
 # »_<Zahl>.html«, wobei die Zahl die Artikelnummer ist, und Übersichtsseiten
 # heißen »list.html«. Wo das anders ist, hilft der Parameter `muster` in
 # `produktadressen`.
-_PRODUKTVERWEIS = re.compile(r"""href\s*=\s*["']([^"']*_\d+\.html)["']""", re.IGNORECASE)
+_ARTIKELNUMMER_HTML = re.compile(r"_\d+\.html$", re.IGNORECASE)
+
+# Nur die Verweise, auf die man klicken kann. Jedes `href` zu nehmen wäre
+# bequemer, führt aber bei der Shopware-Regel in die Irre: `<link
+# href="/theme/1a2b/css/all.css">` hat zwei Pfadebenen und endet nicht auf
+# einem Schrägstrich, sieht also aus wie ein Produkt. Am Eigenbau nachgesehen
+# (2026-08-31): Dort steht kein einziger Produktverweis außerhalb eines `<a>`.
+_VERWEIS = re.compile(r"""<a[^>]+href\s*=\s*["']([^"'#?]+)["']""", re.IGNORECASE)
 
 
 def kategorie(adresse: str, grenze: int = 100) -> list[str]:
@@ -121,24 +128,73 @@ def kategorie(adresse: str, grenze: int = 100) -> list[str]:
     Der Weg für Kampagnen: Statt darauf zu warten, dass ein neues Produkt
     auftaucht, gibt man die Kategorie vor und holt sich, was darin steht.
 
+    **Warum es zwei Erkennungsregeln braucht.** Woran ein Produktverweis zu
+    erkennen ist, sagt das HTML nicht – Klassennamen wechseln mit jedem
+    Theme. Es sagt die Adressform, und die ist je Shopform eine andere:
+
+    *Eigenbau:* Produkte enden auf »_<Artikelnummer>.html«, Übersichten auf
+    »list.html«. Nur das darf gelten. Auf derselben Seite stehen
+    »/info_service/versandkosten.html« und zwei Dutzend weitere Verweise, die
+    jede lockerere Regel mitnähme.
+
+    *Shopware:* Produkte enden nicht auf einem Schrägstrich. Kategorien tun
+    das (»/Fenstersicherung/«), Produkte tragen hinten die Artikelnummer
+    (»/ADE-Sicherungsstange-S/ADE-S«) und liegen mindestens zwei Pfadebenen
+    tief. Ein Muster wie beim Eigenbau gibt es dort nicht – die Artikelnummer
+    ist keine Zahl, sondern ein Kürzel.
+
+    Welche Regel gilt, entscheidet die Adresse der Kategorieseite selbst:
+    Endet sie auf ».html«, ist es ein Eigenbau. Das ist bewusst kein »nimm die
+    andere Regel, wenn die erste nichts findet« – bei der Übersichtsseite
+    eines Eigenbaus, die zu Recht kein Produkt enthält, stünden danach
+    Versandkosten und Impressum in der Kampagne.
+
     Achtung bei Übersichtsseiten: Eine Kategorie der obersten Ebene verweist oft
     nur auf ihre Unterkategorien und enthält selbst kein einziges Produkt. Eine
     leere Liste heißt hier also nicht »Fehler«, sondern »eine Ebene tiefer
     nachsehen«.
+
+    Was der Shop mehrfach verlinkt – Bild und Titel derselben Kachel – steht
+    hier nur einmal, in der Reihenfolge der Seite.
     """
     roh = text_holen(adresse)
     stamm = _stamm_von(adresse)
+    eigenbau = adresse.split("?", 1)[0].lower().endswith(".html")
 
     gefunden: list[str] = []
     gesehen: set[str] = set()
-    for verweis in _PRODUKTVERWEIS.findall(roh):
+    for verweis in _VERWEIS.findall(roh):
         voll = verweis if verweis.startswith("http") else f"{stamm}{verweis}"
-        if voll not in gesehen:
-            gesehen.add(voll)
-            gefunden.append(voll)
+        if _ist_keine_produktseite(voll) or _ist_beiwerk(voll):
+            continue
+        passt = (bool(_ARTIKELNUMMER_HTML.search(voll)) if eigenbau
+                 else _wie_ein_shopware_produkt(voll, stamm))
+        if not passt or voll in gesehen:
+            continue
+        gesehen.add(voll)
+        gefunden.append(voll)
         if len(gefunden) >= grenze:
             break
     return gefunden
+
+
+def _wie_ein_shopware_produkt(adresse: str, stamm: str) -> bool:
+    """Zwei Ebenen, kein Schrägstrich am Ende, eigener Rechnername.
+
+    Der Rechnername muss geprüft werden, weil auf einer Shopware-Seite auch
+    Hersteller und Zahlungsanbieter verlinkt sind; ohne die Prüfung stünde
+    deren Startseite als Produkt in der Kampagne.
+    """
+    if not adresse.startswith(stamm) or adresse.endswith("/"):
+        return False
+    # Zwei Ebenen: /Produktname/Artikelnummer. Weniger ist eine Übersicht,
+    # mehr gibt es in diesen Shops nicht.
+    return len(adresse[len(stamm):].strip("/").split("/")) >= 2
+
+
+#: Der Name aus der Zeit, als es zwei getrennte Wege gab. Bleibt als
+#: Zweitname stehen, damit vorhandene Aufrufe nicht brechen.
+produkte_der_kategorie = kategorie
 
 
 def _stamm_von(adresse: str) -> str:
@@ -220,13 +276,26 @@ def kategorien(karte: str, bereich: str | None = None,
     return gefunden
 
 
+#: Wörter, die im Deutschen klein bleiben, auch wenn sie in einer Adresse
+#: zwischen zwei Hauptwörtern stehen. »Düsen und Adapter«, nicht »Düsen Und
+#: Adapter«. Die Liste ist kurz und wird länger, wenn etwas auffällt.
+KLEINSCHREIBUNG = ("und", "oder", "fuer", "mit", "aus", "von", "im", "am", "zum")
+
+
 def _lesbar(stueck: str) -> str:
     """»t30-1_brandschutztueren_stahl_489« zu »T30-1 Brandschutztüren Stahl«."""
     ohne_nummer = re.sub(r"_\d+$", "", stueck)
     if not ohne_nummer:
         return "Übersicht"
-    worte = ohne_nummer.replace("-", "-").split("_")
-    lesbar = " ".join(w.capitalize() if not re.match(r"^[a-z]\d", w) else w.upper()
+    # Der Eigenbau trennt mit Unterstrich, Shopware mit Bindestrich. Wo kein
+    # Unterstrich vorkommt, ist der Bindestrich die Worttrennung – sonst
+    # bliebe »Duesen-und-Adapter« ein einziges Wort und käme als
+    # »Duesen-und-adapter« heraus.
+    if "_" not in ohne_nummer:
+        ohne_nummer = ohne_nummer.replace("-", "_")
+    worte = ohne_nummer.split("_")
+    lesbar = " ".join(w.lower() if w.lower() in KLEINSCHREIBUNG
+                      else (w.capitalize() if not re.match(r"^[a-z]\d", w) else w.upper())
                       for w in worte if w)
     # Umlaute, die in Adressen umschrieben sind, zurückholen. Nicht vollständig
     # möglich - »tueren« wird zu »Türen«, »neue« bliebe »neue«. Deshalb nur
@@ -238,6 +307,9 @@ def _lesbar(stueck: str) -> str:
                             ("Tuer", "Tür"), ("tuer", "tür"),
                             ("Zubehoer", "Zubehör"), ("zubehoer", "zubehör"),
                             ("Moertel", "Mörtel"), ("moertel", "mörtel"),
+                            ("Duesen", "Düsen"), ("duesen", "düsen"),
+                            ("Duese", "Düse"), ("duese", "düse"),
+                            ("fuer", "für"),
                             ("Schloesser", "Schlösser"), ("schloesser", "schlösser"),
                             ("Tuergriffe", "Türgriffe"), ("Schluessel", "Schlüssel"),
                             ("Buerst", "Bürst"), ("Boegen", "Bögen"),
@@ -257,46 +329,59 @@ def _nummer(stueck: str) -> int | None:
     return int(treffer.group(1)) if treffer else None
 
 
-def produkte_der_kategorie(adresse: str, grenze: int = 200) -> list[str]:
-    """Die Produkte, die auf einer Kategorieseite verlinkt sind.
+def vorgegebene_kategorien(vorgaben: list[object],
+                           grenze: int = 200) -> list[dict[str, object]]:
+    """Kategorien, die von Hand vorgegeben wurden, mit ihrer Produktzahl.
 
     Der Weg für Shops, deren Seitenkarte die Zugehörigkeit nicht verrät.
-    Shopware legt Produkte flach ab, nicht unterhalb der Kategorie - wer in
+    Shopware legt Produkte flach ab, nicht unterhalb der Kategorie – wer in
     der Seitenkarte nach dem Kategoriepfad filtert, findet dort nur die
-    Kategorieseite selbst und hält den Shop für leer.
+    Kategorieseite selbst und hält den Shop für leer. Also nennt man die
+    Handvoll Kategorien, die einen interessieren, in der Projektdatei.
 
-    **Woran ein Produkt zu erkennen ist:** Es endet nicht auf einem
-    Schrägstrich. Kategorien tun das (`/Fenstersicherung/`), Produkte tragen
-    hinten die Artikelnummer (`/ADE-Sicherungsstange-S.../ADE-S`). Diese
-    Regel ist nicht schön, aber sie kommt von der Seite selbst und nicht aus
-    einer Vermutung über Shopware-Themes - Klassennamen wechseln mit jeder
-    Fassung, die Adressform bleibt.
+    **Hier wird abgerufen, in `kategorien` nicht.** Dort stünde die Zahl schon
+    in der Seitenkarte, hundert Abrufe für eine vorhandene Auskunft wären
+    Unfug. Hier steht sie nirgends – sie kostet einen Abruf je Kategorie, und
+    das sind vier statt hundert.
 
-    Was der Shop mehrfach verlinkt (Bild und Titel derselben Kachel), steht
-    hier trotzdem nur einmal, in der Reihenfolge der Seite.
+    Eine Vorgabe ist entweder die Adresse allein oder ein Objekt mit
+    `adresse` und `name`. Der Name lohnt sich, wo die Adresse ihn schlecht
+    hergibt: »Duesen-und-Adapter« liest sich als »Düsen und Adapter« besser.
+
+    Eine Kategorieseite, die gerade nicht antwortet, wird mit null Produkten
+    und ihrem Fehler zurückgegeben und nicht ausgelassen. Sonst verschwindet
+    sie stillschweigend aus der Auswahl, und niemand weiß, warum die Woche
+    nur halb voll wurde.
     """
-    roh = text_holen(adresse)
-    stamm = _stamm_von(adresse)
+    gefunden: list[dict[str, object]] = []
+    for vorgabe in vorgaben:
+        if isinstance(vorgabe, str):
+            adresse, name = vorgabe, None
+        else:
+            angaben = dict(vorgabe)  # type: ignore[arg-type]
+            adresse = str(angaben.get("adresse", ""))
+            name = angaben.get("name")
+        if not adresse:
+            continue
 
-    gefunden: list[str] = []
-    gesehen: set[str] = set()
-    for treffer in re.findall(r"""<a[^>]+href\s*=\s*["\']([^"\'#?]+)""",
-                              roh, re.IGNORECASE):
-        voll = treffer if treffer.startswith("http") else f"{stamm}{treffer}"
-        if not voll.startswith(stamm) or voll.endswith("/"):
-            continue
-        if _ist_keine_produktseite(voll) or _ist_beiwerk(voll):
-            continue
-        # Zwei Ebenen: /Produktname/Artikelnummer. Weniger ist eine
-        # Übersicht, mehr gibt es in diesen Shops nicht.
-        if len(voll[len(stamm):].strip("/").split("/")) < 2:
-            continue
-        if voll in gesehen:
-            continue
-        gesehen.add(voll)
-        gefunden.append(voll)
-        if len(gefunden) >= grenze:
-            break
+        pfad = adresse[len(_stamm_von(adresse)):].strip("/")
+        fehler: str | None = None
+        try:
+            anzahl = len(kategorie(adresse, grenze))
+        except AbrufFehler as schiefgegangen:
+            anzahl, fehler = 0, str(schiefgegangen)
+
+        gefunden.append({
+            "adresse": adresse,
+            "pfad": pfad,
+            # Tiefe 1, nicht 0: Die Oberfläche rückt nach `tiefe - 1` ein und
+            # käme sonst auf einen negativen Abstand.
+            "tiefe": 1,
+            "name": str(name) if name else _lesbar(pfad.rsplit("/", 1)[-1]),
+            "nummer": None,
+            "produkte": anzahl,
+            "fehler": fehler,
+        })
     return gefunden
 
 
