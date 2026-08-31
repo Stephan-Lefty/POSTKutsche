@@ -50,6 +50,11 @@ KEINE_PRODUKTE = (
     # Shopware führt diese unter englischen Pfaden - ohne sie stehen
     # »Profil bearbeiten« und »Adressen« als Produkte in der Kategorie.
     "/account", "/rechtliches", "/newsletter", "/merkzettel", "/wishlist",
+    # Shopware verlinkt seine Inhaltsseiten im Fußbereich nicht unter ihrem
+    # Namen, sondern als »/page/cms/<lange Kennung>«. Nach der Adressform
+    # sind das lupenreine Produkte - ohne diesen Eintrag stehen zwei
+    # Datenschutzhinweise in jeder Kategorie.
+    "/page/cms",
 )
 
 
@@ -160,6 +165,8 @@ def kategorie(adresse: str, grenze: int = 100) -> list[str]:
     roh = text_holen(adresse)
     stamm = _stamm_von(adresse)
     eigenbau = adresse.split("?", 1)[0].lower().endswith(".html")
+    if not eigenbau:
+        roh = _listenbereich(roh)
 
     gefunden: list[str] = []
     gesehen: set[str] = set()
@@ -176,6 +183,28 @@ def kategorie(adresse: str, grenze: int = 100) -> list[str]:
         if len(gefunden) >= grenze:
             break
     return gefunden
+
+
+#: Der Baustein, in dem bei Shopware die Produkte der Kategorie stehen. Kein
+#: Klassenname eines Themes, sondern der Name des CMS-Bausteins selbst – der
+#: gehört zur Datenhaltung von Shopware und wechselt nicht mit dem Aussehen.
+LISTENBAUSTEIN = "cms-element-product-listing"
+
+
+def _listenbereich(roh: str) -> str:
+    """Alles ab der Produktliste – und nichts davor.
+
+    Über der Liste stehen Schieber mit Empfehlungen und zuletzt Angesehenem,
+    und die zeigen Produkte aus dem ganzen Shop. Am 2026-08-31 nachgezählt:
+    Eine Kategorie mit drei Produkten meldete elf, davon acht aus den
+    Schiebern. Da die Schieber oben stehen, wären genau die falschen acht in
+    der Kampagne gelandet – `produkte_sammeln` nimmt die ersten.
+
+    Fehlt der Baustein, bleibt die ganze Seite stehen: Lieber zu viel finden
+    als eine Kategorie fälschlich für leer erklären.
+    """
+    stelle = roh.find(LISTENBAUSTEIN)
+    return roh[stelle:] if stelle >= 0 else roh
 
 
 def _wie_ein_shopware_produkt(adresse: str, stamm: str) -> bool:

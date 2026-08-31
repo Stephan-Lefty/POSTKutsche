@@ -45,6 +45,7 @@ class ProdukteEinerKategorie(unittest.TestCase):
       <a href="/ADE-Sicherungsstange-S/ADE-S"><img></a>
       <a href="/ADE-Verbindungsplatte/ADE-VP-Z20">Platte</a>
       <a href="/account/profile">Mein Profil</a>
+      <a href="/page/cms/018ecf08670770a1a802dafa0da91c97">Datenschutz</a>
       <a href="/Rechtliches/Versand-Zahlungen/">Versand</a>
       <a href="https://fremd.example/Ding/X1">fremd</a>
       <a href="/Angebote">flach</a>
@@ -69,6 +70,11 @@ class ProdukteEinerKategorie(unittest.TestCase):
     def test_kontoseiten_sind_keine_produkte(self):
         # Ohne die Sperre stuenden »Profil« und »Adressen« in jeder Kategorie.
         self.assertNotIn("https://x.example/account/profile", self._lesen())
+
+    def test_inhaltsseiten_aus_dem_fussbereich_bleiben_draussen(self):
+        # »/page/cms/<Kennung>« ist nach der Adressform ein lupenreines
+        # Produkt: drei Ebenen, kein Schraegstrich am Ende.
+        self.assertFalse([a for a in self._lesen() if "/page/cms" in a])
 
     def test_fremde_adressen_bleiben_draussen(self):
         self.assertFalse([a for a in self._lesen() if "fremd.example" in a])
@@ -143,6 +149,34 @@ class ZweiShopformen(unittest.TestCase):
             ["https://x.example/ADE-Sicherungsstange-S/ADE-S",
              "https://x.example/ADE-Verbindungsplatte/ADE-VP-Z20"],
         )
+
+    def test_schieber_ueber_der_liste_zaehlen_nicht_mit(self):
+        # Shopware stellt ueber die Produktliste Schieber mit Empfehlungen -
+        # Produkte aus dem ganzen Shop. Am 2026-08-31 nachgezaehlt: eine
+        # Kategorie mit drei Produkten meldete elf. Weil die Schieber oben
+        # stehen, waeren genau die falschen in der Kampagne gelandet.
+        roh = f"""
+          <a href="/Empfehlung/EMP-1">Schieber</a>
+          <div class="{seitenkarte.LISTENBAUSTEIN}">
+            <a href="/ADE-Stange/ADE-S">Stange</a>
+          </div>
+        """
+        self.assertEqual(self._lesen(roh, "https://x.example/Fenstersicherung/"),
+                         ["https://x.example/ADE-Stange/ADE-S"])
+
+    def test_ohne_listenbaustein_bleibt_die_ganze_seite(self):
+        # Lieber zu viel finden als eine Kategorie faelschlich fuer leer
+        # erklaeren.
+        roh = '<a href="/ADE-Stange/ADE-S">Stange</a>'
+        self.assertEqual(self._lesen(roh, "https://x.example/Fenstersicherung/"),
+                         ["https://x.example/ADE-Stange/ADE-S"])
+
+    def test_der_eigenbau_wird_nicht_zugeschnitten(self):
+        # Der Baustein ist eine Shopware-Sache. Ein Eigenbau, der das Wort
+        # zufaellig irgendwo stehen haette, duerfte davon nichts merken.
+        roh = (f'<a href="/kat_1/a_1.html">A</a><div class="{seitenkarte.LISTENBAUSTEIN}">'
+               f'<a href="/kat_1/b_2.html">B</a></div>')
+        self.assertEqual(len(self._lesen(roh, "https://x.example/kat_1/list.html")), 2)
 
     def test_grenze_wird_eingehalten(self):
         roh = "".join(f'<a href="/kat_1/artikel_{n}.html">A</a>' for n in range(50))
