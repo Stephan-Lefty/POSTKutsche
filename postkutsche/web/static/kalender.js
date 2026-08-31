@@ -1126,9 +1126,40 @@ async function blattOeffnen(id) {
   const inhalt = $("#blatt-inhalt");
   inhalt.innerHTML = "";
 
+  /* Termin und Uhrzeit zum Ändern. Ziehen im Kalender verschiebt nur den
+     Tag; die Uhrzeit kam bisher starr aus den Sendezeiten und ließ sich
+     überhaupt nicht anfassen. Ein Vorschlag, den man nicht übergehen kann,
+     ist keiner - und wer weiß, dass am Dienstag um acht seine Leute in der
+     Werkstatt stehen, soll das eintragen können.
+
+     Ein einzelnes datetime-local statt zweier Felder: Der Browser bringt
+     Kalender und Uhr mit, und Datum und Zeit gehören zusammen. Gespeichert
+     wird beim Verlassen des Feldes, nicht bei jedem Tastendruck - sonst
+     entstünde für »08:30« ein Termin um 00:00, sobald die erste Ziffer
+     steht. */
   const wann = document.createElement("p");
   wann.className = "schlagworte";
-  wann.textContent = `Geplant: ${b.geplant_ort.slice(0, 16).replace("T", ", ")} · ${b.zustand}`;
+  wann.append(document.createTextNode("Geplant: "));
+
+  const termin = document.createElement("input");
+  termin.type = "datetime-local";
+  termin.className = "terminfeld";
+  termin.value = b.geplant_ort.slice(0, 16);
+  termin.disabled = b.zustand === "erledigt";
+  termin.title = termin.disabled
+    ? "Dieser Beitrag ist erschienen - sein Termin ist ein Beleg."
+    : "Tag und Uhrzeit ändern";
+  termin.onchange = async () => {
+    try {
+      const antwort = await hole("/api/verschieben", { id, geplant: termin.value });
+      melden(`Verschoben auf ${antwort.lesbar || termin.value}.`);
+      monatLaden();
+    } catch (fehler) {
+      melden(fehler.message, true);
+      termin.value = b.geplant_ort.slice(0, 16);  // zurück auf den alten Stand
+    }
+  };
+  wann.append(termin, document.createTextNode(` · ${b.zustand}`));
   inhalt.append(wann);
 
   if (b.quelle) {

@@ -582,3 +582,22 @@ button { font: inherit; cursor: pointer; }
 }
 .farbwahl-eigene input { width: 34px; height: 26px; padding: 0; border: none;
                          background: none; cursor: pointer; }
+
+/* Das Terminfeld im Beitragsblatt. Es steht mitten in einer Zeile Fließtext
+   und soll dort nicht als Formular auffallen, sondern als das, was es ist:
+   eine Angabe, die man anfassen darf. Deshalb dieselbe Schriftgröße wie die
+   Zeile ringsum und nur ein angedeuteter Rahmen, der beim Draufzeigen
+   deutlich wird. */
+.terminfeld {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom-color: var(--linie);
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+.terminfeld:hover:not(:disabled) { border-color: var(--blau); }
+.terminfeld:focus { outline: 2px solid var(--blau); outline-offset: 1px; }
+/* Ein erschienener Beitrag ist ein Beleg - sein Termin bleibt, wie er war. */
+.terminfeld:disabled { border-bottom-style: dotted; cursor: not-allowed; }
