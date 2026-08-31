@@ -21,6 +21,10 @@ aren't deleted, they move down — with the date they were done.
   up "offers" and "offers and pickup stock" (catch-alls rather than ranges)
   and two categories whose label is broken in the page's encoding. None of it
   removed on suspicion – one word is enough if it bothers you.
+- **Sharpen the collected knowledge once it settles in.** Open questions:
+  whether twelve entries per instruction are enough, and whether the newest
+  ones are the right ones. Taking an answer back currently means deleting it
+  and answering again – there is no editing.
 - **Connect the sources.** WordPress via `/wp-json/wp/v2/posts?_embed`,
   Shopware 6 via the Store API, altbau.example via `sitemap.xml` and `og:` scraping.
   One test per source against a recorded response, no network in tests.
@@ -81,3 +85,7 @@ aren't deleted, they move down — with the date they were done.
   17 categories where the shop carries 116. The navigation is the source now,
   read down to the third level, with product counts tallied while reading and
   kept for twelve hours.
+- **Answers to queries become project knowledge** (2026-08-31): when you
+  answer, a switch says whether the answer holds in general or only for this
+  product. General knowledge goes into every further draft, product knowledge
+  only for its own address. Reviewed and deleted under "Gelerntes".

@@ -37,6 +37,10 @@ wurde.
   Kategorie. Bei zwölf Produkten fällt das nicht auf; bei einer Kategorie mit
   achtzig bleibt der Rest ungesehen. Die Folgeseiten hängen bei Shopware an
   `?p=2`.
+- **Gelerntes nachschärfen, wenn es sich einspielt.** Offen ist, ob zwölf
+  Einträge je Anweisung reichen und ob die neuesten die richtigen sind. Wenn
+  eine Antwort zurückgenommen werden muss, geht das bisher nur durch
+  Streichen und neu Beantworten – Bearbeiten gibt es nicht.
 - **Die Uhrzeit im Kalender ändern können.** Ziehen verschiebt bisher nur den
   Tag; die Uhrzeit lässt sich nur über die Vorschläge aus `sendezeiten.py`
   setzen.
@@ -93,3 +97,7 @@ wurde.
   Kategorien, während der Shop 116 führt. Jetzt ist die Navigation die
   Quelle, gelesen bis in die dritte Ebene, mit mitgezählten Produkten und
   zwölf Stunden Zwischenspeicher.
+- **Antworten auf Rückfragen als Projektwissen** (2026-08-31): Beim Antworten
+  sagt ein Schalter, ob die Auskunft allgemein gilt oder nur für dieses
+  Produkt. Allgemeines geht in jeden weiteren Entwurf mit, Produktwissen nur
+  zu seiner Adresse. Anzusehen und zu streichen unter »Gelerntes«.

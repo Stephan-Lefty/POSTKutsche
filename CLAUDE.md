@@ -5,7 +5,7 @@ Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 
 ## Hier war Schluss (Stand 2026-08-31)
 
-343 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+372 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
 
@@ -51,6 +51,15 @@ Kategorie zwölf Produkte, wo eines stand.
 kein Produkt, das man zeigen und verlinken könnte: ein Konfigurator ist ein
 Formular, ein Abholgebiet ein Ort. Gefiltert wird auf das Wort, nicht auf den
 Ortsnamen – »Garagentore Berlin« ist ein Sortiment und bleibt wählbar.
+
+**Beantwortete Rückfragen kommen nicht wieder.** Wer antwortet, sagt mit einem
+Schalter dazu, ob die Auskunft allgemein gilt oder nur für dieses Produkt.
+Tabelle `wissen`, gebunden an Projekt und – bei Produktwissen – an eine
+Adresse. Allgemeines geht in jeden Entwurf des Projekts, Produktwissen nur zu
+seiner Adresse. Die Unterscheidung ist der Kern: Wer alles pauschal
+mitschickt, füttert Claude nach einem halben Jahr mit dreißig Sonderfällen und
+bekommt schlechtere Texte statt bessere. Angesehen und gestrichen wird unter
+»Gelerntes« in der linken Spalte.
 
 **Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
 werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,

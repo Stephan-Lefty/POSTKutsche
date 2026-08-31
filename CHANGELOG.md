@@ -61,6 +61,16 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   steht kein Produkt, das man zeigen und verlinken könnte.
 - **Rückfragen.** Wo etwas unklar ist, entsteht kein fertiger Text, sondern
   eine Frage. Beiträge mit offenen Fragen lassen sich nicht freigeben.
+- **Beantwortete Rückfragen kommen nicht wieder.** Wer antwortet, sagt mit
+  einem Schalter dazu, ob die Auskunft allgemein gilt oder nur für dieses
+  Produkt. Allgemeines geht in jeden weiteren Entwurf des Projekts,
+  Produktwissen nur zu seiner Adresse – wer beides gleich behandelt, füttert
+  Claude nach einem halben Jahr mit dreißig Sonderfällen. Gedeckelt auf
+  zwölf Einträge, neueste zuerst, Doppeltes bleibt draußen. In der Anweisung
+  steht ausdrücklich, dass dieses Wissen vom Betreiber stammt und nicht
+  auszuschmücken ist. Anzusehen und zu streichen unter »Gelerntes« – eine
+  Sammlung, die nur wächst und die niemand aufräumen kann, wird nach einem
+  halben Jahr zur Last.
 - **Schutz vor verlorener Handarbeit.** Ein von Hand bearbeiteter Text wird
   nicht überschrieben, wenn man »neu schreiben lassen« drückt – erst nach
   ausdrücklicher Bestätigung.
@@ -68,7 +78,7 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Kalender stellen. Der alte bleibt mit seinem Sendedatum stehen, der neue ist
   ein Entwurf mit übernommenen Texten; die Kette zeigt immer auf den Urahn, so
   dass die Zahl der Runden ohne Hangeln ablesbar ist.
-- 343 Tests.
+- 372 Tests.
 
 ### Erscheinungsbild
 
