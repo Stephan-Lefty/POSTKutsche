@@ -437,3 +437,67 @@ class BilderImDienst(unittest.TestCase):
         daten = self.gesendet[-1]
         self.assertFalse(daten["geoeffnet"])
         self.assertTrue(daten["ordner"].endswith("POSTKutsche"))
+
+
+class LaufSperre(unittest.TestCase):
+    """Eine Sperre, die niemand loesen kann, ist schlimmer als zwei Laeufe.
+
+    Der Benutzer meldete: »es wird mir gesagt, es ist eine Planung bereits
+    aktiv«. Ursache war, dass der Lauf nach dem Schliessen des Fensters
+    weiterlief - dagegen hilft das Abbrechen. Bleibt trotzdem etwas haengen,
+    darf »Woche planen« nicht bis zum Neustart des Dienstes gesperrt sein.
+    """
+
+    def setUp(self):
+        vorher = dict(dienst.Behandler.lauf)
+        self.addCleanup(setattr, dienst.Behandler, "lauf", vorher)
+        self.addCleanup(dienst.Behandler.abbruch.clear)
+
+        self.gesendet = []
+        for name, was in (("_json", lambda _s, d, code=200: self.gesendet.append(d)),
+                          ("_fehler", lambda _s, t, code=400:
+                           self.gesendet.append({"fehler": t, "code": code}))):
+            flicken = mock.patch.object(dienst.Behandler, name, was)
+            flicken.start()
+            self.addCleanup(flicken.stop)
+        self.behandler = object.__new__(dienst.Behandler)
+
+    def test_ohne_lauf_ist_nichts_gesperrt(self):
+        dienst.Behandler.lauf = {"aktiv": False}
+        self.assertFalse(dienst.Behandler.laeuft_noch())
+
+    def test_ein_frischer_lauf_sperrt(self):
+        import time
+
+        dienst.Behandler.lauf = {"aktiv": True, "zuletzt": time.monotonic()}
+        self.assertTrue(dienst.Behandler.laeuft_noch())
+
+    def test_ein_lauf_ohne_lebenszeichen_gilt_als_tot(self):
+        import time
+
+        dienst.Behandler.lauf = {
+            "aktiv": True,
+            "zuletzt": time.monotonic() - dienst.LAUF_VERFALL - 1,
+        }
+        self.assertFalse(dienst.Behandler.laeuft_noch())
+
+    def test_ein_lauf_ohne_zeitstempel_gilt_als_tot(self):
+        # So sah der Zustand aus, bevor es den Stempel gab. Ein Rest davon
+        # soll nicht ewig sperren.
+        dienst.Behandler.lauf = {"aktiv": True}
+        self.assertFalse(dienst.Behandler.laeuft_noch())
+
+    def test_abbrechen_setzt_das_signal(self):
+        import time
+
+        dienst.Behandler.lauf = {"aktiv": True, "zuletzt": time.monotonic()}
+        self.behandler._kampagne_abbrechen({})
+        self.assertTrue(self.gesendet[-1]["abgebrochen"])
+        self.assertTrue(dienst.Behandler.abbruch.is_set())
+
+    def test_abbrechen_ohne_lauf_ist_kein_fehler(self):
+        # Wer zweimal drueckt, soll keine rote Meldung bekommen.
+        dienst.Behandler.lauf = {"aktiv": False}
+        self.behandler._kampagne_abbrechen({})
+        self.assertFalse(self.gesendet[-1]["abgebrochen"])
+        self.assertFalse(dienst.Behandler.abbruch.is_set())

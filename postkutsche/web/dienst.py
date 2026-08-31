@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import threading
 import time
 import webbrowser
 from datetime import datetime, timedelta
@@ -35,6 +36,11 @@ STATISCH = Path(__file__).parent / "static"
 #: Sekunden, den Rest des Tages nicht mehr. Ohne diesen Zwischenspeicher
 #: kostete jedes Öffnen des Planungsfensters 130 Abrufe.
 BESTAND_STUNDEN = 12
+
+#: Nach so vielen Sekunden ohne Lebenszeichen gilt ein Kampagnenlauf als tot
+#: und die Sperre als frei. Ein Produkt kostet etwa eine halbe Minute; wer
+#: zehn Minuten nichts von sich hören lässt, läuft nicht mehr.
+LAUF_VERFALL = 600
 
 
 def kategorien_des_projekts(projekt: Any,
@@ -214,7 +220,31 @@ class Behandler(BaseHTTPRequestHandler):
     #: sinnvoll ist.
     lauf: dict[str, Any] = {"aktiv": False}
 
+    #: Prüfen und Setzen der Sperre in einem Zug. Der Dienst bedient Anfragen
+    #: in Fäden; ohne das könnten zwei Läufe beide feststellen, dass gerade
+    #: keiner läuft.
+    lauf_sperre = threading.Lock()
+
+    #: Das Abbruchsignal. `ausfuehren` fragt es zwischen den Produkten.
+    abbruch = threading.Event()
+
     # -- Gerüst ------------------------------------------------------------
+
+    @classmethod
+    def laeuft_noch(cls) -> bool:
+        """Ob wirklich eine Planung läuft – oder nur ein Rest davon steht.
+
+        **Eine Sperre, die niemand mehr lösen kann, ist schlimmer als zwei
+        Läufe.** Endet der Faden hart, bleibt `aktiv` stehen, und »Woche
+        planen« geht bis zum Neustart des Dienstes nicht mehr. Deshalb zählt
+        nicht nur das Häkchen, sondern auch, wann sich der Lauf zuletzt
+        gerührt hat: Ein Produkt kostet etwa eine halbe Minute, zehn Minuten
+        Stille sind also kein langsamer Lauf mehr, sondern ein toter.
+        """
+        if not cls.lauf.get("aktiv"):
+            return False
+        zuletzt = float(cls.lauf.get("zuletzt") or 0.0)
+        return (time.monotonic() - zuletzt) < LAUF_VERFALL
 
     def log_message(self, format: str, *args: Any) -> None:
         # Standardmäßig schreibt http.server jede Anfrage nach stderr. Bei
@@ -268,7 +298,12 @@ class Behandler(BaseHTTPRequestHandler):
             if pfad.startswith("/api/beitrag/"):
                 return self._beitrag(int(pfad.rsplit("/", 1)[-1]))
             if pfad == "/api/lauf":
-                return self._json(Behandler.lauf)
+                # »aktiv« sagt hier, ob wirklich noch etwas läuft - ein
+                # hängengebliebener Rest soll die Oberfläche nicht ewig auf
+                # einen Fortschritt warten lassen.
+                return self._json({**Behandler.lauf,
+                                   "aktiv": Behandler.laeuft_noch(),
+                                   "abbruch": Behandler.abbruch.is_set()})
             if pfad == "/api/kategorien":
                 return self._kategorien(frage)
             if pfad == "/api/wissen":
@@ -318,6 +353,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._wissen_streichen(rumpf)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
+            if pfad == "/api/kampagne/abbrechen":
+                return self._kampagne_abbrechen(rumpf)
         except (ValueError, KeyError) as fehler:
             return self._fehler(str(fehler))
         except ablage_modul.RueckfrageOffen as fehler:
@@ -765,24 +802,60 @@ class Behandler(BaseHTTPRequestHandler):
         # Immer neu formulieren, ohne Wahlmöglichkeit: Es gibt keinen Fall,
         # in dem wortgleich besser wäre. Facebook und Instagram halten solche
         # Beiträge zurück, und bei Mastodon liest sie niemand zweimal.
-        if Behandler.lauf.get("aktiv"):
-            return self._fehler("Es läuft schon eine Planung.", 409)
+        # Prüfen und Setzen unter einer Sperre: Sonst stellen zwei gleichzeitig
+        # eintreffende Anfragen beide fest, dass gerade keine Planung läuft.
+        with Behandler.lauf_sperre:
+            if Behandler.laeuft_noch():
+                return self._fehler(
+                    "Es läuft schon eine Planung. Im Planungsfenster steht "
+                    "»Planung abbrechen«, wenn du sie beenden willst.", 409)
+            # Das Signal des vorigen Laufs zurücksetzen, sonst bräche der neue
+            # sofort ab.
+            Behandler.abbruch.clear()
+            Behandler.lauf = {"aktiv": True, "getan": 0,
+                              "gesamt": kampagne.anzahl, "text": "beginnt …",
+                              "zuletzt": time.monotonic()}
 
         def melden_fortschritt(getan: int, gesamt: int, text: str) -> None:
             Behandler.lauf.update({
                 "aktiv": True, "getan": getan, "gesamt": gesamt, "text": text,
+                # Der Zeitstempel ist das Lebenszeichen, an dem `laeuft_noch`
+                # einen abgestürzten Lauf von einem langsamen unterscheidet.
+                "zuletzt": time.monotonic(),
             })
 
-        Behandler.lauf = {"aktiv": True, "getan": 0,
-                          "gesamt": kampagne.anzahl, "text": "beginnt …"}
         try:
             with self._ablage() as a:
                 bericht = ausfuehren(a, kampagne, fortschritt=melden_fortschritt,
                                      bestaetigt=bestaetigt,
-                                     wiederholungen=umgang)
+                                     wiederholungen=umgang,
+                                     abbrechen=Behandler.abbruch.is_set)
         finally:
+            # In jedem Fall: auch wenn der Lauf mit einer Ausnahme endet oder
+            # der Browser die Verbindung längst geschlossen hat. Eine Sperre,
+            # die hängen bleibt, sperrt bis zum Neustart des Dienstes.
             Behandler.lauf = {"aktiv": False}
+            Behandler.abbruch.clear()
         self._json(bericht)
+
+    def _kampagne_abbrechen(self, rumpf: dict[str, Any]) -> None:
+        """Bricht den laufenden Kampagnenlauf ab.
+
+        **Abbrechen heißt abbrechen und wegräumen.** Bisher schloss der Knopf
+        nur das Fenster: Der Lauf lief im Dienst weiter, legte Beiträge an und
+        hielt die Sperre - genau das hat der Benutzer als »die Artikel sind
+        schon markiert, und es heißt, es läuft schon eine Planung« gemeldet.
+
+        Gesetzt wird nur das Signal; abgeräumt wird im Lauf selbst, zwischen
+        zwei Produkten. Von außen in eine laufende Kette hineinzugreifen hieße,
+        zwei Stellen über denselben Zustand entscheiden zu lassen.
+        """
+        if not Behandler.lauf.get("aktiv"):
+            return self._json({"abgebrochen": False,
+                               "hinweis": "Gerade läuft keine Planung."})
+        Behandler.abbruch.set()
+        Behandler.lauf.update({"text": "wird abgebrochen …"})
+        self._json({"abgebrochen": True})
 
     def _bild_setzen(self, rumpf: dict[str, Any]) -> None:
         """Tauscht das Bild einer Fassung aus.

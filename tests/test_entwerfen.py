@@ -280,3 +280,122 @@ class KampagnenLesenNichtDieSeitenkarte(unittest.TestCase):
             "https://shop.example/kat_1/a_1.html",
             "https://shop.example/kat_1/b_2.html",
         ])
+
+
+class AbbrechenBrichtAb(unittest.TestCase):
+    """Abbrechen heisst abbrechen und wegraeumen, nicht »hier stehen bleiben«.
+
+    Vorher schloss der Knopf nur das Fenster: Der Lauf lief im Dienst weiter,
+    legte Beitraege an und hielt die Sperre. Am 2026-08-31 nachgemessen -
+    nach dem Anhalten mitten im Lauf standen fuenf Beitraege in der Ablage,
+    und fuenf von zehn Produkten galten ueber die Vier-Wochen-Regel als
+    beworben, obwohl nie etwas erschienen war.
+    """
+
+    def setUp(self):
+        from postkutsche.ablage import Ablage
+
+        self.ablage = Ablage(":memory:")
+        self.addCleanup(self.ablage.schliessen)
+        self.projekt = self.ablage.projekt_anlegen(
+            "shop", "Shop", "https://shop.example", "seitenkarte")
+        self.produkte = [
+            {"adresse": f"https://shop.example/kat_1/t_{n}.html",
+             "titel": f"Tür {n}", "kategorie": "kat_1"} for n in range(1, 7)]
+
+    def _laufen(self, abbrechen, anzahl=6):
+        from unittest import mock
+
+        from postkutsche import kampagnen, kampagnenlauf
+
+        def seite(adresse):
+            return {"fremd_id": adresse, "titel": adresse.rsplit("/", 1)[-1],
+                    "text": "Text.", "adresse": adresse, "bild_adresse": None,
+                    "veroeffentlicht": None, "kategorien": []}
+
+        k = kampagnen.Kampagne(
+            thema="", projekt="shop", kalenderwoche=36, jahr=2026,
+            kategorien=["https://shop.example/kat_1/list.html"],
+            netzwerke=["facebook"], je_tag=2)
+
+        with mock.patch.object(kampagnenlauf, "produkte_sammeln",
+                               return_value=self.produkte), \
+             mock.patch("postkutsche.denker.verfuegbar", return_value=True), \
+             mock.patch("postkutsche.denker.schreiben", return_value={
+                 "facebook": {"text": "Ein Text.", "schlagworte": "",
+                              "rueckfrage": None}}), \
+             mock.patch("postkutsche.quellen.seitenkarte.seite",
+                        side_effect=seite):
+            return kampagnenlauf.ausfuehren(self.ablage, k, bestaetigt=True,
+                                            abbrechen=abbrechen)
+
+    def _zaehlen(self):
+        return (
+            self.ablage.db.execute("SELECT COUNT(*) FROM beitraege").fetchone()[0],
+            self.ablage.db.execute("SELECT COUNT(*) FROM inhalte").fetchone()[0],
+        )
+
+    def test_ohne_abbruch_laeuft_alles_durch(self):
+        bericht = self._laufen(lambda: False)
+        self.assertGreater(bericht["anzahl"], 0)
+        self.assertFalse(bericht["abgebrochen"])
+
+    def _sobald(self, beitraege: int):
+        """Bricht ab, sobald so viele Beitraege in der Ablage stehen.
+
+        Unabhaengig davon, an wie vielen Stellen gefragt wird: `ausfuehren`
+        fragt auch schon nach dem Sammeln, und ein Test, der Aufrufe zaehlt,
+        geht bei der naechsten Pruefstelle kaputt.
+        """
+        return lambda: self._zaehlen()[0] >= beitraege
+
+    def test_abbruch_nach_zwei_raeumt_beide_weg(self):
+        bericht = self._laufen(self._sobald(2))
+        self.assertTrue(bericht["abgebrochen"])
+        self.assertEqual(bericht["entfernt"], 2)
+        self.assertEqual(bericht["anzahl"], 0)
+        beitraege, inhalte = self._zaehlen()
+        self.assertEqual(beitraege, 0)
+        # Der Inhalt geht mit, sonst gilt das Produkt vier Wochen als
+        # beworben, obwohl nie etwas erschienen ist.
+        self.assertEqual(inhalte, 0)
+
+    def test_nach_dem_abbruch_ist_kein_produkt_gesperrt(self):
+        from postkutsche import kampagnenlauf
+
+        self._laufen(self._sobald(2))
+        gesperrt = kampagnenlauf.wiederholungen_finden(
+            self.ablage, self.projekt.id, self.produkte)
+        self.assertEqual(gesperrt, [])
+
+    def test_abbruch_vor_dem_ersten_produkt_legt_nichts_an(self):
+        bericht = self._laufen(lambda: True)
+        self.assertTrue(bericht["abgebrochen"])
+        self.assertEqual(bericht["entfernt"], 0)
+        self.assertEqual(self._zaehlen(), (0, 0))
+
+    def test_der_bericht_sagt_was_geschah(self):
+        # Stilles Verschwinden waere das Schlimmste: Dann fragt man sich, wo
+        # die angefangenen Entwuerfe geblieben sind.
+        bericht = self._laufen(self._sobald(1))
+        self.assertIn("Abgebrochen", bericht["hinweis"])
+        self.assertIn("entfernt", bericht["hinweis"])
+
+    def test_veroeffentlichtes_bleibt_stehen(self):
+        # Die Regel wird auch beim Aufraeumen nicht zur Ausnahme gemacht.
+        from postkutsche.ablage import FASSUNG_GESENDET
+
+        def abbrechen():
+            beitraege = self._zaehlen()[0]
+            if beitraege == 2:
+                # So tun, als waere der erste Beitrag schon draussen.
+                fassung = self.ablage.db.execute(
+                    "SELECT id FROM fassungen ORDER BY id LIMIT 1").fetchone()
+                self.ablage.fassung_vermerken(int(fassung["id"]), FASSUNG_GESENDET)
+                return True
+            return False
+
+        bericht = self._laufen(abbrechen)
+        self.assertEqual(bericht["entfernt"], 1)
+        beitraege, _ = self._zaehlen()
+        self.assertEqual(beitraege, 1)

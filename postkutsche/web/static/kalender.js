@@ -117,6 +117,28 @@ function kalenderwoche(d) {
 let kategorienAlle = [];
 let kategorienHinweis = null;
 
+/** Ob gerade eine Planung läuft. Daran hängt, was »Abbrechen« bedeutet. */
+let planungLaeuft = false;
+
+/** Bricht den laufenden Lauf ab und räumt weg, was er angelegt hat. */
+async function planungAbbrechen() {
+  const knopf = $("#k-zu");
+  knopf.disabled = true;
+  $("#k-stand").textContent =
+    "Wird abgebrochen – der angefangene Beitrag wird noch fertig …";
+  try {
+    await hole("/api/kampagne/abbrechen", {});
+  } catch (fehler) {
+    /* Ein Dienst, der noch nicht neu gestartet wurde, kennt diesen Endpunkt
+       nicht. Dann wenigstens das Fenster schließen wie früher - und sagen,
+       warum der Lauf trotzdem weiterläuft, statt es zu verschweigen. */
+    melden(`Abbrechen braucht einen Neustart des Dienstes – die Planung läuft
+            im Hintergrund weiter. (${fehler.message})`, true);
+    $("#kampagne").hidden = true;
+    knopf.disabled = false;
+  }
+}
+
 function kampagneVorbereiten() {
   const kasten = $("#kampagne");
   $("#kampagne-auf").onclick = () => {
@@ -129,7 +151,18 @@ function kampagneVorbereiten() {
     $("#k-jahr").value = kw.jahr;
     kasten.hidden = false;
   };
-  $("#k-zu").onclick = () => (kasten.hidden = true);
+  /* Der Knopf tut zweierlei, je nachdem, ob gerade etwas läuft. Steht nichts
+     an, schließt er das Fenster wie bisher. Läuft eine Planung, bricht er sie
+     ab - denn genau das hat bisher gefehlt: Das Fenster zu schließen ließ den
+     Lauf im Dienst weiterlaufen, Beiträge anlegen und die Sperre halten.
+
+     Ohne Rückfrage: Wer während eines Laufs auf »Planung abbrechen« drückt,
+     meint es. Escape und der Klick daneben schließen dagegen weiterhin nur
+     das Fenster - wer den Kalender sehen will, will nicht abbrechen. */
+  $("#k-zu").onclick = () => {
+    if (!planungLaeuft) return void (kasten.hidden = true);
+    planungAbbrechen();
+  };
   kasten.onclick = (e) => { if (e.target === kasten) kasten.hidden = true; };
 
   const auswahl = $("#k-projekt");
@@ -496,9 +529,19 @@ function berichtZeigen(bericht) {
   kasten.hidden = false;
 
   const kopf = document.createElement("h3");
-  kopf.textContent = bericht.anzahl === 1
-    ? "1 Entwurf angelegt"
-    : `${bericht.anzahl} Entwürfe angelegt`;
+  /* Nach einem Abbruch nicht »0 Entwürfe angelegt« - das liest sich wie ein
+     Fehlschlag. Gesagt wird, was wirklich geschah: abgebrochen, und wie viel
+     dabei wieder weggeräumt wurde. Stilles Verschwinden wäre das Schlimmste:
+     Dann fragt man sich, wo die drei Entwürfe geblieben sind. */
+  if (bericht.abgebrochen) {
+    kopf.textContent = bericht.entfernt
+      ? `Abgebrochen – ${bericht.entfernt} angefangene Entwürfe entfernt`
+      : "Abgebrochen – es war noch nichts angelegt";
+  } else {
+    kopf.textContent = bericht.anzahl === 1
+      ? "1 Entwurf angelegt"
+      : `${bericht.anzahl} Entwürfe angelegt`;
+  }
   kasten.append(kopf);
 
   bericht.angelegt.forEach((e) => {
@@ -567,6 +610,17 @@ function berichtZeigen(bericht) {
  */
 function benachrichtigen(bericht) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+  // Ein Abbruch ist keine fertige Wochenplanung. Wer das Fenster verlassen
+  // hat, soll auch in der Benachrichtigung lesen, dass aufgeräumt wurde.
+  if (bericht.abgebrochen) {
+    new Notification("POSTKutsche – Planung abgebrochen", {
+      body: bericht.entfernt
+        ? `${bericht.entfernt} angefangene Entwürfe wieder entfernt`
+        : "Es war noch nichts angelegt",
+      icon: "/static/icon-64.png",
+    });
+    return;
+  }
   const text = bericht.gescheitert.length
     ? `${bericht.anzahl} angelegt, ${bericht.gescheitert.length} gescheitert`
     : `${bericht.anzahl} Entwürfe stehen im Kalender`;
@@ -665,6 +719,11 @@ async function kampagneAbschicken(e) {
 
   const knopf = $("#k-los");
   knopf.disabled = true;
+  // Solange etwas läuft, heißt »Abbrechen« abbrechen und nicht schließen.
+  // Die Beschriftung muss das sagen, sonst drückt man es versehentlich.
+  planungLaeuft = true;
+  $("#k-zu").textContent = "Planung abbrechen";
+  $("#k-zu").disabled = false;
   $("#k-bericht").hidden = true;
   const jeTag = Number($("#k-jetag").value);
   const anzahlTage = $("#k-tage").querySelectorAll("input:checked").length;
@@ -737,6 +796,9 @@ async function kampagneAbschicken(e) {
   } finally {
     clearInterval(uhr);
     knopf.disabled = false;
+    planungLaeuft = false;
+    $("#k-zu").textContent = "Abbrechen";
+    $("#k-zu").disabled = false;
     $("#k-balken").hidden = true;
     $("#k-stand").textContent = "";
   }
