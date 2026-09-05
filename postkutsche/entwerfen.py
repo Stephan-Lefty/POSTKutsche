@@ -109,8 +109,9 @@ def entwerfen(
         # Sonst wird bei jedem Produkt derselben Art dasselbe neu gefragt.
         wissen = [dict(z) for z in ablage.wissen(projekt.id,
                                                  str(inhalt.get("adresse") or ""))]
+        art = denker.BLOG if projekt.art == "wordpress" else denker.PRODUKT
         fassungen = denker.schreiben(inhalt, netzwerke, projekt.name,
-                                     wissen=wissen)
+                                     wissen=wissen, art=art)
 
         # Der Termin richtet sich nach dem ersten Netzwerk; die übrigen
         # Fassungen gehen zur selben Zeit raus. Ein Beitrag ist ein Kärtchen.

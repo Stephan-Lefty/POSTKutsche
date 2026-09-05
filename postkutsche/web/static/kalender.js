@@ -167,27 +167,27 @@ function kampagneVorbereiten() {
 
   const auswahl = $("#k-projekt");
   auswahl.innerHTML = "";
-  /* Kampagnen brauchen Kategorien, und die kommen aus der Seitenkarte -
-     entweder abgelesen oder in der Projektdatei vorgegeben. Gesperrte
-     Einträge sagen aber nicht, warum sie gesperrt sind - wer nur
-     »HaBeFa.de« sieht, hält die anderen Projekte für verschwunden. Deshalb
-     steht der Grund jetzt dabei.
+  /* Kampagnen brauchen Kategorien. Bei einem Shop ohne Schnittstelle kommen
+     sie aus der Navigation oder aus der Projektdatei, bei einem Blog seit dem
+     2026-09-05 aus WordPress selbst. Gesperrte Einträge sagen aber nicht,
+     warum sie gesperrt sind - wer nur ein einziges Projekt wählen kann, hält
+     die anderen für verschwunden. Deshalb steht der Grund dabei.
 
      Die beiden Shopware-Shops stehen seit dem 2026-08-31 als »seitenkarte«
      und sind damit wählbar. Der Grund für »shopware« bleibt trotzdem stehen:
      Wer ein Projekt über die Kommandozeile mit dieser Art anlegt, soll
      lesen, warum es nicht geht - und wohin es stattdessen gehört. */
+  const PLANBAR = ["seitenkarte", "wordpress"];
   const GRUND = {
     shopware: "Store-API nicht angebunden - Art »seitenkarte« nehmen",
-    wordpress: "Blog - Beiträge kommen von selbst, keine Kampagne",
   };
   stand.projekte.forEach((p) => {
     const eintrag = document.createElement("option");
     eintrag.value = p.kennung;
-    eintrag.textContent = p.art === "seitenkarte"
+    eintrag.textContent = PLANBAR.includes(p.art)
       ? p.name
       : `${p.name} - ${GRUND[p.art] || "keine Kategorien"}`;
-    if (p.art !== "seitenkarte") eintrag.disabled = true;
+    if (!PLANBAR.includes(p.art)) eintrag.disabled = true;
     auswahl.append(eintrag);
   });
   auswahl.onchange = kategorienLaden;
@@ -244,10 +244,16 @@ async function kategorienLaden() {
      hundert Seiten, gut zwanzig Sekunden. Danach liegt er zwölf Stunden
      bereit. Wer das nicht weiß, hält das Formular für hängengeblieben und
      lädt neu, womit die Erhebung von vorn beginnt. */
-  liste.innerHTML =
-    '<p class="schlagworte">Kategorien werden geholt … Beim ersten Mal am Tag' +
-    ' liest POSTKutsche dafür den ganzen Shop durch, das dauert etwa eine' +
-    ' halbe Minute.</p>';
+  /* Ein Blog sagt seine Kategorien selbst - ein Abruf, keine Erhebung. Wer
+     dort »das dauert eine halbe Minute« liest, wartet auf etwas, das schon
+     da ist. */
+  const gewaehltesProjekt = (stand.projekte || [])
+    .find((p) => p.kennung === $("#k-projekt").value);
+  liste.innerHTML = gewaehltesProjekt && gewaehltesProjekt.art === "wordpress"
+    ? '<p class="schlagworte">Kategorien werden geholt …</p>'
+    : '<p class="schlagworte">Kategorien werden geholt … Beim ersten Mal am Tag' +
+      ' liest POSTKutsche dafür den ganzen Shop durch, das dauert etwa eine' +
+      ' halbe Minute.</p>';
   try {
     const antwort = await hole(`/api/kategorien?projekt=${$("#k-projekt").value}`);
     /* Beide Antwortformen lesen. Statische Dateien liefert der Dienst
@@ -286,9 +292,22 @@ function bereicheFuellen() {
     bereiche.set(erster, (bereiche.get(erster) || 0) + (k.produkte > 0 ? 1 : 0));
   });
 
+  /* Bei einem Blog liegt alles im selben Zweig. Eine Auswahl mit genau einem
+     Eintrag ist keine Auswahl, sondern ein Bedienelement, das nichts tut -
+     also weg damit. Das Feld wird dabei geleert, sonst filterte ein Bereich
+     weiter, den man nicht mehr sehen und daher nicht mehr abwählen kann. */
+  const echte = [...bereiche.entries()].filter(([, anzahl]) => anzahl > 0);
+  const kasten = auswahl.closest("label") || auswahl;
+  if (echte.length < 2) {
+    auswahl.innerHTML = '<option value="">alle Bereiche</option>';
+    auswahl.value = "";
+    kasten.hidden = true;
+    return;
+  }
+  kasten.hidden = false;
+
   auswahl.innerHTML = '<option value="">alle Bereiche</option>';
-  [...bereiche.entries()].sort().forEach(([pfad, anzahl]) => {
-    if (!anzahl) return;
+  echte.sort().forEach(([pfad, anzahl]) => {
     const eintrag = document.createElement("option");
     eintrag.value = pfad;
     // »shop-tueren« zu »Türen«: Das Wort »shop« steht in jedem Zweig und

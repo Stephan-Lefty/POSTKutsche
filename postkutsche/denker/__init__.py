@@ -18,10 +18,10 @@ from typing import Any
 
 from . import kommando, vorlagen
 from .kommando import ClaudeFehler, ClaudeFehlt
-from .vorlagen import AntwortFehler
+from .vorlagen import BLOG, PRODUKT, AntwortFehler
 
 __all__ = ["kommando", "vorlagen", "schreiben", "nachbessern", "verfuegbar",
-           "ClaudeFehler", "ClaudeFehlt", "AntwortFehler"]
+           "ClaudeFehler", "ClaudeFehlt", "AntwortFehler", "BLOG", "PRODUKT"]
 
 KOMMANDO = "kommando"
 API = "api"
@@ -42,6 +42,7 @@ def schreiben(
     weg: str = KOMMANDO,
     frueher: dict[str, str] | None = None,
     wissen: list[dict[str, Any]] | None = None,
+    art: str = vorlagen.PRODUKT,
 ) -> dict[str, dict[str, Any]]:
     """Lässt die Fassungen schreiben – über den gewählten Weg.
 
@@ -50,10 +51,12 @@ def schreiben(
 
     `wissen` sind frühere Antworten des Betreibers auf Rückfragen. Sie
     ersparen ihm, dieselbe Frage jede Woche neu zu beantworten.
+
+    `art` unterscheidet Blogbeitrag von Produkt – siehe `vorlagen.anweisung`.
     """
     if weg == KOMMANDO:
         return kommando.fassungen(inhalt, fuer, projekt, zusatz,
-                                  frueher=frueher, wissen=wissen)
+                                  frueher=frueher, wissen=wissen, art=art)
     if weg == API:
         raise NotImplementedError(
             "Der Weg über die Anthropic-Schnittstelle ist noch nicht gebaut. "

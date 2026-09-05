@@ -55,6 +55,7 @@ def fassungen(
     modell: str | None = None,
     frueher: dict[str, str] | None = None,
     wissen: list[dict[str, Any]] | None = None,
+    art: str = vorlagen.PRODUKT,
 ) -> dict[str, dict[str, Any]]:
     """Lässt Claude die Fassungen für die genannten Netzwerke schreiben.
 
@@ -62,7 +63,8 @@ def fassungen(
     »rueckfrage« zurück - genau das, was `ablage.fassung_setzen` erwartet.
     """
     text = _aufrufen(
-        vorlagen.anweisung(inhalt, fuer, projekt, zusatz, frueher, wissen), modell
+        vorlagen.anweisung(inhalt, fuer, projekt, zusatz, frueher, wissen, art),
+        modell,
     )
     return vorlagen.antwort_lesen(text, fuer)
 

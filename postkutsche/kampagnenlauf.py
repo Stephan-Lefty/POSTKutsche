@@ -17,16 +17,27 @@ from typing import Any
 from datetime import timedelta
 
 from . import bilder, denker, kampagnen, sendezeiten, zeiten
-from .quellen import seitenkarte
+from .quellen import seitenkarte, wordpress
 
 
 def produkte_sammeln(kampagne: kampagnen.Kampagne,
-                     grenze_je_kategorie: int = 40) -> list[dict[str, Any]]:
-    """Holt die Produktadressen aus den Kategorien der Kampagne.
+                     grenze_je_kategorie: int = 40,
+                     projekt: Any = None) -> list[dict[str, Any]]:
+    """Holt die Adressen aus den Kategorien der Kampagne.
 
     Nur die Adressen, nicht die Seiten selbst - das wären hundert Abrufe für
     zehn Beiträge. Ausgelesen wird erst, was nach dem Streuen übrig bleibt.
+
+    **Ein Blog wird anders gelesen als ein Shop.** WordPress sagt selbst, was
+    in einer Kategorie steht; bei einem Shop ohne Schnittstelle muss man die
+    Kategorieseite durchsehen. Was hinten herauskommt, ist dasselbe: Adresse,
+    Kategorie, Titel.
+
+    Ohne `projekt` bleibt es beim Shopweg - so, wie es vor dem 2026-09-05 war.
     """
+    if projekt is not None and getattr(projekt, "art", "") == "wordpress":
+        return _beitraege_sammeln(kampagne, projekt, grenze_je_kategorie)
+
     gesammelt: list[dict[str, Any]] = []
     for adresse in kampagne.kategorien:
         name = _kategoriename(adresse)
@@ -39,6 +50,53 @@ def produkte_sammeln(kampagne: kampagnen.Kampagne,
                 "titel": produkt.rsplit("/", 1)[-1].replace("_", " ").replace(".html", ""),
             })
     return gesammelt
+
+
+def _beitraege_sammeln(kampagne: kampagnen.Kampagne, projekt: Any,
+                       grenze: int) -> list[dict[str, Any]]:
+    """Der Blogweg: Beiträge aus WordPress-Kategorien.
+
+    Die Kennung des Beitrags wird mitgeführt, damit der ganze Beitrag später
+    über die Schnittstelle geholt werden kann statt über die Seite. Der
+    Sprachfilter des Projekts gilt auch hier - sonst planten die zweisprachigen
+    Blogs jeden Beitrag zweimal, einmal deutsch und einmal englisch.
+    """
+    stamm = wordpress.rest_adresse_von(projekt)
+    ausschliessen = (projekt.einstellungen or {}).get("ausschliessen")
+    kategorien = _kategorienamen(stamm, kampagne.kategorien)
+
+    gesammelt: list[dict[str, Any]] = []
+    gesehen: set[str] = set()
+    for adresse in kampagne.kategorien:
+        name = kategorien.get(adresse, _kategoriename(adresse))
+        for eintrag in wordpress.beitragsliste(adresse, grenze, ausschliessen):
+            # Ein Beitrag kann in zwei gewählten Kategorien stehen. Er soll
+            # deshalb nicht zweimal in der Woche erscheinen.
+            if eintrag["adresse"] in gesehen:
+                continue
+            gesehen.add(str(eintrag["adresse"]))
+            gesammelt.append({
+                "adresse": eintrag["adresse"],
+                "kategorie": name,
+                "titel": eintrag["titel"],
+                "fremd_id": eintrag["fremd_id"],
+            })
+    return gesammelt
+
+
+def _kategorienamen(stamm: str, adressen: list[str]) -> dict[str, str]:
+    """Ordnet den gewählten Kategorieadressen ihre Namen zu.
+
+    Für die Streuung genügte die Nummer, für den Bericht nicht: »Wandern« sagt
+    etwas, »posts?categories=5« nichts. Scheitert der Abruf, wird nicht der
+    ganze Lauf hingeworfen - dann steht eben die Adresse da.
+    """
+    try:
+        bekannt = {str(k["adresse"]): str(k["name"])
+                   for k in wordpress.kategorien(stamm)}
+    except seitenkarte.AbrufFehler:
+        return {}
+    return {a: bekannt[a] for a in adressen if a in bekannt}
 
 
 #: Wie lange ein Produkt als »neulich beworben« gilt. Vier Wochen sind lang
@@ -125,7 +183,7 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
 
     sagen("Produkte sammeln …")
     schritt(0, kampagne.anzahl, "Produkte sammeln …")
-    alle = produkte_sammeln(kampagne)
+    alle = produkte_sammeln(kampagne, projekt=projekt)
     # Auch hier schon fragen: Das Sammeln kann eine halbe Minute dauern, und
     # wer in dieser Zeit abbricht, soll nicht noch zehn Beiträge bekommen.
     if abgebrochen():
@@ -224,7 +282,7 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
 
 def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
                  frueher=None):
-    seite = seitenkarte.seite(produkt["adresse"])
+    seite = _auslesen(projekt, produkt)
 
     nummer, _ = ablage.inhalt_merken(
         projekt.id, seite["fremd_id"], seite["titel"], seite["adresse"],
@@ -235,8 +293,10 @@ def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
     # Was der Betreiber auf frühere Rückfragen geantwortet hat, geht mit:
     # allgemein Geltendes immer, Produktwissen nur zu dieser Adresse.
     wissen = [dict(z) for z in ablage.wissen(projekt.id, str(seite["adresse"]))]
+    art = (denker.BLOG if getattr(projekt, "art", "") == "wordpress"
+           else denker.PRODUKT)
     fassungen = denker.schreiben(seite, netze, projekt.name, zusatz,
-                                 frueher=frueher, wissen=wissen)
+                                 frueher=frueher, wissen=wissen, art=art)
 
     bild = None
     if seite.get("bild_adresse"):
@@ -265,6 +325,24 @@ def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
         "bild": bool(bild),
         "rueckfragen": fragen,
     }
+
+
+def _auslesen(projekt, produkt) -> dict[str, Any]:
+    """Holt den ganzen Inhalt – über die Schnittstelle, wo es eine gibt.
+
+    Bei einem Blog ist der Weg über die Schnittstelle besser als der über die
+    Seite: WordPress liefert den Text ohne Menü, Fußzeile und Beiwerk, dazu
+    das gepflegte Beitragsbild und das Datum. Aus dem HTML derselben Seite
+    müsste man all das erst wieder herausschneiden.
+
+    Fehlt die Kennung - etwa bei einem alten Entwurf aus der Zeit vor dem
+    2026-09-05 -, wird die Seite gelesen wie bei einem Shop. Lieber ein
+    schlechterer Text als ein Abbruch.
+    """
+    if getattr(projekt, "art", "") == "wordpress" and produkt.get("fremd_id"):
+        stamm = wordpress.rest_adresse_von(projekt)
+        return wordpress.beitrag(stamm, str(produkt["fremd_id"]))
+    return seitenkarte.seite(produkt["adresse"])
 
 
 def _kategoriename(adresse: str) -> str:

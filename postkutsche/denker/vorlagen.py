@@ -94,6 +94,37 @@ schlecht wie ein erfundenes Detail.\
 """
 
 
+#: Die beiden Sorten Quelle. »produkt« ist der Regelfall und bleibt die
+#: Vorgabe: Was vorher gebaut wurde, verhält sich unverändert.
+PRODUKT = "produkt"
+BLOG = "blog"
+
+BLOGREGELN = """\
+Die Quelle ist ein Blogbeitrag, kein Artikel aus einem Sortiment. Deshalb
+gelten hier zusätzlich diese Regeln:
+
+- **Der Beitrag ist das Ziel, nicht die Ware.** Du wirbst nicht für etwas, das
+  jemand kaufen soll, sondern gibst einen Grund, den Text zu lesen.
+- **Erzähl nicht alles.** Ein Beitrag, der die Pointe schon im Netzwerk
+  ausspricht, nimmt sich selbst den Anlass. Ein Gedanke reicht - der, der am
+  meisten Neugier weckt. Aber kein Ködern mit leeren Versprechen: keine
+  Formeln wie »du wirst nicht glauben« oder »das hätte ich nie gedacht«.
+- **Der Quelltext hört mittendrin auf, und das ist in Ordnung.** Lange
+  Beiträge werden gekürzt übergeben. Das ist kein Widerspruch und kein Grund
+  für eine Rückfrage - schreib aus dem, was da ist.
+- **Sag nicht, der Beitrag sei neu.** Es kommen auch ältere wieder an die
+  Reihe. »Heute erschienen«, »frisch im Blog«, »gerade veröffentlicht« - nichts
+  davon, es sei denn, das Datum unten sagt es ausdrücklich.
+- Erzählt der Beitrag in der Ich-Form, darfst du das übernehmen; es ist das
+  eigene Blog. Erfinde aber nichts Persönliches dazu - kein Erlebnis, keine
+  Meinung, kein Gefühl, das nicht im Text steht.
+
+Preise, Lieferzeiten und Garantiebedingungen kommen in einem Blogbeitrag
+selten vor. Stehen sie doch einmal darin, gilt trotzdem, was oben steht: Sie
+bleiben draußen.\
+"""
+
+
 def _netzwerkteil(kennung: str) -> str:
     netz = netzwerke.netzwerk(kennung)
     zeilen = [
@@ -158,6 +189,7 @@ def anweisung(
     zusatz: str = "",
     frueher: dict[str, str] | None = None,
     wissen: list[dict[str, Any]] | None = None,
+    art: str = PRODUKT,
 ) -> str:
     """Baut die vollständige Anweisung für einen Beitrag.
 
@@ -167,6 +199,11 @@ def anweisung(
     `wissen` sind frühere Antworten des Betreibers auf Rückfragen - je
     Eintrag »frage«, »antwort« und »adresse«. Wer sie mitgibt, bekommt
     dieselbe Frage nicht zum vierten Mal gestellt.
+
+    `art` ist `PRODUKT` oder `BLOG`. Ein Blogbeitrag wird anders beworben als
+    eine Tür: Er soll gelesen werden, nicht gekauft, und er ist oft nicht von
+    gestern. Beides muss dastehen, sonst schreibt Claude eine Inhaltsangabe
+    und nennt einen Beitrag vom März »neu«.
     """
     if not fuer:
         raise ValueError("Ohne Netzwerk gibt es nichts zu schreiben.")
@@ -176,6 +213,11 @@ def anweisung(
         quelle.append(f"Adresse: {inhalt['adresse']}")
     if inhalt.get("kategorien"):
         quelle.append(f"Themen: {', '.join(inhalt['kategorien'])}")
+    # Das Datum nur, wo es eines gibt. Produktseiten haben keines, dem zu
+    # trauen wäre; ein Blogbeitrag schon - und ohne das Datum kann Claude
+    # nicht wissen, dass er einen halbjährigen Text vor sich hat.
+    if inhalt.get("veroeffentlicht"):
+        quelle.append(f"Erschienen am: {inhalt['veroeffentlicht']}")
     quelle.append(
         "Bild vorhanden: " + ("ja" if inhalt.get("bild_adresse") else "nein")
     )
@@ -203,13 +245,16 @@ def anweisung(
         "",
         GRUNDREGELN,
     ]
+    if art == BLOG:
+        teile += ["", "## Was bei einem Blogbeitrag anders ist", "", BLOGREGELN]
     if frueher:
         # Der frühere Text kommt mit, damit der neue anders klingt. Facebook
         # und Instagram drosseln wortgleiche Wiederholungen - ein zweiter
         # Beitrag mit denselben Sätzen erreicht weniger als gar keiner.
         teile += [
             "",
-            "## Dieses Produkt war schon einmal dran",
+            ("## Dieser Beitrag war schon einmal dran" if art == BLOG
+             else "## Dieses Produkt war schon einmal dran"),
             "",
             "Unten steht, was damals veröffentlicht wurde. **Schreib etwas "
             "anderes.** Dieselbe Aussage, aber ein anderer Einstieg, ein "

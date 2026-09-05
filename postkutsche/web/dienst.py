@@ -71,10 +71,26 @@ def kategorien_des_projekts(projekt: Any,
     Produkte und lieferte keines. Die Bereiche sind das Auswahlfeld oben, nicht
     die Liste unten.
 
+    **Ein Blog sagt es selbst.** WordPress führt seine Kategorien in der
+    Schnittstelle, mit Namen und Anzahl – ein Abruf statt einer Erhebung, also
+    auch kein Zwischenspeicher und kein Hinweis über zwanzig Sekunden Wartezeit.
+
     Steht hier statt im Behandler, damit es ohne laufenden Webdienst zu
     prüfen ist.
     """
-    from ..quellen import seitenkarte
+    from ..quellen import seitenkarte, wordpress
+
+    if getattr(projekt, "art", "") == "wordpress":
+        kategorien = wordpress.kategorien(
+            wordpress.rest_adresse_von(projekt),
+            # Der Sprachfilter des Projekts zählt mit: Sonst steht in der
+            # Auswahl die doppelte Zahl, und die Woche wird halb leer.
+            ausschliessen=(projekt.einstellungen or {}).get("ausschliessen"),
+        )
+        if bereich:
+            kategorien = [k for k in kategorien
+                          if str(k["pfad"]).startswith(bereich)]
+        return kategorien, None
 
     vorgaben = projekt.einstellungen.get("kategorien")
     if vorgaben:
@@ -507,10 +523,10 @@ class Behandler(BaseHTTPRequestHandler):
             projekt = a.projekt(kennung)
         if projekt is None:
             return self._fehler(f"Kein Projekt »{kennung}«.", 404)
-        if projekt.art != "seitenkarte":
+        if projekt.art not in ("seitenkarte", "wordpress"):
             return self._fehler(
-                f"Kategorien gibt es bisher nur für Seiten ohne Schnittstelle, "
-                f"nicht für {projekt.art}.", 400
+                f"Kategorien gibt es für Blogs und für Seiten ohne "
+                f"Schnittstelle, nicht für {projekt.art}.", 400
             )
 
         kategorien, hinweis = kategorien_des_projekts(

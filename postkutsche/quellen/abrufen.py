@@ -86,6 +86,27 @@ def json_holen(adresse: str, kopfzeilen: dict[str, str] | None = None,
         ) from fehler
 
 
+def kopfzeile_holen(adresse: str, name: str) -> str | None:
+    """Eine einzelne Kopfzeile einer Antwort, ohne den Rumpf zu lesen.
+
+    Für Auskünfte, die WordPress nur im Kopf gibt: Wie viele Beiträge es
+    insgesamt sind, steht in `X-WP-Total` und in keinem Feld der Antwort. Die
+    Zahl selbst zusammenzuzählen geht daneben, weil ein Beitrag in zwei
+    Kategorien steht und dann doppelt zählt - bei Naturlust wären das 98
+    statt 52.
+
+    Fehlt die Kopfzeile oder antwortet die Seite nicht, kommt None zurück:
+    Eine fehlende Zahl in der Anzeige ist ärgerlich, ein Abbruch wäre schlimmer.
+    """
+    anfrage = urllib.request.Request(adresse, method="HEAD")
+    anfrage.add_header("User-Agent", KENNZEICHEN)
+    try:
+        with urllib.request.urlopen(anfrage, timeout=ZEITLIMIT) as antwort:
+            return antwort.headers.get(name)
+    except (urllib.error.URLError, OSError):
+        return None
+
+
 def text_holen(adresse: str) -> str:
     """Holt eine Seite als Text. Fällt bei krummer Kodierung nicht um."""
     return holen(adresse).decode("utf-8", "replace")
