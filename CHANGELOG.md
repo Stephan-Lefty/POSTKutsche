@@ -55,6 +55,29 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   ist. Gesagt wird es dazu – »abgebrochen, 3 Entwürfe entfernt« statt eines
   stillen Verschwindens. Bleibt ein Lauf doch einmal hängen, gilt er nach zehn
   Minuten ohne Lebenszeichen als tot und gibt die Sperre frei.
+- **Die Wochenplanung kann auch Blogs.** Bisher stand im Planungsfenster
+  »Blog – Beiträge kommen von selbst, keine Kampagne«, und die beiden
+  WordPress-Projekte waren gesperrt. Das stimmte für neue Beiträge, half aber
+  niemandem, der einen halbjährigen Text noch einmal aufgreifen wollte. Jetzt
+  liefert WordPress seine Kategorien selbst – ein Abruf statt einer Erhebung
+  über hundert Seiten –, und daraus wird eine Woche geplant wie bei einem
+  Shop. Ein Beitrag, der in zwei gewählten Kategorien steht, kommt trotzdem
+  nur einmal vor.
+- **Ein Blogbeitrag wird anders beworben als eine Tür.** Claude bekommt dafür
+  eigene Regeln: Der Beitrag ist das Ziel, nicht die Ware; erzähl nicht alles,
+  sonst nimmt sich der Text den eigenen Anlass; und nenne einen Beitrag vom
+  März nicht »neu« – das Erscheinungsdatum steht jetzt in der Anweisung. Dazu
+  die Ansage, dass ein gekürzter Quelltext keine Rückfrage wert ist.
+- **Zu lange Blogbeiträge werden gekürzt, aber nur an Absatzgrenzen.**
+  Gemessen: bis 15.200 Zeichen, im Mittel 5.600. Für einen Beitrag mit 500
+  Zeichen bringt der Rest nichts und macht die Anweisung teuer. Mitten im Wort
+  abzuschneiden wäre schlimmer als zu kürzen – das hat schon einmal reihenweise
+  Rückfragen erzeugt.
+- **Die Anzahl in der Auswahl zählt, was planbar ist.** Bei einem
+  zweisprachigen Blog zählt WordPress die englischen Fassungen mit: DialOS
+  meldete 16 Beiträge, planbar sind acht. Wer daraufhin zwei Beiträge am Tag
+  einplant, bekommt eine halb leere Woche und erfährt den Grund nicht. Wo ein
+  Sprachfilter eingetragen ist, wird deshalb nachgezählt.
 - **Der Bestand kommt aus der Navigation.** Eine Seitenkarte, die zehn Jahre
   nicht gepflegt wurde, nennt Kategorien, die es nicht mehr gibt, und
   verschweigt welche, die es gibt; wer eine tote ankreuzt, plant eine Woche

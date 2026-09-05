@@ -24,6 +24,11 @@ Developed on Arch Linux and Debian.
 sitemap and category pages – Shopware 6 included, and without an access key.
 A new blog post or product shows up in the calendar as a suggestion.
 
+**It plans whole weeks.** A topic, a calendar week, a handful of categories —
+and out come one or two posts a day. For shops that is the actual way of
+working, because no product there is ever "new", it gets picked. Blogs work the
+same way: a post from March is no worse in September.
+
 **It writes differently for each network.** A Mastodon post has 500 characters,
 LinkedIn folds away everything after the first sentence, and on Instagram no
 link in the text is clickable. Pasting the same announcement four times means

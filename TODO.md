@@ -39,6 +39,17 @@ wurde.
   Einträge je Anweisung reichen und ob die neuesten die richtigen sind. Wenn
   eine Antwort zurückgenommen werden muss, geht das bisher nur durch
   Streichen und neu Beantworten – Bearbeiten gibt es nicht.
+- **Der Vorrat von DialOS reicht für eine Woche.** Acht deutsche Beiträge
+  stehen zur Verfügung, sieben Tage will eine Woche. Wer sie einmal plant,
+  findet vier Wochen lang fast nichts mehr – die Schonfrist sperrt, was schon
+  dran war. Entweder weniger Tage je Woche, oder die Schonfrist wird für Blogs
+  kürzer als 28 Tage. Erst im Betrieb entscheiden.
+- **Die Streuung kennt bei Blogs keine Aktualität.** Ausgewählt wird nach
+  Namensstamm und Alphabet – bei Produktvarianten richtig, bei Blogbeiträgen
+  willkürlich. Ein gerade erschienener Beitrag steht dadurch nicht zwingend
+  vorn. Für das Wiederaufgreifen älterer Texte ist das gleichgültig; wer eine
+  Woche um einen frischen Beitrag herum bauen will, merkt es. Der automatische
+  Weg über »holen« hat das Problem nicht.
 - **Die Uhrzeit im Kalender ändern können.** Ziehen verschiebt bisher nur den
   Tag; die Uhrzeit lässt sich nur über die Vorschläge aus `sendezeiten.py`
   setzen.
@@ -118,3 +129,9 @@ wurde.
   Sperre. Gemessen: nach dem Anhalten mitten im Lauf standen fünf Beiträge in
   der Ablage und fünf von zehn Produkten galten als beworben. Jetzt hält der
   Lauf zwischen zwei Produkten an und nimmt zurück, was er angelegt hat.
+- **Blogs in der Wochenplanung** (2026-09-05): Die beiden WordPress-Projekte
+  lassen sich planen wie ein Shop. Die Kategorien kommen aus WordPress selbst,
+  der Text über die Schnittstelle statt aus dem HTML, und Claude bekommt für
+  Blogbeiträge eigene Regeln – samt Erscheinungsdatum, damit ein halbjähriger
+  Beitrag nicht als »neu« angekündigt wird. Zu lange Beiträge werden an
+  Absatzgrenzen gekürzt.

@@ -26,6 +26,11 @@ Entwickelt unter Arch Linux und Debian.
 ohne Zugangsschlüssel. Ein neuer Blogbeitrag oder ein neues Produkt landet als
 Vorschlag im Kalender.
 
+**Es plant ganze Wochen.** Ein Thema, eine Kalenderwoche, ein paar Kategorien –
+daraus entstehen ein bis zwei Beiträge je Tag. Bei Shops ist das der eigentliche
+Arbeitsweg, denn dort ist kein Produkt »neu«, es wird ausgewählt. Bei Blogs geht
+es genauso: Ein Beitrag vom März ist im September nicht schlechter geworden.
+
 **Es schreibt je Netzwerk anders.** Ein Mastodon-Beitrag hat 500 Zeichen, ein
 LinkedIn-Beitrag wird nach dem ersten Satz zugeklappt, bei Instagram ist kein
 Verweis anklickbar. Dieselbe Meldung viermal einzufügen führt dazu, dass sie

@@ -9,6 +9,17 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
+- **DialOS has enough posts for one week.** Eight German posts are available,
+  a week wants seven days. Plan them once and there is almost nothing left for
+  four weeks – the cooling-off period blocks whatever has already run. Either
+  fewer days per week, or a shorter period than 28 days for blogs. Decide in
+  operation, not before.
+- **Spreading doesn't know about recency on blogs.** Selection goes by name
+  stem and alphabet – right for product variants, arbitrary for blog posts. A
+  post published yesterday therefore isn't necessarily at the front. For
+  picking up older texts again that hardly matters; building a week around a
+  fresh post is where it shows. The automatic route via "holen" doesn't have
+  this problem.
 - **A top-up from the sitemap for thin categories?** Of the addresses only the
   sitemap knows and the navigation does not link, a measured eleven per cent
   are still alive – too few to draw on in general. One category was the
@@ -107,3 +118,8 @@ aren't deleted, they move down — with the date they were done.
   held the lock. Measured: stopping mid-run left five posts in the database
   and five of ten products counted as promoted. The run now stops between two
   products and takes back what it created.
+- **Blogs in the weekly planning** (2026-09-05): the two WordPress projects
+  can be planned like a shop. The categories come from WordPress itself, the
+  text through the API instead of out of the HTML, and Claude gets its own
+  rules for blog posts – including the publication date, so a post from March
+  isn't announced as new. Overlong posts are trimmed at paragraph boundaries.
