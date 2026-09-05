@@ -401,6 +401,11 @@ button { font: inherit; cursor: pointer; }
   font-size: 13px;
   color: var(--text-leise);
 }
+/* Dasselbe wie oben bei der Überlagerung, aus demselben Grund: »display:
+   block« schlägt das »display: none«, das der Browser für [hidden] setzt.
+   Ohne diese Zeile bliebe die Bereichsauswahl stehen, wo es gar keine
+   Bereiche zu wählen gibt - bei einem Blog liegt alles im selben Zweig. */
+.kasten label[hidden] { display: none; }
 .kasten input, .kasten select {
   display: block;
   width: 100%;

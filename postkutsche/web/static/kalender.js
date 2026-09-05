@@ -311,10 +311,13 @@ function bereicheFuellen() {
     const eintrag = document.createElement("option");
     eintrag.value = pfad;
     // »shop-tueren« zu »Türen«: Das Wort »shop« steht in jedem Zweig und
-    // trägt nichts bei.
+    // trägt nichts bei. Die Umlaute zuerst, dann der große Anfangsbuchstabe -
+    // umgekehrt stand dort »Tueren«, weil »tueren« nach dem Großschreiben
+    // nicht mehr zu finden war.
     eintrag.textContent =
-      `${pfad.replace(/^shop-/, "").replace(/^./, (c) => c.toUpperCase())
-             .replace("tueren", "Türen").replace("zubehoer", "Zubehör")} (${anzahl})`;
+      `${pfad.replace(/^shop-/, "").replace("tueren", "türen")
+             .replace("zubehoer", "zubehör")
+             .replace(/^./, (c) => c.toUpperCase())} (${anzahl})`;
     auswahl.append(eintrag);
   });
 }
