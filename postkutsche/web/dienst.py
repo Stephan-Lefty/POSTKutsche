@@ -320,6 +320,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._json({**Behandler.lauf,
                                    "aktiv": Behandler.laeuft_noch(),
                                    "abbruch": Behandler.abbruch.is_set()})
+            if pfad == "/api/denker":
+                return self._denker(frage)
             if pfad == "/api/kategorien":
                 return self._kategorien(frage)
             if pfad == "/api/wissen":
@@ -367,6 +369,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._antwort(rumpf)
             if pfad == "/api/wissen/streichen":
                 return self._wissen_streichen(rumpf)
+            if pfad == "/api/beitrag/neu":
+                return self._beitrag_neu(rumpf)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
             if pfad == "/api/kampagne/abbrechen":
@@ -599,6 +603,99 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._fehler("Diesen Beitrag gibt es nicht.", 404)
             self._json({"id": nummer, "geplant": geplant,
                         "lesbar": zeiten.lesbar(geplant)})
+
+    def _denker(self, frage: dict[str, list[str]]) -> None:
+        """Wer für dieses Projekt schreibt.
+
+        Die Oberfläche sagt es vor dem Planen dazu: Wer glaubt, Claude
+        schreibe gerade, und in Wahrheit steht der Weg auf »hand«, wundert
+        sich sonst über leere Felder.
+        """
+        from .. import denker
+
+        kennung = (frage.get("projekt") or [""])[0]
+        with self._ablage() as a:
+            projekt = a.projekt(kennung) if kennung else None
+        weg, einstellungen = denker.waehlen(projekt)
+        self._json({
+            "weg": weg,
+            "name": denker.NAMEN[weg],
+            "modell": einstellungen.get("modell") or "",
+            "schreibt": weg != denker.HAND,
+        })
+
+    def _beitrag_neu(self, rumpf: dict[str, Any]) -> None:
+        """Ein Beitrag, den niemand gefunden hat – du willst ihn einfach.
+
+        Bisher entstand ein Beitrag nur aus einem abgerufenen Inhalt oder aus
+        der Wochenplanung. Für eine Ankündigung, die auf keiner eigenen Seite
+        steht – ein Termin, ein Dank, ein Hinweis – gab es keinen Weg außer
+        dem Umweg über ein fremdes Produkt.
+
+        Wer schreibt, entscheidet der Weg des Projekts: Steht er auf »hand«,
+        stehen Titel und Anriss im Feld und der Rest ist deine Sache. Sonst
+        schreibt der eingestellte Dienst los.
+        """
+        from .. import denker
+
+        kennung = str(rumpf.get("projekt", "")).strip()
+        titel = str(rumpf.get("titel", "")).strip()
+        if not titel:
+            raise ValueError("Ohne Titel lässt sich nichts anlegen.")
+        netze = [str(n) for n in (rumpf.get("netzwerke") or []) if str(n).strip()]
+        if not netze:
+            raise ValueError("Mindestens ein Netzwerk muss dabei sein.")
+        for netz in netze:
+            netzwerke.netzwerk(netz)  # wirft, wenn es das Netzwerk nicht gibt
+
+        geplant = zeiten.von_ortszeit(str(rumpf["geplant"]))
+        adresse = str(rumpf.get("adresse", "")).strip()
+        text = str(rumpf.get("text", "")).strip()
+
+        with self._ablage() as a:
+            projekt = a.projekt(kennung)
+            if projekt is None:
+                return self._fehler(f"Kein Projekt »{kennung}«.", 404)
+
+            inhalt = {
+                "titel": titel, "text": text, "adresse": adresse,
+                "bild_adresse": None, "kategorien": [],
+            }
+            # Eine eigene Kennung je Beitrag: Ein von Hand angelegter Inhalt
+            # ist nicht dieselbe Sache wie ein zweiter mit gleichem Titel, und
+            # »inhalt_merken« würde den ersten sonst überschreiben.
+            fremd_id = f"hand-{zeiten.jetzt_utc()}"
+            inhalt_id, _ = a.inhalt_merken(
+                projekt.id, fremd_id, titel, adresse or f"hand:{fremd_id}", text)
+
+            weg, _ = denker.waehlen(projekt)
+            try:
+                fassungen = denker.schreiben(
+                    inhalt, netze, projekt.name,
+                    art=(denker.BLOG if projekt.art == "wordpress"
+                         else denker.PRODUKT),
+                    projektdaten=projekt)
+            except (denker.DenkerFehler, denker.AntwortFehler) as fehler:
+                # Der Beitrag soll trotzdem entstehen: Der Termin steht, das
+                # Feld lässt sich von Hand füllen. Ein Fehlschlag beim
+                # Schreiben ist kein Grund, den Kalendereintrag zu verwerfen.
+                fassungen = denker.hand.fassungen(inhalt, netze)
+                meldung = f"Angelegt, aber nicht geschrieben: {fehler}"
+            else:
+                meldung = ""
+
+            beitrag = a.beitrag_anlegen(projekt.id, geplant, inhalt_id=inhalt_id)
+            for netz, fassung in fassungen.items():
+                # Die Versandart bleibt auf der Vorgabe, wie überall sonst:
+                # Ob ein Netzwerk über die Schnittstelle geht oder von Hand,
+                # hängt am Konto, nicht am einzelnen Beitrag.
+                a.fassung_setzen(beitrag, netz, fassung["text"],
+                                 fassung.get("schlagworte", ""),
+                                 rueckfrage=fassung.get("rueckfrage"))
+
+            self._json({"id": beitrag, "geplant": geplant,
+                        "lesbar": zeiten.lesbar(geplant),
+                        "weg": weg, "meldung": meldung})
 
     def _freigeben(self, rumpf: dict[str, Any]) -> None:
         nummer = int(rumpf["id"])

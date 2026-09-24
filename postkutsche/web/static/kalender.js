@@ -99,6 +99,12 @@ async function anfangen() {
   } catch (fehler) {
     melden(`Gelerntes nicht verfügbar: ${fehler.message}`, true);
   }
+
+  try {
+    eigenenVorbereiten();
+  } catch (fehler) {
+    melden(`Eigene Beiträge nicht verfügbar: ${fehler.message}`, true);
+  }
 }
 
 // -- Wochenplanung ----------------------------------------------------------
@@ -439,6 +445,112 @@ function ordnerZeigen(block, wo) {
 
   kasten.append(knoepfe);
   block.append(kasten);
+}
+
+/** Das Fenster »Beitrag von Hand«.
+ *
+ * Bis hierher entstand ein Beitrag nur aus einem abgerufenen Inhalt oder aus
+ * der Wochenplanung. Für eine Ankündigung, die auf keiner eigenen Seite steht
+ * – ein Termin, ein Dank, ein Hinweis –, gab es keinen Weg hinein.
+ */
+function eigenenVorbereiten() {
+  const kasten = $("#eigener");
+  const auswahl = $("#e-projekt");
+
+  $("#eigener-auf").onclick = () => {
+    auswahl.innerHTML = "";
+    stand.projekte.forEach((p) => {
+      const eintrag = document.createElement("option");
+      eintrag.value = p.kennung;
+      eintrag.textContent = p.name;
+      auswahl.append(eintrag);
+    });
+
+    const netze = $("#e-netze");
+    netze.innerHTML = "";
+    Object.values(stand.netzwerke).forEach((n) => {
+      const feld = document.createElement("input");
+      feld.type = "checkbox";
+      feld.value = n.kennung;
+      const beschriftung = document.createElement("label");
+      beschriftung.style.borderColor = n.farbe;
+      beschriftung.append(feld, document.createTextNode(n.name));
+      netze.append(beschriftung);
+    });
+
+    // Morgen, halb zehn: Ein Termin in der Vergangenheit wäre sofort fällig,
+    // und heute ist der Tag meist schon verplant.
+    const morgen = new Date();
+    morgen.setDate(morgen.getDate() + 1);
+    $("#e-tag").value = tagesschluessel(morgen);
+    $("#e-zeit").value = "09:30";
+    $("#e-titel").value = "";
+    $("#e-text").value = "";
+    $("#e-adresse").value = "";
+
+    kasten.hidden = false;
+    denkerZeigen();
+  };
+
+  $("#e-zu").onclick = () => (kasten.hidden = true);
+  kasten.onclick = (e) => { if (e.target === kasten) kasten.hidden = true; };
+  auswahl.onchange = denkerZeigen;
+  $("#eigener-form").onsubmit = eigenenAnlegen;
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !kasten.hidden) kasten.hidden = true;
+  });
+}
+
+/** Sagt dazu, wer schreibt.
+ *
+ * Wer glaubt, es schreibe jemand, und in Wahrheit steht der Weg auf »hand«,
+ * wundert sich sonst über ein Feld mit nur zwei Sätzen darin.
+ */
+async function denkerZeigen() {
+  const zeile = $("#e-denker");
+  zeile.textContent = "";
+  try {
+    const daten = await hole(`/api/denker?projekt=${$("#e-projekt").value}`);
+    zeile.textContent = daten.schreibt
+      ? `Den Text schreibt: ${daten.name}${daten.modell ? ` (${daten.modell})` : ""}.`
+      : "Eingestellt ist »von Hand«: Titel und Text stehen danach im Entwurf, "
+        + "geschrieben wird nichts.";
+  } catch (fehler) {
+    // Kein Grund, das Anlegen zu verhindern - es ist eine Auskunft.
+    zeile.textContent = "";
+  }
+}
+
+async function eigenenAnlegen(e) {
+  e.preventDefault();
+  const netze = [...$("#e-netze").querySelectorAll("input:checked")]
+    .map((f) => f.value);
+  if (!netze.length) return melden("Wähle mindestens ein Netzwerk.", true);
+
+  const knopf = $("#e-los");
+  knopf.disabled = true;
+  knopf.textContent = "Wird angelegt …";
+  try {
+    const antwort = await hole("/api/beitrag/neu", {
+      projekt: $("#e-projekt").value,
+      titel: $("#e-titel").value.trim(),
+      text: $("#e-text").value.trim(),
+      adresse: $("#e-adresse").value.trim(),
+      geplant: `${$("#e-tag").value}T${$("#e-zeit").value}`,
+      netzwerke: netze,
+    });
+    $("#eigener").hidden = true;
+    await monatLaden();
+    blattOeffnen(antwort.id);
+    melden(antwort.meldung || `Angelegt für ${antwort.lesbar}.`,
+           Boolean(antwort.meldung));
+  } catch (fehler) {
+    melden(fehler.message, true);
+  } finally {
+    knopf.disabled = false;
+    knopf.textContent = "Anlegen";
+  }
 }
 
 /** Das Fenster »Gelerntes«: ansehen, was aus Rückfragen gesammelt wurde.
@@ -1329,25 +1441,31 @@ async function blattOeffnen(id) {
   wann.append(termin, document.createTextNode(` · ${b.zustand}`));
   inhalt.append(wann);
 
-  if (b.quelle) {
+  /* »hand:…« ist keine Adresse, sondern die Kennung eines selbst angelegten
+     Beitrags. Sie muss in der Ablage stehen, damit zwei Ankündigungen mit
+     demselben Titel zwei Beiträge bleiben - im Blatt hat sie nichts zu
+     suchen, und in den Text gehört sie schon gar nicht. */
+  const quelle = (b.quelle || "").startsWith("hand:") ? "" : b.quelle;
+
+  if (quelle) {
     // Der Verweis gehört sichtbar ins Blatt: Beim Einstellen von Hand braucht
     // man ihn zum Anklicken und zum Kopieren.
     const zeile = document.createElement("p");
     zeile.className = "quelle";
     const verweis = document.createElement("a");
-    verweis.href = b.quelle;
+    verweis.href = quelle;
     verweis.target = "_blank";
     verweis.rel = "noopener";
-    verweis.textContent = b.quelle;
+    verweis.textContent = quelle;
     const holen = document.createElement("button");
     holen.className = "klein";
     holen.textContent = "kopieren";
-    holen.onclick = () => kopieren(b.quelle, "Verweis kopiert.");
+    holen.onclick = () => kopieren(quelle, "Verweis kopiert.");
     zeile.append(verweis, holen);
     inhalt.append(zeile);
   }
 
-  b.fassungen.forEach((f) => inhalt.append(fassungsblock(id, f, b.quelle)));
+  b.fassungen.forEach((f) => inhalt.append(fassungsblock(id, f, quelle)));
 
   const knoepfe = document.createElement("div");
   knoepfe.className = "knoepfe";

@@ -18,6 +18,7 @@
     <button id="heute" class="schlicht">Heute</button>
   </nav>
 
+  <button id="eigener-auf" class="schlicht">Beitrag von Hand</button>
   <button id="kampagne-auf" class="knopf">Woche planen</button>
 
   <button id="thema" class="schlicht" aria-label="Helles oder dunkles Thema">◐</button>
@@ -139,6 +140,52 @@
     </div>
     <p id="k-stand" class="schlagworte"></p>
     <div id="k-bericht" class="bericht" hidden></div>
+  </form>
+</div>
+
+<div id="eigener" class="ueberlagerung" hidden>
+  <form id="eigener-form" class="kasten">
+    <h2>Beitrag von Hand</h2>
+    <!-- Für alles, was auf keiner eigenen Seite steht: ein Termin, ein Dank,
+         eine Ankündigung. Bis hierher entstand ein Beitrag nur aus einem
+         abgerufenen Inhalt oder aus der Wochenplanung. -->
+    <p class="schlagworte">Für eine Ankündigung, die auf keiner deiner Seiten
+      steht. <span id="e-denker"></span></p>
+
+    <label>Projekt
+      <select id="e-projekt" required></select>
+    </label>
+
+    <label>Titel
+      <input id="e-titel" placeholder="Wir machen Betriebsferien" required>
+    </label>
+
+    <label>Worum es geht
+      <textarea id="e-text" rows="4"
+        placeholder="Zwei, drei Sätze. Sie stehen im Entwurf und lassen sich dort ändern."></textarea>
+    </label>
+
+    <label>Verweis (kann leer bleiben)
+      <input id="e-adresse" type="url" placeholder="https://…">
+    </label>
+
+    <div class="paar">
+      <label>Tag
+        <input id="e-tag" type="date" required>
+      </label>
+      <label>Uhrzeit
+        <input id="e-zeit" type="time" required>
+      </label>
+    </div>
+
+    <label>Netzwerke
+      <span id="e-netze" class="marken"></span>
+    </label>
+
+    <div class="knoepfe">
+      <button type="submit" class="knopf" id="e-los">Anlegen</button>
+      <button type="button" class="knopf leise" id="e-zu">Abbrechen</button>
+    </div>
   </form>
 </div>
 
