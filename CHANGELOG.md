@@ -78,6 +78,12 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   meldete 16 Beiträge, planbar sind acht. Wer daraufhin zwei Beiträge am Tag
   einplant, bekommt eine halb leere Woche und erfährt den Grund nicht. Wo ein
   Sprachfilter eingetragen ist, wird deshalb nachgezählt.
+- **Ausgeblendete Projekte bleiben ausgeblendet.** Wer nur an Naturlust
+  arbeitet, blendet die vier anderen aus – und hatte sie nach dem nächsten
+  Neuladen alle wieder vor sich. Gemerkt werden die *ausgeblendeten*
+  Projekte, nicht die sichtbaren: Ein Projekt, das später dazukommt, soll
+  sichtbar sein und nicht heimlich fehlen, weil es in der alten Liste nicht
+  stand. Die Merkliste liegt im Browser, gilt also je Rechner und Browser.
 - **Der Bestand kommt aus der Navigation.** Eine Seitenkarte, die zehn Jahre
   nicht gepflegt wurde, nennt Kategorien, die es nicht mehr gibt, und
   verschweigt welche, die es gibt; wer eine tote ankreuzt, plant eine Woche

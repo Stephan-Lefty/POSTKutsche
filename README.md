@@ -99,7 +99,9 @@ postkutsche projekt starten meinblog     # weiter wie zuvor
 ```
 
 Pausieren und Ausblenden sind zweierlei: Das Häkchen im Kalender räumt nur die
-Ansicht auf, Pausieren hält den Betrieb an.
+Ansicht auf, Pausieren hält den Betrieb an. Was ausgeblendet ist, bleibt es
+auch nach dem Neuladen – gemerkt wird das im Browser, also je Rechner und
+Browser eigen. Ein Projekt, das später dazukommt, ist sichtbar.
 
 ## Die eigenen Seiten eintragen
 

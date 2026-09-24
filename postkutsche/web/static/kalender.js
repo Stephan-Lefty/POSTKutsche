@@ -68,7 +68,10 @@ async function anfangen() {
   stand.palette = palette;
   stand.projekte = projekte;
   netze.forEach((n) => (stand.netzwerke[n.kennung] = n));
-  projekte.forEach((p) => stand.sichtbar.add(p.kennung));
+  const versteckt = versteckteLesen();
+  projekte.forEach((p) => {
+    if (!versteckt.has(p.kennung)) stand.sichtbar.add(p.kennung);
+  });
 
   spalteZeichnen();
   await monatLaden();
@@ -835,6 +838,28 @@ function themaWechseln() {
 
 // -- Projektspalte ----------------------------------------------------------
 
+const VERSTECKT = "versteckte-projekte";
+
+/** Gemerkt werden die ausgeblendeten Projekte, nicht die sichtbaren: Ein
+ *  Projekt, das später dazukommt, soll sichtbar sein und nicht heimlich
+ *  fehlen, weil es in der alten Liste nicht stand. */
+function versteckteLesen() {
+  try {
+    const roh = JSON.parse(localStorage.getItem(VERSTECKT) || "[]");
+    return new Set(Array.isArray(roh) ? roh.map(String) : []);
+  } catch (fehler) {
+    // Ein beschädigter Eintrag darf den Kalender nicht aufhalten.
+    return new Set();
+  }
+}
+
+function versteckteMerken() {
+  const aus = stand.projekte
+    .map((p) => p.kennung)
+    .filter((kennung) => !stand.sichtbar.has(kennung));
+  localStorage.setItem(VERSTECKT, JSON.stringify(aus));
+}
+
 function spalteZeichnen() {
   const liste = $("#projekte");
   liste.innerHTML = "";
@@ -850,6 +875,7 @@ function spalteZeichnen() {
     // pausiert ist, ist etwas anderes und steht am Pausenzeichen.
     feld.onchange = () => {
       feld.checked ? stand.sichtbar.add(p.kennung) : stand.sichtbar.delete(p.kennung);
+      versteckteMerken();
       monatLaden();
     };
 

@@ -100,7 +100,9 @@ postkutsche projekt starten myblog     # carry on as before
 ```
 
 Pausing and hiding are two different things: the checkbox in the calendar only
-tidies the view, pausing stops the operation.
+tidies the view, pausing stops the operation. What is hidden stays hidden after
+a reload – that's remembered in the browser, so per machine and browser. A
+project added later is visible.
 
 ## Adding your own sites
 
