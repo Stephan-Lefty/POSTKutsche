@@ -13,6 +13,8 @@ Oberfläche ändert.
 ## Inhalt
 
 - [Der Kalender](#der-kalender)
+- [Einen Beitrag selbst anlegen](#einen-beitrag-selbst-anlegen)
+- [Wer die Texte schreibt](#wer-die-texte-schreibt)
 - [Ein Beitrag im Einzelnen](#ein-beitrag-im-einzelnen)
 - [Rückfragen beantworten](#rückfragen-beantworten)
 - [Eine Woche planen](#eine-woche-planen)
@@ -61,6 +63,45 @@ Rechner und Browser; ein Projekt, das später dazukommt, ist sichtbar.
 Der Farbpunkt vor dem Projektnamen ist ein Knopf: Ein Klick öffnet die
 Farbwahl. Die vorgeschlagenen Farben halten Abstand zu den Netzwerkfarben,
 damit man einen Projektpunkt nicht für eine Netzwerkmarke hält.
+
+## Einen Beitrag selbst anlegen
+
+![Das Fenster »Beitrag von Hand«](bilder/vonhand.png)
+
+Nicht jeder Beitrag hat eine Seite, von der er kommt. Betriebsferien, ein
+Dank, ein Termin – dafür gibt es oben **Beitrag von Hand**.
+
+Im Fenster stehen Projekt, Titel, ein paar Sätze zur Sache, ein Verweis (der
+leer bleiben darf), Tag und Uhrzeit sowie die Netzwerke. Über den Feldern
+steht, wer den Text schreiben wird; ist »von Hand« eingestellt, landen Titel
+und deine Sätze im Entwurf und der Rest ist deine Sache.
+
+Danach geht der Beitrag gleich auf, und du kannst den Text an Ort und Stelle
+ändern. Antwortet der Dienst gerade nicht, entsteht der Beitrag trotzdem –
+der Termin ist das Wichtigere, der Text lässt sich tippen.
+
+## Wer die Texte schreibt
+
+Vier Wege gibt es, und sie lassen sich je Projekt unterscheiden:
+
+| Weg | Wer schreibt |
+|---|---|
+| `kommando` | Claude Code über das vorhandene Abo – die Vorgabe |
+| `offen` | ein Dienst in der OpenAI-Form: Ollama auf dem eigenen Rechner, ChatGPT, OpenRouter … |
+| `anthropisch` | Claude über die Anthropic-Schnittstelle mit eigenem Schlüssel |
+| `hand` | du selbst |
+
+Eingestellt wird das auf der Kommandozeile, nicht in der Oberfläche – es ist
+eine Entscheidung, die man einmal trifft:
+
+```
+postkutsche denker liste
+postkutsche denker waehlen hand
+postkutsche denker pruefen --projekt meinblog
+```
+
+Wie die Wege eingerichtet werden, steht in der
+[Installationsanleitung](installation.md#4-festlegen-wer-die-texte-schreibt).
 
 ## Ein Beitrag im Einzelnen
 
@@ -209,6 +250,10 @@ systemctl --user restart postkutsche-kalender.service
 
 **Ein Beitrag lässt sich nicht freigeben.** Dann steht noch eine Rückfrage
 offen – sie steht rot im Blatt.
+
+**Der Entwurf besteht nur aus Titel und zwei Sätzen.** Dann ist »von Hand«
+eingestellt, und das ist Absicht: `postkutsche denker liste` zeigt, was
+gerade gilt.
 
 **Die Kategorienliste bleibt leer oder meldet »nicht erreichbar«.** Dann
 antwortet die Seite gerade nicht. Bei Shops ohne Schnittstelle wird die

@@ -86,6 +86,12 @@ aren't deleted, they move down — with the date they were done.
 
 ## Done
 
+- **No longer Claude only** (2026-09-24): four routes to a text – `claude -p`,
+  any service in the OpenAI shape (Ollama, ChatGPT, OpenRouter …), the
+  Anthropic API with your own key, and by hand. Configurable per project via
+  `postkutsche denker`. Plus »post by hand«: a calendar entry for something
+  that isn't on any of your own pages.
+
 - **Scaffolding** (2026-08-28): database, command line, the five projects, time
   handling, network directory, posting times, repeats. 109 tests.
 - **Sources surveyed** (2026-08-28): which site has which interface is recorded

@@ -12,8 +12,9 @@
 Ein Redaktionskalender für die eigenen Seiten und die sozialen Netzwerke.
 
 POSTKutsche sieht auf Ihren Blogs und in Ihren Shops nach, was es Neues gibt,
-lässt Claude daraus für jedes Netzwerk eine eigene Fassung schreiben, legt sie
-Ihnen im Kalender zur Ansicht vor – und veröffentlicht sie zu dem Zeitpunkt,
+lässt daraus für jedes Netzwerk eine eigene Fassung schreiben – von Claude,
+von einem Modell auf Ihrem eigenen Rechner oder von Ihnen selbst –, legt sie
+Ihnen im Kalender zur Ansicht vor und veröffentlicht sie zu dem Zeitpunkt,
 den Sie bestimmt haben. Für Facebook und Instagram, solange Metas Prüfung
 aussteht, legt es Text und Bild fertig zum Kopieren bereit.
 
@@ -30,6 +31,17 @@ Vorschlag im Kalender.
 daraus entstehen ein bis zwei Beiträge je Tag. Bei Shops ist das der eigentliche
 Arbeitsweg, denn dort ist kein Produkt »neu«, es wird ausgewählt. Bei Blogs geht
 es genauso: Ein Beitrag vom März ist im September nicht schlechter geworden.
+
+**Du entscheidest, wer schreibt.** Claude Code über das vorhandene Abo, jeder
+Dienst in der OpenAI-Form – Ollama auf dem eigenen Rechner, ChatGPT,
+OpenRouter –, die Anthropic-Schnittstelle mit eigenem Schlüssel, oder gar
+niemand: Bei »von Hand« stehen Titel und Anriss im Entwurf und du schreibst
+selbst. Einstellbar je Projekt, damit der eine Blog von Hand geht, während der
+Shop weiterläuft.
+
+**Es nimmt auch Beiträge ohne Seite.** Betriebsferien, ein Dank, ein Termin –
+»Beitrag von Hand« stellt einen Eintrag in den Kalender, für den es nirgends
+eine Adresse gibt.
 
 **Es schreibt je Netzwerk anders.** Ein Mastodon-Beitrag hat 500 Zeichen, ein
 LinkedIn-Beitrag wird nach dem ersten Satz zugeklappt, bei Instagram ist kein
@@ -76,8 +88,9 @@ pip install -e ".[schluessel]"  # Token im Schlüsselbund statt in einer Datei
 pip install -e ".[alles]"       # beides
 ```
 
-Den ganzen Weg – Claude anbinden, Konten einrichten, Dauerbetrieb über
-systemd – beschreibt die [Installationsanleitung](docs/installation.md). Wie
+Den ganzen Weg – festlegen, wer die Texte schreibt, Konten einrichten,
+Dauerbetrieb über systemd – beschreibt die
+[Installationsanleitung](docs/installation.md). Wie
 man danach damit arbeitet, steht mit Bildern in der
 [Bedienungsanleitung](docs/bedienung.md).
 

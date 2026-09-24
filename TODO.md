@@ -97,6 +97,12 @@ wurde.
 
 ## Erledigt
 
+- **Nicht mehr nur Claude** (2026-09-24): Vier Wege zum Text – `claude -p`,
+  jeder Dienst in der OpenAI-Form (Ollama, ChatGPT, OpenRouter …), die
+  Anthropic-Schnittstelle mit eigenem Schlüssel und »von Hand«. Einstellbar
+  je Projekt über `postkutsche denker`. Dazu »Beitrag von Hand«: ein Eintrag
+  im Kalender für etwas, das auf keiner eigenen Seite steht.
+
 - **Gerüst** (2026-08-28): Ablage, Kommandozeile, die fünf Projekte,
   Zeitrechnung, Netzwerkverzeichnis, Sendezeiten, Wiederholungen. 109 Tests.
 - **Quellen geprüft** (2026-08-28): Welche Seite welche Schnittstelle hat, steht

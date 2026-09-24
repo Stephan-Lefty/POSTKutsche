@@ -78,6 +78,30 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   meldete 16 Beiträge, planbar sind acht. Wer daraufhin zwei Beiträge am Tag
   einplant, bekommt eine halb leere Woche und erfährt den Grund nicht. Wo ein
   Sprachfilter eingetragen ist, wird deshalb nachgezählt.
+- **Vier Wege zum Text statt einem.** Bisher hing alles an `claude -p`: kein
+  Claude Code, kein Beitrag. Jetzt stehen daneben jeder Dienst in der
+  OpenAI-Form (Ollama auf dem eigenen Rechner, LM Studio, OpenRouter,
+  DeepSeek, ChatGPT – ein Modul für alle, sie unterscheiden sich in Adresse,
+  Modell und Schlüssel, nicht in der Anfrage), die Anthropic-Schnittstelle
+  mit eigenem Schlüssel für Maschinen ohne Claude Code, und »von Hand«.
+  **Einstellbar je Projekt**, damit der eine Blog von Hand geschrieben wird,
+  während der Shop weiterläuft. Eingerichtet wird das mit `postkutsche
+  denker`; Schlüssel gehen den Weg, den die Token schon gehen – Schlüsselbund,
+  ersatzweise 600er-Datei, nie in die Datenbank.
+- **Ohne Fremdpakete, auch hier.** Weder `anthropic` noch `openai` noch
+  `requests`: `urllib` kann POST mit JSON. Was die beiden Schnittstellen
+  gemeinsam haben, steht in `denker/netz.py` – samt Übersetzung der
+  Fehlercodes in Sätze, die weiterhelfen. »Der Zugangsschlüssel wurde nicht
+  angenommen (401)« sagt mehr als »HTTP Error 401«.
+- **Von Hand heißt nicht leer.** Titel und Anriss stehen im Entwurf, gekürzt
+  an Satzgrenzen auf das, was das Netzwerk zulässt. Ein Gerüst schreibt sich
+  leichter um als ein leeres Feld.
+- **Einen Beitrag selbst in den Kalender stellen.** Bisher entstand ein
+  Beitrag nur aus einem abgerufenen Inhalt oder aus der Wochenplanung – für
+  Betriebsferien, einen Dank oder einen Termin gab es keinen Weg hinein.
+  »Beitrag von Hand« sagt vorher dazu, wer den Text schreiben wird. Klemmt
+  der Dienst, entsteht der Beitrag trotzdem: Der Termin ist das Wichtigere,
+  der Text lässt sich tippen.
 - **Eine Bedienungs- und eine Installationsanleitung**, beide zweisprachig
   unter `docs/`. Die Bedienung zeigt fünf Bilder der Oberfläche; die
   Installation geht den Weg von der leeren Maschine bis zum laufenden

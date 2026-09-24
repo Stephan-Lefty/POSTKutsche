@@ -406,7 +406,7 @@ button { font: inherit; cursor: pointer; }
    Ohne diese Zeile bliebe die Bereichsauswahl stehen, wo es gar keine
    Bereiche zu wählen gibt - bei einem Blog liegt alles im selben Zweig. */
 .kasten label[hidden] { display: none; }
-.kasten input, .kasten select {
+.kasten input, .kasten select, .kasten textarea {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -485,13 +485,16 @@ button { font: inherit; cursor: pointer; }
 .hilfeverweis { color: var(--verweis); font-size: 13px; text-decoration: none; }
 .hilfeverweis:hover, .hilfeverweis:focus-visible { text-decoration: underline; }
 
-#k-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-#k-netze label {
+/* Zwei Fenster, dieselbe Netzwerkreihe: Die Regel hing an der ID des
+   Planungsfensters, und im Fenster »Beitrag von Hand« standen die Haekchen
+   deshalb untereinander statt nebeneinander. */
+#k-netze, #e-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+#k-netze label, #e-netze label {
   display: flex; align-items: center; gap: 5px; margin: 0;
   border: 2px solid; border-radius: 6px; padding: 2px 8px;
   font-size: 12px; color: var(--text); cursor: pointer;
 }
-#k-netze input { width: auto; margin: 0; }
+#k-netze input, #e-netze input { width: auto; margin: 0; }
 
 /* Fortschritt beim Planen einer Woche. Ohne Rückmeldung sieht ein Lauf über
    zehn Produkte aus wie ein Absturz, und jemand bricht ab, während es noch

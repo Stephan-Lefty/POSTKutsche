@@ -116,6 +116,27 @@ nicht und soll es vorerst nicht geben. Die Art `shopware` bleibt in der
 Kommandozeile wählbar, führt aber ins Leere – die Meldungen sagen jetzt, dass
 `seitenkarte` der Weg ist.
 
+**Vier Wege zum Text, eine Schnittstelle** (2026-09-24). `denker.schreiben`
+verzweigt nach `kommando` (claude -p), `offen` (alles in der OpenAI-Form),
+`anthropisch` (Messages-API mit eigenem Schlüssel) und `hand` (kein Modell,
+nur Titel und Anriss). Welcher gilt, entscheidet in dieser Reihenfolge:
+`einstellungen.denker` des Projekts, `~/.config/postkutsche/denker.json`,
+Vorgabe `kommando`. Die Aufrufer in `entwerfen.py` und `kampagnenlauf.py`
+haben deshalb keine Verzweigung – sie reichen nur das Projekt durch.
+
+Zwei Dinge, die beim Bauen Zeit gekostet haben und nicht wieder aufzurollen
+sind: Die neueren Anthropic-Modelle lehnen `temperature` und `top_p` mit
+einer 400 ab, und eine abgelehnte Anfrage kommt mit Statuscode 200 zurück –
+`stop_reason` steht auf »refusal«, der Inhalt ist leer. Wer nur auf den Code
+schaut, liest ins Leere.
+
+**Ein Beitrag kann jetzt ohne Quelle entstehen.** `/api/beitrag/neu` legt
+Inhalt, Beitrag und Fassungen in einem Zug an; die Adresse lautet dann
+`hand:<zeitstempel>`, weil `inhalt_merken` eine eindeutige Kennung braucht –
+sonst überschriebe die zweite Ankündigung mit gleichem Titel die erste. Die
+Oberfläche blendet diese Ersatzadresse aus und hängt sie auch nicht an den
+Text.
+
 ## Wie es zusammenhängt
 
 ```
@@ -177,7 +198,8 @@ schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
 | `netzwerke/__init__.py` | Farben, Kürzel, Zeichengrenzen, Eigenheiten |
 | `sendezeiten.py` | Terminvorschläge je Netzwerk und Zielgruppe, mit Begründung |
 | `erstbestueckung.py` | Beispielprojekte; die eigenen kommen aus `~/.config/postkutsche/` |
-| `konfiguration.py` | liest die eigenen Seiten und Hersteller, die nicht ins Repo dürfen |
+| `konfiguration.py` | liest die eigenen Seiten, Hersteller und den Denker |
+| `denker/netz.py` | POST mit JSON über urllib, Fehlercodes als Sätze |
 | `kampagnen.py` | Thema, Kalenderwoche, Kategorien, Herstellerfilter |
 | `farben.py` | die gemeinsame Palette, auch für andere Projekte |
 | `__main__.py` | Kommandozeile |

@@ -12,6 +12,8 @@ interface changes. The interface itself is German only.
 ## Contents
 
 - [The calendar](#the-calendar)
+- [Creating a post yourself](#creating-a-post-yourself)
+- [Who writes the texts](#who-writes-the-texts)
 - [A post in detail](#a-post-in-detail)
 - [Answering queries](#answering-queries)
 - [Planning a week](#planning-a-week)
@@ -58,6 +60,45 @@ is visible.
 The colour dot in front of a project name is a button: clicking it opens the
 colour picker. The suggested colours keep their distance from the network
 colours, so a project dot is never mistaken for a network tag.
+
+## Creating a post yourself
+
+![The »post by hand« window](bilder/vonhand.png)
+
+Not every post comes from a page. Holiday closures, a thank-you, an event –
+that's what **»Beitrag von Hand«** (post by hand) at the top is for.
+
+The window asks for project, title, a few sentences about it, a link (which
+may stay empty), day and time, and the networks. Above the fields it says who
+will write the text; with »by hand« configured, the title and your sentences
+land in the draft and the rest is yours.
+
+The post then opens right away so you can edit the text in place. If the
+service isn't answering, the post is created anyway – the date is the more
+important part, the text can be typed.
+
+## Who writes the texts
+
+There are four routes, and they can differ per project:
+
+| Route | Who writes |
+|---|---|
+| `kommando` | Claude Code via the existing subscription – the default |
+| `offen` | a service in the OpenAI shape: Ollama on your own machine, ChatGPT, OpenRouter … |
+| `anthropisch` | Claude via the Anthropic API with your own key |
+| `hand` | you |
+
+This is set on the command line, not in the interface – it's a decision you
+make once:
+
+```
+postkutsche denker liste
+postkutsche denker waehlen hand
+postkutsche denker pruefen --projekt meinblog
+```
+
+How the routes are set up is in the
+[installation guide](installation.en.md#4-decide-who-writes-the-texts).
 
 ## A post in detail
 
@@ -205,6 +246,10 @@ systemctl --user restart postkutsche-kalender.service
 
 **A post cannot be approved.** Then a query is still open – it sits in red in
 the post.
+
+**The draft is only a title and two sentences.** Then »by hand« is
+configured, and that's deliberate: `postkutsche denker liste` shows what
+currently applies.
 
 **The category list stays empty or says »nicht erreichbar«.** Then the site
 isn't answering right now. For shops without an API the structure is cached

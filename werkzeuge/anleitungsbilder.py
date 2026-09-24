@@ -96,6 +96,20 @@ rahmen.onload = () => {
                     .find((k) => k.textContent.includes("Kastenfenster")).click());
     return;
   }
+  if (szene === "vonhand") {
+    // Auf die Projektspalte warten, nicht auf den Knopf: Den gibt es von
+    // Anfang an, seine Aufgabe bekommt er erst, wenn der Kalender steht.
+    warten((d) => d.querySelector("#projekte input"), (d) => {
+      d.querySelector("#eigener-auf").click();
+      d.querySelector("#e-titel").value = "Wir machen Betriebsferien";
+      d.querySelector("#e-text").value =
+        "Vom 24. Dezember bis zum 6. Januar bleibt die Werkstatt zu. "
+        + "Ab dem 7. sind wir wieder da.";
+      const erstes = d.querySelector("#e-netze input");
+      if (erstes) erstes.checked = true;
+    });
+    return;
+  }
   if (szene === "gelerntes") {
     // Die Projektliste des Fensters entsteht erst beim Öffnen - hier also
     // auf die Projektspalte warten, nicht auf »#w-projekt option«.
@@ -307,6 +321,7 @@ SZENEN = [
     ("beitrag", 900, "Ein Beitrag, aufgeschlagen"),
     ("planung", 940, "Das Fenster »Woche planen«"),
     ("rueckfrage", 760, "Ein Beitrag mit offener Rückfrage"),
+    ("vonhand", 800, "Das Fenster »Beitrag von Hand«"),
     ("gelerntes", 700, "Was aus Rückfragen gelernt wurde"),
 ]
 

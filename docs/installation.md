@@ -15,7 +15,7 @@ vorgesehen: POSTKutsche hat keine Anmeldung und hört nur auf `localhost`.
 - [1. Programm installieren](#1-programm-installieren)
 - [2. Ablage anlegen](#2-ablage-anlegen)
 - [3. Die eigenen Seiten eintragen](#3-die-eigenen-seiten-eintragen)
-- [4. Claude anbinden](#4-claude-anbinden)
+- [4. Festlegen, wer die Texte schreibt](#4-festlegen-wer-die-texte-schreibt)
 - [5. Konten einrichten](#5-konten-einrichten)
 - [6. Dauerbetrieb einrichten](#6-dauerbetrieb-einrichten)
 - [Wohin was gelegt wird](#wohin-was-gelegt-wird)
@@ -37,9 +37,10 @@ Zwei Dinge sind Kür und lassen sich nachrüsten:
 | Pillow | Bilder auf 4:5 zuschneiden | das unveränderte Bild von der Website wird genommen – es sieht auf dem Handy schlechter aus |
 | keyring | Zugangstoken im Schlüsselbund | die Token landen in `~/.config/postkutsche/zugaenge.json` mit Rechten 600 |
 
-Für das Schreiben der Texte wird **Claude Code** gebraucht (Schritt 4), für
-den Dauerbetrieb **systemd** (Schritt 6). Beides ist nicht nötig, um sich das
-Programm erst einmal anzusehen.
+Wer die Texte schreibt, entscheidest du in Schritt 4 – Claude Code, ein
+Dienst im Netz, ein Modell auf dem eigenen Rechner oder du selbst. Für den
+Dauerbetrieb wird **systemd** gebraucht (Schritt 6). Beides ist nicht nötig,
+um sich das Programm erst einmal anzusehen.
 
 ## 1. Programm installieren
 
@@ -137,11 +138,25 @@ postkutsche projekt neu meinblog "Mein Blog" https://meinblog.example --art word
 postkutsche projekt liste
 ```
 
-## 4. Claude anbinden
+## 4. Festlegen, wer die Texte schreibt
 
-Die Texte schreibt Claude, aufgerufen über die Kommandozeile – das nutzt ein
-vorhandenes Abo, kostet nichts je Beitrag und braucht keinen Schlüssel, der
-verwaltet werden will.
+Vier Wege stehen zur Wahl. Welcher gilt, zeigt und ändert `postkutsche
+denker`:
+
+```
+postkutsche denker liste
+postkutsche denker waehlen <weg>
+postkutsche denker pruefen
+```
+
+| Weg | Was er braucht | Was er kostet |
+|---|---|---|
+| `kommando` (Vorgabe) | Claude Code auf der Maschine, angemeldet | nichts je Beitrag – das Abo zahlt |
+| `offen` | eine Adresse, die die OpenAI-Form spricht | bei Ollama nichts, sonst je nach Anbieter |
+| `anthropisch` | einen Schlüssel von Anthropic | je Beitrag, nach Verbrauch |
+| `hand` | nichts | nichts – du schreibst selbst |
+
+**`kommando` – Claude Code.** Der Weg, mit dem POSTKutsche anfängt:
 
 ```
 npm install -g @anthropic-ai/claude-code
@@ -149,12 +164,64 @@ claude
 ```
 
 Beim ersten Start einmal `/login` eingeben und anmelden. Danach findet
-POSTKutsche den Befehl von selbst. Fehlt er, sagt das Programm genau das und
-nennt diese beiden Zeilen – es rät nicht und schreibt auch nichts Halbes.
+POSTKutsche den Befehl von selbst.
+
+**`offen` – alles, was die OpenAI-Form spricht.** Ein Weg für viele Anbieter:
+Ollama auf dem eigenen Rechner, LM Studio, OpenRouter, DeepSeek, Mistral,
+ChatGPT. Sie unterscheiden sich in Adresse, Modellname und ob ein Schlüssel
+nötig ist – nicht in der Anfrage.
+
+Offline und ohne Rechnung, mit Ollama:
+
+```
+ollama serve
+ollama pull llama3.1:8b
+postkutsche denker waehlen offen --adresse http://localhost:11434/v1 --modell llama3.1:8b
+```
+
+Mit einem Dienst im Netz kommt der Schlüssel dazu:
+
+```
+postkutsche denker waehlen offen --adresse https://api.openai.example/v1 --modell gpt-4o-mini
+postkutsche denker schluessel offen
+```
+
+**`anthropisch` – Claude mit eigenem Schlüssel.** Für Maschinen ohne Claude
+Code, etwa einen Server, der sonst nur sendet:
+
+```
+postkutsche denker waehlen anthropisch --modell claude-opus-4-8
+postkutsche denker schluessel anthropisch
+```
+
+Den Schlüssel legst du selbst in der Anthropic-Konsole an. Er wird nach
+Verbrauch abgerechnet; das Abo deckt ihn **nicht** ab. Wer sparen will, trägt
+mit `--modell` ein kleineres Modell ein – für 500 Zeichen Mastodon reicht
+auch Haiku.
+
+**`hand` – du schreibst selbst.** Titel und Anriss stehen im Entwurf, den
+Rest schreibst du. Kein Dienst, keine Rechnung, keine Rückfragen:
+
+```
+postkutsche denker waehlen hand
+```
+
+**Je Projekt geht es auch.** In `projekte.json` sticht `"denker"` die
+allgemeine Einstellung – so schreibt sich der eine Blog von Hand, während der
+Shop weiterläuft:
+
+```json
+"einstellungen": { "denker": "hand" }
+```
+
+Schlüssel gehen den Weg, den die Token schon gehen: Schlüsselbund,
+ersatzweise `~/.config/postkutsche/zugaenge.json` mit Rechten 600. **In
+`denker.json` steht keiner**, und in der Datenbank schon gar nicht.
 
 Probe aufs Exempel, sobald ein Projekt eingetragen ist:
 
 ```
+postkutsche denker pruefen --projekt meinblog
 postkutsche entwerfen --projekt meinblog --anzahl 1
 ```
 
@@ -220,6 +287,7 @@ postkutsche dienst menueeintrag
 | Datenbank | `~/.local/share/postkutsche/postkutsche.db` |
 | eigene Projekte | `~/.config/postkutsche/projekte.json` |
 | eigene Hersteller | `~/.config/postkutsche/hersteller.json` |
+| wer die Texte schreibt | `~/.config/postkutsche/denker.json` |
 | Token ohne Schlüsselbund | `~/.config/postkutsche/zugaenge.json` (600) |
 | Zwischenspeicher, Bilder | `~/.local/share/postkutsche/` |
 | abgelegte Bilder | `~/Dokumente/POSTKutsche/<Jahr>-KW<Woche>/<Projekt>/` |
@@ -241,6 +309,7 @@ postkutsche --ablage /tmp/probe.db einrichten
 
 ```
 postkutsche dienst stand           # laufen Kalender und Zeitgeber?
+postkutsche denker pruefen         # antwortet, wer schreiben soll?
 postkutsche projekt liste          # sind die Projekte da?
 postkutsche konto liste            # sind die Konten da?
 postkutsche senden --probelauf     # was ginge jetzt raus?

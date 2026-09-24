@@ -11,9 +11,10 @@
 
 An editorial calendar for your own sites and your social accounts.
 
-POSTKutsche checks your blogs and shops for what's new, has Claude write a
-separate version for each network, shows them to you in a calendar as drafts —
-and publishes them at the time you chose. For Facebook and Instagram, while
+POSTKutsche checks your blogs and shops for what's new, has a separate version
+written for each network — by Claude, by a model on your own machine, or by
+you — shows them to you in a calendar as drafts, and publishes them at the
+time you chose. For Facebook and Instagram, while
 Meta's review is pending, it puts text and image ready for you to copy.
 
 Developed on Arch Linux and Debian.
@@ -28,6 +29,16 @@ A new blog post or product shows up in the calendar as a suggestion.
 and out come one or two posts a day. For shops that is the actual way of
 working, because no product there is ever "new", it gets picked. Blogs work the
 same way: a post from March is no worse in September.
+
+**You decide who writes.** Claude Code via the existing subscription, any
+service in the OpenAI shape – Ollama on your own machine, ChatGPT, OpenRouter
+–, the Anthropic API with your own key, or nobody at all: with »by hand« the
+title and lead-in sit in the draft and you write the rest. Configurable per
+project, so one blog goes by hand while the shop carries on.
+
+**It takes posts without a page, too.** Holiday closures, a thank-you, an
+event – »post by hand« puts an entry in the calendar that has no address
+anywhere.
 
 **It writes differently for each network.** A Mastodon post has 500 characters,
 LinkedIn folds away everything after the first sentence, and on Instagram no
@@ -74,8 +85,8 @@ pip install -e ".[schluessel]"  # tokens in the keyring instead of a file
 pip install -e ".[alles]"       # both
 ```
 
-The whole way – connecting Claude, setting up accounts, running it
-continuously under systemd – is described in the
+The whole way – deciding who writes the texts, setting up accounts, running
+it continuously under systemd – is described in the
 [installation guide](docs/installation.en.md). How to work with it afterwards
 is in the [user guide](docs/bedienung.en.md), with screenshots.
 

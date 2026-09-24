@@ -15,7 +15,7 @@ listens on `localhost` only.
 - [1. Install the program](#1-install-the-program)
 - [2. Create the store](#2-create-the-store)
 - [3. Enter your own sites](#3-enter-your-own-sites)
-- [4. Connect Claude](#4-connect-claude)
+- [4. Decide who writes the texts](#4-decide-who-writes-the-texts)
 - [5. Set up accounts](#5-set-up-accounts)
 - [6. Set up continuous operation](#6-set-up-continuous-operation)
 - [Where things are put](#where-things-are-put)
@@ -36,7 +36,8 @@ Two things are optional and can be added later:
 | Pillow | crop images to 4:5 | the unmodified image from the website is used – it looks worse on a phone |
 | keyring | access tokens in the keyring | tokens go into `~/.config/postkutsche/zugaenge.json` with mode 600 |
 
-Writing the texts needs **Claude Code** (step 4), continuous operation needs
+Who writes the texts is your decision in step 4 – Claude Code, a service on
+the net, a model on your own machine, or you. Continuous operation needs
 **systemd** (step 6). Neither is required just to have a first look.
 
 ## 1. Install the program
@@ -134,10 +135,25 @@ postkutsche projekt neu meinblog "Mein Blog" https://meinblog.example --art word
 postkutsche projekt liste
 ```
 
-## 4. Connect Claude
+## 4. Decide who writes the texts
 
-The texts are written by Claude, called through the command line – that uses
-an existing subscription, costs nothing per post and needs no key to manage.
+There are four routes. `postkutsche denker` shows and changes which one
+applies:
+
+```
+postkutsche denker liste
+postkutsche denker waehlen <route>
+postkutsche denker pruefen
+```
+
+| Route | What it needs | What it costs |
+|---|---|---|
+| `kommando` (default) | Claude Code on the machine, signed in | nothing per post – the subscription pays |
+| `offen` | an address that speaks the OpenAI shape | nothing with Ollama, otherwise per provider |
+| `anthropisch` | a key from Anthropic | per post, by usage |
+| `hand` | nothing | nothing – you write it yourself |
+
+**`kommando` – Claude Code.** The route POSTKutsche starts with:
 
 ```
 npm install -g @anthropic-ai/claude-code
@@ -145,12 +161,62 @@ claude
 ```
 
 On first start enter `/login` once and sign in. After that POSTKutsche finds
-the command by itself. If it is missing, the program says exactly that and
-names these two lines – it does not guess and does not write half a text.
+the command by itself.
+
+**`offen` – anything speaking the OpenAI shape.** One route for many
+providers: Ollama on your own machine, LM Studio, OpenRouter, DeepSeek,
+Mistral, ChatGPT. They differ in address, model name and whether a key is
+needed – not in the request.
+
+Offline and without a bill, using Ollama:
+
+```
+ollama serve
+ollama pull llama3.1:8b
+postkutsche denker waehlen offen --adresse http://localhost:11434/v1 --modell llama3.1:8b
+```
+
+With a service on the net, the key comes along:
+
+```
+postkutsche denker waehlen offen --adresse https://api.openai.example/v1 --modell gpt-4o-mini
+postkutsche denker schluessel offen
+```
+
+**`anthropisch` – Claude with your own key.** For machines without Claude
+Code, such as a server that otherwise only sends:
+
+```
+postkutsche denker waehlen anthropisch --modell claude-opus-4-8
+postkutsche denker schluessel anthropisch
+```
+
+You create the key yourself in the Anthropic console. It is billed by usage;
+the subscription does **not** cover it. To spend less, name a smaller model
+with `--modell` – Haiku is plenty for 500 characters of Mastodon.
+
+**`hand` – you write it yourself.** Title and lead-in sit in the draft, the
+rest is yours. No service, no bill, no queries:
+
+```
+postkutsche denker waehlen hand
+```
+
+**Per project works too.** In `projekte.json`, `"denker"` beats the general
+setting – so one blog is written by hand while the shop carries on:
+
+```json
+"einstellungen": { "denker": "hand" }
+```
+
+Keys take the route the tokens already take: the keyring, otherwise
+`~/.config/postkutsche/zugaenge.json` with mode 600. **No key is in
+`denker.json`**, and certainly none in the database.
 
 The proof, once a project is entered:
 
 ```
+postkutsche denker pruefen --projekt meinblog
 postkutsche entwerfen --projekt meinblog --anzahl 1
 ```
 
@@ -216,6 +282,7 @@ postkutsche dienst menueeintrag
 | database | `~/.local/share/postkutsche/postkutsche.db` |
 | own projects | `~/.config/postkutsche/projekte.json` |
 | own manufacturers | `~/.config/postkutsche/hersteller.json` |
+| who writes the texts | `~/.config/postkutsche/denker.json` |
 | tokens without a keyring | `~/.config/postkutsche/zugaenge.json` (600) |
 | cache, images | `~/.local/share/postkutsche/` |
 | filed images | `~/Dokumente/POSTKutsche/<year>-KW<week>/<project>/` |
@@ -236,6 +303,7 @@ postkutsche --ablage /tmp/probe.db einrichten
 
 ```
 postkutsche dienst stand           # are calendar and timer running?
+postkutsche denker pruefen         # does the chosen writer answer?
 postkutsche projekt liste          # are the projects there?
 postkutsche konto liste            # are the accounts there?
 postkutsche senden --probelauf     # what would go out now?
