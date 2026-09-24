@@ -1,4 +1,4 @@
-[Deutsch](README.md) | [English](README.en.md) | [Änderungsprotokoll](CHANGELOG.md) | [TODO](TODO.md)
+[Deutsch](README.md) | [English](README.en.md) | [Änderungsprotokoll](CHANGELOG.md) | [TODO](TODO.md) | [Installation](docs/installation.md) | [Bedienung](docs/bedienung.md)
 
 <p align="center">
   <picture>
@@ -75,6 +75,11 @@ pip install -e ".[bilder]"      # Bilder auf 4:5 beschneiden (Pillow)
 pip install -e ".[schluessel]"  # Token im Schlüsselbund statt in einer Datei
 pip install -e ".[alles]"       # beides
 ```
+
+Den ganzen Weg – Claude anbinden, Konten einrichten, Dauerbetrieb über
+systemd – beschreibt die [Installationsanleitung](docs/installation.md). Wie
+man danach damit arbeitet, steht mit Bildern in der
+[Bedienungsanleitung](docs/bedienung.md).
 
 ## Erste Schritte
 

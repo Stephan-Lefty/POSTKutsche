@@ -78,6 +78,21 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   meldete 16 Beiträge, planbar sind acht. Wer daraufhin zwei Beiträge am Tag
   einplant, bekommt eine halb leere Woche und erfährt den Grund nicht. Wo ein
   Sprachfilter eingetragen ist, wird deshalb nachgezählt.
+- **Eine Bedienungs- und eine Installationsanleitung**, beide zweisprachig
+  unter `docs/`. Die Bedienung zeigt fünf Bilder der Oberfläche; die
+  Installation geht den Weg von der leeren Maschine bis zum laufenden
+  Zeitgeber, mit allem, was bisher nur im Quelltext stand – Claude anbinden,
+  Mastodon-Rechte, systemd, Ablageorte. In der linken Spalte steht jetzt ein
+  Verweis auf die Anleitung: Wer nicht weiterkommt, sucht im Programm.
+- **Die Bilder der Anleitung entstehen per Skript**
+  (`werkzeuge/anleitungsbilder.py`). Von Hand geschossene Bildschirmfotos
+  veralten mit der ersten Änderung, und niemand weiß später, welcher
+  Ausschnitt in welcher Größe gezeigt wurde. Aufgenommen wird eine eigens
+  angelegte Ablage mit erfundenen Projekten – **die eigene Ablage kommt nicht
+  ins Bild**, dafür zeigt `POSTKUTSCHE_CONFIG` beim Aufnehmen auf einen leeren
+  Ordner. Das Planungsfenster bekommt seine Kategorien von einer Kulisse, die
+  WordPress spielt; ein Bild, das »nicht erreichbar« zeigt, wäre als Anleitung
+  wertlos.
 - **Ausgeblendete Projekte bleiben ausgeblendet.** Wer nur an Naturlust
   arbeitet, blendet die vier anderen aus – und hatte sie nach dem nächsten
   Neuladen alle wieder vor sich. Gemerkt werden die *ausgeblendeten*

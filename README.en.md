@@ -1,4 +1,4 @@
-[Deutsch](README.md) | [English](README.en.md) | [Changelog](CHANGELOG.md) | [TODO](TODO.en.md)
+[Deutsch](README.md) | [English](README.en.md) | [Changelog](CHANGELOG.md) | [TODO](TODO.en.md) | [Installation](docs/installation.en.md) | [Using it](docs/bedienung.en.md)
 
 <p align="center">
   <picture>
@@ -73,6 +73,11 @@ pip install -e ".[bilder]"      # crop images to 4:5 (Pillow)
 pip install -e ".[schluessel]"  # tokens in the keyring instead of a file
 pip install -e ".[alles]"       # both
 ```
+
+The whole way – connecting Claude, setting up accounts, running it
+continuously under systemd – is described in the
+[installation guide](docs/installation.en.md). How to work with it afterwards
+is in the [user guide](docs/bedienung.en.md), with screenshots.
 
 ## First steps
 

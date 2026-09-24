@@ -480,6 +480,10 @@ button { font: inherit; cursor: pointer; }
 }
 .wissentext .anzahl.gelaufen { color: var(--blau); }
 .spaltenzeile { margin: 4px 0 0; }
+/* Der Verweis trägt dieselbe Schriftgröße wie die Knöpfe darüber, damit die
+   Spalte zwischen zwei Überschriften nicht die Gestalt wechselt. */
+.hilfeverweis { color: var(--verweis); font-size: 13px; text-decoration: none; }
+.hilfeverweis:hover, .hilfeverweis:focus-visible { text-decoration: underline; }
 
 #k-netze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 #k-netze label {

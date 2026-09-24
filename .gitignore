@@ -17,6 +17,15 @@ hersteller.json
 *.db-wal
 bilder/
 
+# Ausgenommen: die Bilder der Anleitung. Sie zeigen eine eigens angelegte
+# Ablage mit erfundenen Projekten und entstehen mit
+# werkzeuge/anleitungsbilder.py – aus dem Betrieb stammt dort nichts.
+# Beide Zeilen sind nötig: Git steigt in ein ausgeschlossenes Verzeichnis
+# gar nicht erst hinab, der Ordner muss also selbst wieder hereingenommen
+# werden, bevor die Dateien darin gelten.
+!docs/bilder/
+!docs/bilder/*.png
+
 # Bildquellen, die nicht ins Repository gehören: Ausgangsdateien aus
 # Bildgeneratoren und Größen, die aus einer kleineren Vorlage hochgerechnet
 # wären. Die maßgebliche Quelle ist assets/icon-quelle.png.
