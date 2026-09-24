@@ -75,6 +75,39 @@ def hersteller_lesen() -> dict[str, dict[str, list[str]]]:
     return daten
 
 
+def denkerdatei() -> Path:
+    return ordner() / "denker.json"
+
+
+def denker_lesen() -> dict[str, Any]:
+    """Wer die Texte schreibt – und womit.
+
+    Fehlt die Datei, ist das kein Fehler: Dann gilt die Vorgabe aus
+    `denker/__init__.py`. Der Aufbau:
+
+        {
+          "weg": "kommando",
+          "offen": {"adresse": "http://localhost:11434/v1",
+                    "modell": "llama3.1:8b"},
+          "anthropisch": {"modell": "claude-opus-4-8"}
+        }
+
+    **Schlüssel stehen hier nicht.** Sie gehören in den Schlüsselbund,
+    ersatzweise nach `zugaenge.json` mit Rechten 600 – dieselbe Regel wie bei
+    den Netzwerken und aus demselben Grund: Diese Datei wird kopiert und
+    gesichert, ein Schlüssel darin wäre bald an fünf Orten.
+    """
+    datei = denkerdatei()
+    if not datei.exists():
+        return {}
+    daten = _lesen(datei, "Angaben zum Denker")
+    if not isinstance(daten, dict):
+        raise KonfigurationsFehler(
+            f"{datei} muss ein Objekt enthalten, kein {type(daten).__name__}."
+        )
+    return daten
+
+
 class KonfigurationsFehler(Exception):
     """Die Konfigurationsdatei lässt sich nicht lesen."""
 

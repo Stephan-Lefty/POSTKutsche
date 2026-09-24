@@ -64,11 +64,9 @@ def entwerfen(
         raise EntwurfFehler(
             f"»{kennung}« ist pausiert. Erst starten: postkutsche projekt starten {kennung}"
         )
-    if not denker.verfuegbar():
-        raise EntwurfFehler(
-            "»claude« ist nicht im Suchpfad. Claude Code installieren, "
-            "starten und mit /login anmelden."
-        )
+    weg, _ = denker.waehlen(projekt)
+    if not denker.verfuegbar(projekt=projekt):
+        raise EntwurfFehler(denker.nicht_da(weg))
 
     erster_abruf = projekt.zuletzt_geholt is None
     melden(f"Rufe {projekt.name} ab …")
@@ -111,7 +109,8 @@ def entwerfen(
                                                  str(inhalt.get("adresse") or ""))]
         art = denker.BLOG if projekt.art == "wordpress" else denker.PRODUKT
         fassungen = denker.schreiben(inhalt, netzwerke, projekt.name,
-                                     wissen=wissen, art=art)
+                                     wissen=wissen, art=art,
+                                     projektdaten=projekt)
 
         # Der Termin richtet sich nach dem ersten Netzwerk; die übrigen
         # Fassungen gehen zur selben Zeit raus. Ein Beitrag ist ein Kärtchen.

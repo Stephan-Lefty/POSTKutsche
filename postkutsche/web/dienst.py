@@ -659,9 +659,14 @@ class Behandler(BaseHTTPRequestHandler):
                 "kategorien": [],
             }
 
+            # Das Projekt mitgeben: Daran hängt, wer nachbessert. Ein Blog,
+            # der von Hand geschrieben wird, soll nicht plötzlich einen
+            # fremden Dienst anrufen, nur weil jemand eine Frage beantwortet.
+            eigner = next((p for p in a.projekte()
+                           if p.id == zeile["projekt_id"]), None)
             neu = denker.nachbessern(
                 quelle, zeile["netzwerk"], zeile["text"],
-                zeile["rueckfrage"], antwort,
+                zeile["rueckfrage"], antwort, projektdaten=eigner,
             )
 
             # Die Antwort wird an den Beitrag geschrieben. Sie gehört zur

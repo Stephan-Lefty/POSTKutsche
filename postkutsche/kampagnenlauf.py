@@ -172,8 +172,9 @@ def ausfuehren(ablage, kampagne: kampagnen.Kampagne, melden=None,
     projekt = ablage.projekt(kampagne.projekt)
     if projekt is None:
         raise ValueError(f"Kein Projekt »{kampagne.projekt}«.")
-    if not denker.verfuegbar():
-        raise ValueError("»claude« ist nicht im Suchpfad oder nicht angemeldet.")
+    if not denker.verfuegbar(projekt=projekt):
+        weg, _ = denker.waehlen(projekt)
+        raise ValueError(denker.nicht_da(weg))
 
     # Vor dem Planen aufräumen: Verfallene Entwürfe sperren sonst über die
     # Vier-Wochen-Regel Produkte, die nie beworben wurden.
@@ -296,7 +297,8 @@ def _ein_beitrag(ablage, projekt, produkt, termin, grund, netze, thema,
     art = (denker.BLOG if getattr(projekt, "art", "") == "wordpress"
            else denker.PRODUKT)
     fassungen = denker.schreiben(seite, netze, projekt.name, zusatz,
-                                 frueher=frueher, wissen=wissen, art=art)
+                                 frueher=frueher, wissen=wissen, art=art,
+                                 projektdaten=projekt)
 
     bild = None
     if seite.get("bild_adresse"):

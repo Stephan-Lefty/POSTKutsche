@@ -3,7 +3,8 @@
 Nutzt das vorhandene Abo statt eines API-Schlüssels; je Beitrag entstehen
 keine zusätzlichen Kosten. Der Preis dafür ist, dass Claude Code auf der
 Maschine installiert und angemeldet sein muss - auf einem Server, der nur
-sendet, wäre der API-Weg der bessere (siehe `api.py`).
+sendet, ist `anthropisch.py` der bessere Weg, und wer gar nichts bezahlen
+will, nimmt `offen.py` mit einem Modell auf dem eigenen Rechner.
 
 **Zum Ausgabeformat.** `--output-format json` liefert ein Hüllobjekt, in dem
 der eigentliche Text unter »result« steht. Weil sich das zwischen Fassungen
@@ -26,25 +27,25 @@ import tempfile
 from typing import Any
 
 from . import vorlagen
-
-#: Wie lange ein Aufruf höchstens dauern darf. Vier Fassungen aus einem langen
-#: Blogbeitrag brauchen gut eine Minute; drei sind reichlich Luft.
-ZEITLIMIT = 180
+from .netz import ZEITLIMIT, DenkerFehler, DenkerFehlt
 
 BEFEHL = "claude"
 
-
-class ClaudeFehlt(Exception):
-    """Claude Code ist nicht installiert oder nicht im Suchpfad."""
-
-
-class ClaudeFehler(Exception):
-    """Der Aufruf ist schiefgegangen. Die Meldung ist für Menschen gedacht."""
+#: Die alten Namen dieses Moduls. Seit es vier Wege gibt, heißen die Fehler
+#: nicht mehr nach Claude - aber ein Umbenennen in jedem Aufrufer wäre Arbeit
+#: ohne Gewinn.
+ClaudeFehlt = DenkerFehlt
+ClaudeFehler = DenkerFehler
 
 
 def vorhanden() -> bool:
     """Ob `claude` aufrufbar ist."""
     return shutil.which(BEFEHL) is not None
+
+
+def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
+    """Gemeinsamer Name für alle Wege – hier genügt der Suchpfad."""
+    return vorhanden()
 
 
 def fassungen(
@@ -56,6 +57,7 @@ def fassungen(
     frueher: dict[str, str] | None = None,
     wissen: list[dict[str, Any]] | None = None,
     art: str = vorlagen.PRODUKT,
+    einstellungen: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Lässt Claude die Fassungen für die genannten Netzwerke schreiben.
 
@@ -64,7 +66,7 @@ def fassungen(
     """
     text = _aufrufen(
         vorlagen.anweisung(inhalt, fuer, projekt, zusatz, frueher, wissen, art),
-        modell,
+        modell or (einstellungen or {}).get("modell"),
     )
     return vorlagen.antwort_lesen(text, fuer)
 
@@ -76,17 +78,19 @@ def nachbessern(
     frage: str,
     antwort: str,
     zusatz: str = "",
+    einstellungen: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bessert einen Text mit der Antwort auf die Rückfrage nach."""
     text = _aufrufen(
-        vorlagen.nachbesserung(inhalt, netzwerk, bisher, frage, antwort, zusatz)
+        vorlagen.nachbesserung(inhalt, netzwerk, bisher, frage, antwort, zusatz),
+        (einstellungen or {}).get("modell"),
     )
     return vorlagen.antwort_lesen(text, [netzwerk])[netzwerk]
 
 
 def _aufrufen(anweisung: str, modell: str | None = None) -> str:
     if not vorhanden():
-        raise ClaudeFehlt(
+        raise DenkerFehlt(
             "»claude« ist nicht im Suchpfad. Claude Code installieren "
             "(npm install -g @anthropic-ai/claude-code), danach einmal "
             "»claude« starten und mit /login anmelden."
@@ -111,20 +115,20 @@ def _aufrufen(anweisung: str, modell: str | None = None) -> str:
                 env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "postkutsche"},
             )
         except FileNotFoundError as fehler:
-            raise ClaudeFehlt(str(fehler)) from fehler
+            raise DenkerFehlt(str(fehler)) from fehler
         except subprocess.TimeoutExpired as fehler:
-            raise ClaudeFehler(
+            raise DenkerFehler(
                 f"Claude hat nach {ZEITLIMIT} Sekunden nicht geantwortet."
             ) from fehler
 
     if lauf.returncode != 0:
         meldung = (lauf.stderr or lauf.stdout or "").strip()
         if "login" in meldung.lower() or "not logged in" in meldung.lower():
-            raise ClaudeFehler(
+            raise DenkerFehler(
                 "Claude Code ist nicht angemeldet. Einmal »claude« starten "
                 "und /login ausführen."
             )
-        raise ClaudeFehler(
+        raise DenkerFehler(
             f"claude endete mit Rückgabewert {lauf.returncode}: {meldung[:300]}"
         )
 
@@ -149,7 +153,7 @@ def _auspacken(roh: str) -> str:
         return roh
 
     if huelle.get("is_error"):
-        raise ClaudeFehler(
+        raise DenkerFehler(
             f"Claude meldet einen Fehler: {str(huelle.get('result'))[:300]}"
         )
 

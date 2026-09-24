@@ -182,6 +182,29 @@ def _zerleger() -> argparse.ArgumentParser:
     dx = dst_unter.add_parser("entfernen", help="Dienste anhalten und löschen")
     dx.set_defaults(handlung=_dienst_entfernen)
 
+    # -- denker -----------------------------------------------------------
+    dk = unter.add_parser("denker", help="wer die Texte schreibt")
+    dk_unter = dk.add_subparsers(dest="denker_befehl")
+    dk.set_defaults(handlung=_denker_liste)
+
+    dkl = dk_unter.add_parser("liste", help="welche Wege es gibt und welcher gilt")
+    dkl.set_defaults(handlung=_denker_liste)
+
+    dkw = dk_unter.add_parser("waehlen", help="festlegen, wer schreibt")
+    dkw.add_argument("weg", choices=list(denker.WEGE))
+    dkw.add_argument("--modell", help="welches Modell dieser Weg nehmen soll")
+    dkw.add_argument("--adresse",
+                     help="wo der Dienst hört, etwa http://localhost:11434/v1")
+    dkw.set_defaults(handlung=_denker_waehlen)
+
+    dks = dk_unter.add_parser("schluessel", help="Zugangsschlüssel hinterlegen")
+    dks.add_argument("weg", choices=[denker.OFFEN, denker.ANTHROPISCH])
+    dks.set_defaults(handlung=_denker_schluessel)
+
+    dkp = dk_unter.add_parser("pruefen", help="antwortet der gewählte Weg?")
+    dkp.add_argument("--projekt", help="den Weg dieses Projekts prüfen")
+    dkp.set_defaults(handlung=_denker_pruefen)
+
     # -- netzwerke --------------------------------------------------------
     netze = unter.add_parser("netzwerke", help="Netzwerke, Farben und Grenzen zeigen")
     netze.set_defaults(handlung=_netzwerke)
@@ -482,6 +505,88 @@ def _kalender(ablage: Ablage, args: argparse.Namespace) -> int:
     ablage.schliessen()
     dienst.starten(pfad, args.port, not args.nicht_oeffnen)
     return 0
+
+
+def _denker_liste(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import konfiguration
+
+    for weg in denker.wege():
+        zeichen = "→" if weg["gewaehlt"] else " "
+        print(f"{zeichen} {weg['kennung'].ljust(12)} {weg['name']}")
+        if weg["modell"]:
+            print(f"    Modell: {weg['modell']}")
+    print(f"\nEingestellt wird in: {konfiguration.denkerdatei()}")
+    print("Je Projekt geht es auch: »denker« in projekte.json.")
+    return 0
+
+
+def _denker_waehlen(ablage: Ablage, args: argparse.Namespace) -> int:
+    from . import konfiguration
+
+    angaben = konfiguration.denker_lesen()
+    angaben["weg"] = args.weg
+    eigene = dict(angaben.get(args.weg) or {})
+    if args.modell:
+        eigene["modell"] = args.modell
+    if args.adresse:
+        eigene["adresse"] = args.adresse.rstrip("/")
+    if eigene:
+        angaben[args.weg] = eigene
+
+    datei = konfiguration.denkerdatei()
+    datei.parent.mkdir(parents=True, exist_ok=True)
+    datei.write_text(json.dumps(angaben, indent=2, ensure_ascii=False) + "\n",
+                     encoding="utf-8")
+
+    print(f"Es schreibt jetzt: {denker.NAMEN[args.weg]}")
+    print(f"Eingetragen in: {datei}")
+    if args.weg in (denker.OFFEN, denker.ANTHROPISCH):
+        print(f"Falls ein Schlüssel nötig ist: "
+              f"postkutsche denker schluessel {args.weg}")
+    print("Nachsehen, ob es geht: postkutsche denker pruefen")
+    return 0
+
+
+def _denker_schluessel(ablage: Ablage, args: argparse.Namespace) -> int:
+    import getpass
+
+    from . import zugaenge
+
+    # Unsichtbar eingeben, damit der Schlüssel weder auf dem Schirm noch in
+    # der Verlaufsdatei der Shell stehen bleibt.
+    kennung = f"denker-{args.weg}"
+    schluessel = getpass.getpass(
+        f"Schlüssel für »{args.weg}« (Eingabe bleibt unsichtbar): ")
+    if not schluessel.strip():
+        print("Nichts eingegeben, nichts gespeichert.", file=sys.stderr)
+        return 1
+    ort = zugaenge.setzen(kennung, schluessel.strip())
+    print(f"Hinterlegt in: {ort}")
+    return 0
+
+
+def _denker_pruefen(ablage: Ablage, args: argparse.Namespace) -> int:
+    projekt = ablage.projekt(args.projekt) if args.projekt else None
+    if args.projekt and projekt is None:
+        print(f"Kein Projekt »{args.projekt}«.", file=sys.stderr)
+        return 1
+
+    weg, einstellungen = denker.waehlen(projekt)
+    wofuer = f" für {projekt.name}" if projekt else ""
+    print(f"Es schreibt{wofuer}: {denker.NAMEN[weg]}")
+    if einstellungen.get("modell"):
+        print(f"Modell: {einstellungen['modell']}")
+    if einstellungen.get("adresse"):
+        print(f"Adresse: {einstellungen['adresse']}")
+    # Ob ein Schlüssel da ist, ja - wie er lautet, nie.
+    if weg in (denker.OFFEN, denker.ANTHROPISCH):
+        print(f"Schlüssel: {'hinterlegt' if einstellungen.get('schluessel') else 'keiner'}")
+
+    if denker.verfuegbar(weg, projekt):
+        print("\nAntwortet.")
+        return 0
+    print(f"\nAntwortet nicht. {denker.nicht_da(weg)}", file=sys.stderr)
+    return 1
 
 
 def _netzwerke(ablage: Ablage, args: argparse.Namespace) -> int:
