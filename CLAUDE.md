@@ -3,11 +3,42 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
-## Hier war Schluss (Stand 2026-08-31)
+## Hier war Schluss (Stand 2026-09-28)
 
-435 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, Claude
+601 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, ein Modell
 schreibt die Fassungen, der Kalender zeigt sie, Mastodon sendet, Facebook und
 Instagram gehen über den Handbetrieb. Ein Beitrag ist echt erschienen.
+
+**Am 2026-09-28: Ein ganzer Tag an einer Meldung.** Die Oberfläche zeigte bei
+einer Rückfrage eine Wand aus Zählerständen, alle null. Dahinter steckte eine
+abgelaufene Claude-Anmeldung – aber die Meldung sagte es nicht: Scheitert
+`claude -p`, bleibt die Fehlerausgabe leer, der Grund steht am Ende eines
+langen Hüllobjekts auf der *normalen* Ausgabe, und die Kürzung auf 300 Zeichen
+traf genau ihn. Drei Dinge daraus, die man nicht wieder aufrollen muss:
+
+- **Die Anmeldung der Claude-Anwendung ist nicht die der Kommandozeile.**
+  `claude auth status` fragen, nicht vermuten. `claude auth login` meldet an,
+  `claude setup-token` legt einen Zugang für ein Jahr an – der gehört in den
+  Schlüsselbund (`postkutsche denker schluessel kommando`), nicht in die
+  systemd-Einheit. Er geht als `CLAUDE_CODE_OAUTH_TOKEN` über die Umgebung
+  des Kindprozesses; auf der Befehlszeile läse ihn jeder mit `ps`.
+- **`erreichbar` heißt antworten, nicht installiert sein.** Für `kommando`
+  wurde nur der Suchpfad abgesucht – einer Datei sieht man die abgelaufene
+  Anmeldung nicht an. Jetzt stellt auch dieser Weg eine winzige Anfrage, wie
+  `offen` und `anthropisch` es längst taten.
+- **Beim Start wird nachgesehen**, nebenher und mit einem Prüfstand, der eine
+  Viertelstunde hält. Antwortet niemand, steht es auf der Konsole und als
+  rote Leiste unter dem Kopf. »Noch nicht geprüft« ist streng von »geht
+  nicht« getrennt: Eine Warnung, die sich Sekunden später selbst widerruft,
+  lernt man zu übersehen.
+
+**Zwei Fehler, die nur zufällig am selben Tag auffielen.** `time.monotonic()`
+zählt ab dem Hochfahren: Ein Kampagnenlauf ohne Zeitstempel galt deshalb auf
+einer frisch gestarteten Maschine als »läuft« und sperrte »Woche planen« bis
+zu zehn Minuten. Lokal war der Test grün, weil dieser Rechner lange läuft –
+rot wurde er erst in der CI. Und `print()` puffert blockweise, sobald die
+Ausgabe kein Terminal ist; unter systemd stand im Journal nichts. Beides
+behoben, beides mit einem Test, der nicht vom Rechner abhängt.
 
 **Am 2026-08-31 angebunden:** Die beiden Shopware-Shops stehen jetzt als Art
 `seitenkarte` und sind unter »Woche planen« wählbar. Ihre Kategorien stehen
@@ -104,9 +135,12 @@ bleibt. Der Lauf-Zustand im Dienst trägt einen Zeitstempel: Was zehn Minuten
 kein Lebenszeichen gibt, gilt als tot, denn eine Sperre, die niemand lösen
 kann, ist schlimmer als zwei Läufe.
 
-**Als Nächstes:** eine Woche planen und nachsehen, ob die Rückfragen weniger
-werden. Bleiben sie hoch, liegt es an der Anweisung in `denker/vorlagen.py`,
-nicht mehr an der Quelle.
+**Offen seit dem 2026-08-31:** Ob die Rückfragen seit dem vollständigen
+Produkttext weniger geworden sind, ist nicht nachgemessen. Der Eindruck aus
+einer geplanten Woche Ende September: Sie sind noch da, mehrere Kärtchen
+tragen das »?«. Falls sich das bestätigt, liegt es an der Anweisung in
+`denker/vorlagen.py` und nicht mehr an der Quelle – dort wurde 2026-08-31
+schon nachgebessert.
 
 **Entschieden am 2026-08-28, umgesetzt am 2026-08-31:** Die beiden
 Shopware-Shops kommen über die Seitenkarte, nicht über die Store-API. Die
@@ -200,6 +234,7 @@ schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
 | `erstbestueckung.py` | Beispielprojekte; die eigenen kommen aus `~/.config/postkutsche/` |
 | `konfiguration.py` | liest die eigenen Seiten, Hersteller und den Denker |
 | `denker/netz.py` | POST mit JSON über urllib, Fehlercodes als Sätze |
+| `denker/__init__.py` | die Weiche zwischen den vier Wegen, und `nicht_da` |
 | `kampagnen.py` | Thema, Kalenderwoche, Kategorien, Herstellerfilter |
 | `farben.py` | die gemeinsame Palette, auch für andere Projekte |
 | `__main__.py` | Kommandozeile |
