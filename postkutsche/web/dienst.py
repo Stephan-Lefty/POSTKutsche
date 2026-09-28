@@ -256,11 +256,20 @@ class Behandler(BaseHTTPRequestHandler):
         nicht nur das Häkchen, sondern auch, wann sich der Lauf zuletzt
         gerührt hat: Ein Produkt kostet etwa eine halbe Minute, zehn Minuten
         Stille sind also kein langsamer Lauf mehr, sondern ein toter.
+
+        **Ein fehlender Stempel heißt tot, nicht »seit dem Systemstart«.**
+        `time.monotonic()` zählt ab dem Hochfahren. Wer den fehlenden Stempel
+        als Null einsetzt, misst also die Laufzeit der Maschine – auf einem
+        Rechner, der seit Wochen läuft, ergibt das »tot«, auf einem gerade
+        gestarteten »läuft«. Genau dieser Unterschied hat den Test auf einem
+        frischen CI-Läufer scheitern lassen, während er hier grün war.
         """
         if not cls.lauf.get("aktiv"):
             return False
-        zuletzt = float(cls.lauf.get("zuletzt") or 0.0)
-        return (time.monotonic() - zuletzt) < LAUF_VERFALL
+        zuletzt = cls.lauf.get("zuletzt")
+        if zuletzt is None:
+            return False
+        return (time.monotonic() - float(zuletzt)) < LAUF_VERFALL
 
     def log_message(self, format: str, *args: Any) -> None:
         # Standardmäßig schreibt http.server jede Anfrage nach stderr. Bei

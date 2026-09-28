@@ -196,6 +196,12 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   jetzt zuerst ausgepackt. Und erkannt wird die abgelaufene Anmeldung auch,
   wenn sie sich »Failed to authenticate: OAuth session expired« nennt und das
   Wort »login« gar nicht enthält – bisher wurde nur danach gesucht.
+- **Auf einer frisch gestarteten Maschine sperrte ein toter Kampagnenlauf.**
+  Ein Lauf ohne Zeitstempel sollte als tot gelten; gerechnet wurde aber mit
+  einer Null, und `time.monotonic()` zählt ab dem Hochfahren. Nach Wochen
+  Laufzeit ergab das »tot«, zwölf Sekunden nach dem Start »läuft« – »Woche
+  planen« wäre dann bis zu zehn Minuten gesperrt gewesen. Aufgefallen ist es
+  nicht hier, sondern in der CI, wo jeder Läufer frisch hochfährt.
 - **Claude Code nimmt jetzt auch einen hinterlegten Zugang.** Bisher hing der
   Weg `kommando` allein an der Anmeldung auf der Maschine – und die läuft ab.
   Für einen Dienst, hinter dem niemand sitzt, war das untauglich: Alle paar

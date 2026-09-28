@@ -487,6 +487,15 @@ class LaufSperre(unittest.TestCase):
         dienst.Behandler.lauf = {"aktiv": True}
         self.assertFalse(dienst.Behandler.laeuft_noch())
 
+    def test_auch_auf_einer_frisch_gestarteten_maschine(self):
+        # `time.monotonic` zählt ab dem Hochfahren. Wer den fehlenden Stempel
+        # als Null einsetzt, misst damit die Laufzeit der Maschine: Nach
+        # Wochen ergibt das »tot«, zwölf Sekunden nach dem Start »läuft«.
+        # Ohne diese feste Uhr war der Test darüber grün und die CI rot.
+        dienst.Behandler.lauf = {"aktiv": True}
+        with mock.patch.object(dienst.time, "monotonic", return_value=12.0):
+            self.assertFalse(dienst.Behandler.laeuft_noch())
+
     def test_abbrechen_setzt_das_signal(self):
         import time
 
