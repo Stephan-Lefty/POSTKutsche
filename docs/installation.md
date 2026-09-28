@@ -166,6 +166,14 @@ claude
 Beim ersten Start einmal `/login` eingeben und anmelden. Danach findet
 POSTKutsche den Befehl von selbst.
 
+Die Anmeldung hält nicht ewig. Läuft sie ab, meldet POSTKutsche »Claude Code
+ist nicht angemeldet« – dann noch einmal `claude` starten und `/login`. Ob es
+gerade geht, sagt:
+
+```
+postkutsche denker pruefen
+```
+
 **`offen` – alles, was die OpenAI-Form spricht.** Ein Weg für viele Anbieter:
 Ollama auf dem eigenen Rechner, LM Studio, OpenRouter, DeepSeek, Mistral,
 ChatGPT. Sie unterscheiden sich in Adresse, Modellname und ob ein Schlüssel

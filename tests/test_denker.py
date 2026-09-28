@@ -337,6 +337,72 @@ class Aufruf(unittest.TestCase):
                 kommando.fassungen(INHALT, ["mastodon"])
         self.assertIn("angemeldet", str(f.exception))
 
+    def test_erreichbar_fragt_wirklich_nach(self):
+        # Der Suchpfad allein lügt: Die Datei liegt da, die Anmeldung ist weg.
+        huelle = json.dumps({"is_error": True, "result": "Failed to authenticate"})
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(1, stdout=huelle)):
+            self.assertFalse(kommando.erreichbar())
+
+    def test_erreichbar_ohne_claude_fragt_gar_nicht_erst(self):
+        with mock.patch("shutil.which", return_value=None), \
+             mock.patch("subprocess.run") as lauf:
+            self.assertFalse(kommando.erreichbar())
+        lauf.assert_not_called()
+
+    def test_erreichbar_wenn_geantwortet_wird(self):
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run",
+                        return_value=_lauf(stdout=json.dumps({"result": "{}"}))):
+            self.assertTrue(kommando.erreichbar())
+
+    def test_die_probe_wartet_kuerzer_als_ein_echter_auftrag(self):
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run",
+                        return_value=_lauf(stdout=json.dumps({"result": "{}"}))) as lauf:
+            kommando.erreichbar()
+        self.assertEqual(lauf.call_args.kwargs["timeout"], kommando.PROBEZEIT)
+        self.assertLess(kommando.PROBEZEIT, kommando.ZEITLIMIT)
+
+    def test_abgelaufene_anmeldung_wird_erkannt(self):
+        # So meldet es sich wirklich: Rückgabewert 1, leere Fehlerausgabe,
+        # der Grund steckt am Ende des Hüllobjekts. Das Wort »login« kommt
+        # darin nicht vor.
+        huelle = json.dumps({
+            "is_error": True,
+            "usage": {"input_tokens": 0, "output_tokens": 0},
+            "result": "Failed to authenticate: OAuth session expired "
+                      "and could not be refreshed",
+        })
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(1, stdout=huelle)):
+            with self.assertRaises(kommando.ClaudeFehler) as f:
+                kommando.fassungen(INHALT, ["mastodon"])
+        self.assertIn("angemeldet", str(f.exception))
+        self.assertIn("/login", str(f.exception))
+
+    def test_grund_steht_vorn_und_nicht_das_rohe_json(self):
+        # Der Grund darf nicht der Kürzung auf 300 Zeichen zum Opfer fallen.
+        huelle = json.dumps({
+            "session_id": "x" * 400,
+            "usage": {"input_tokens": 0},
+            "result": "Credit balance is too low",
+        })
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(1, stdout=huelle)):
+            with self.assertRaises(kommando.ClaudeFehler) as f:
+                kommando.fassungen(INHALT, ["mastodon"])
+        self.assertIn("Credit balance is too low", str(f.exception))
+        self.assertNotIn("session_id", str(f.exception))
+
+    def test_unlesbare_ausgabe_kommt_trotzdem_durch(self):
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run",
+                        return_value=_lauf(2, stdout="Absturz, kein JSON")):
+            with self.assertRaises(kommando.ClaudeFehler) as f:
+                kommando.fassungen(INHALT, ["mastodon"])
+        self.assertIn("Absturz, kein JSON", str(f.exception))
+
     def test_fehler_von_claude_wird_gemeldet(self):
         huelle = json.dumps({"is_error": True, "result": "Etwas ging schief"})
         with mock.patch("shutil.which", return_value="/x/claude"), \

@@ -43,9 +43,29 @@ def vorhanden() -> bool:
     return shutil.which(BEFEHL) is not None
 
 
+#: Wie lange eine Probe höchstens dauern darf. Kürzer als `ZEITLIMIT`, weil
+#: hier niemand auf einen Text wartet, sondern auf ein Ja oder Nein.
+PROBEZEIT = 60
+
+
 def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
-    """Gemeinsamer Name für alle Wege – hier genügt der Suchpfad."""
-    return vorhanden()
+    """Ob Claude Code antwortet – geprüft mit einer winzigen Anfrage.
+
+    Der Suchpfad allein genügt nicht: Eine abgelaufene Anmeldung merkt man
+    ihm nicht an, und dann meldet »denker pruefen« »Antwortet«, ohne je
+    gefragt zu haben. Die anderen Wege fragen auch nach.
+    """
+    if not vorhanden():
+        return False
+    try:
+        _aufrufen(
+            'Antworte genau mit: {"fassungen": {}}',
+            (einstellungen or {}).get("modell"),
+            zeitlimit=PROBEZEIT,
+        )
+    except DenkerFehler:
+        return False
+    return True
 
 
 def fassungen(
@@ -88,7 +108,8 @@ def nachbessern(
     return vorlagen.antwort_lesen(text, [netzwerk])[netzwerk]
 
 
-def _aufrufen(anweisung: str, modell: str | None = None) -> str:
+def _aufrufen(anweisung: str, modell: str | None = None,
+              zeitlimit: int = ZEITLIMIT) -> str:
     if not vorhanden():
         raise DenkerFehlt(
             "»claude« ist nicht im Suchpfad. Claude Code installieren "
@@ -108,7 +129,7 @@ def _aufrufen(anweisung: str, modell: str | None = None) -> str:
                 befehl,
                 capture_output=True,
                 text=True,
-                timeout=ZEITLIMIT,
+                timeout=zeitlimit,
                 cwd=leer,
                 # Ohne das erbt der Aufruf unsere eigene Sitzung samt
                 # Berechtigungen - er soll für sich stehen.
@@ -118,21 +139,58 @@ def _aufrufen(anweisung: str, modell: str | None = None) -> str:
             raise DenkerFehlt(str(fehler)) from fehler
         except subprocess.TimeoutExpired as fehler:
             raise DenkerFehler(
-                f"Claude hat nach {ZEITLIMIT} Sekunden nicht geantwortet."
+                f"Claude hat nach {zeitlimit} Sekunden nicht geantwortet."
             ) from fehler
 
     if lauf.returncode != 0:
-        meldung = (lauf.stderr or lauf.stdout or "").strip()
-        if "login" in meldung.lower() or "not logged in" in meldung.lower():
-            raise DenkerFehler(
-                "Claude Code ist nicht angemeldet. Einmal »claude« starten "
-                "und /login ausführen."
-            )
+        meldung = (lauf.stderr or "").strip() or _grund(lauf.stdout)
+        _anmeldung_pruefen(meldung)
         raise DenkerFehler(
             f"claude endete mit Rückgabewert {lauf.returncode}: {meldung[:300]}"
         )
 
     return _auspacken(lauf.stdout)
+
+
+#: Woran eine abgelaufene oder fehlende Anmeldung zu erkennen ist. »login«
+#: allein genügt nicht: Beim abgelaufenen Zugang lautet die Meldung »Failed to
+#: authenticate: OAuth session expired and could not be refreshed« und enthält
+#: das Wort nirgends.
+ANMELDEWORTE = ("login", "logged in", "authenticate", "oauth", "unauthorized")
+
+
+def _anmeldung_pruefen(meldung: str) -> None:
+    """Wirft die Anleitung zum Anmelden, wenn die Meldung danach aussieht."""
+    klein = meldung.lower()
+    if any(wort in klein for wort in ANMELDEWORTE):
+        raise DenkerFehler(
+            "Claude Code ist nicht angemeldet. Einmal »claude« starten "
+            f"und /login ausführen. ({meldung[:200]})"
+        )
+
+
+def _grund(roh: str) -> str:
+    """Holt den lesbaren Grund aus dem Hüllobjekt eines gescheiterten Laufs.
+
+    Scheitert der Aufruf, steht auf der Fehlerausgabe oft nichts und auf der
+    normalen Ausgabe das volle Hüllobjekt - der Grund ganz am Ende, unter
+    »result«. Wer das JSON ungelesen weiterreicht, kürzt es auf 300 Zeichen
+    und schneidet damit genau die Auskunft ab, um die es geht.
+    """
+    import json
+
+    roh = (roh or "").strip()
+    try:
+        huelle = json.loads(roh)
+    except json.JSONDecodeError:
+        return roh
+    if not isinstance(huelle, dict):
+        return roh
+    for feld in ("result", "error", "message"):
+        wert = huelle.get(feld)
+        if isinstance(wert, str) and wert.strip():
+            return wert.strip()
+    return roh
 
 
 def _auspacken(roh: str) -> str:
@@ -153,9 +211,9 @@ def _auspacken(roh: str) -> str:
         return roh
 
     if huelle.get("is_error"):
-        raise DenkerFehler(
-            f"Claude meldet einen Fehler: {str(huelle.get('result'))[:300]}"
-        )
+        grund = _grund(roh)
+        _anmeldung_pruefen(grund)
+        raise DenkerFehler(f"Claude meldet einen Fehler: {grund[:300]}")
 
     for feld in ("result", "text", "content"):
         wert = huelle.get(feld)

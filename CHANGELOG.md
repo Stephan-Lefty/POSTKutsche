@@ -188,6 +188,19 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Eine abgelaufene Claude-Anmeldung sah aus wie ein Programmfehler.**
+  Scheitert `claude -p`, bleibt die Fehlerausgabe leer und der Grund steht am
+  Ende eines langen Hüllobjekts auf der normalen Ausgabe. Weitergereicht und
+  auf 300 Zeichen gekürzt wurde davon genau der nutzlose Anfang – die
+  Oberfläche zeigte eine Wand aus Zählerständen, alle auf null. Der Grund wird
+  jetzt zuerst ausgepackt. Und erkannt wird die abgelaufene Anmeldung auch,
+  wenn sie sich »Failed to authenticate: OAuth session expired« nennt und das
+  Wort »login« gar nicht enthält – bisher wurde nur danach gesucht.
+- **»denker pruefen« meldete »Antwortet«, ohne gefragt zu haben.** Für den Weg
+  `kommando` sah die Prüfung nur nach, ob `claude` im Suchpfad liegt. Eine
+  abgelaufene Anmeldung sieht man der Datei nicht an, also ging der Lauf los
+  und scheiterte beim ersten Text. Jetzt stellt auch dieser Weg eine winzige
+  Anfrage, so wie `offen` und `anthropisch` es schon taten.
 - **Ein Farbton der übernommenen Palette war unlesbar.** `GRAU_MITTE`
   (`#97a1ad`) erreicht auf hellem Grund nur 2,48 Kontrast und verfehlt damit
   sogar die 3,0, die WCAG für große Schrift verlangt. Das sieht man einem

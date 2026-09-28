@@ -163,6 +163,14 @@ claude
 On first start enter `/login` once and sign in. After that POSTKutsche finds
 the command by itself.
 
+The sign-in doesn't last forever. When it expires, POSTKutsche says "Claude
+Code ist nicht angemeldet" – start `claude` again and run `/login`. Whether
+it currently works:
+
+```
+postkutsche denker pruefen
+```
+
 **`offen` – anything speaking the OpenAI shape.** One route for many
 providers: Ollama on your own machine, LM Studio, OpenRouter, DeepSeek,
 Mistral, ChatGPT. They differ in address, model name and whether a key is
