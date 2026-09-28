@@ -164,12 +164,39 @@ On first start enter `/login` once and sign in. After that POSTKutsche finds
 the command by itself.
 
 The sign-in doesn't last forever. When it expires, POSTKutsche says "Claude
-Code ist nicht angemeldet" – start `claude` again and run `/login`. Whether
-it currently works:
+Code ist nicht angemeldet". Two commands tell you whether it still holds –
+the first asks Claude Code itself, the second makes a real small request:
 
 ```
+claude auth status
 postkutsche denker pruefen
 ```
+
+If it's gone, `claude auth login` brings it back.
+
+**For a service with nobody sitting behind it** that's the wrong route:
+signing in by hand every few days doesn't work when POSTKutsche runs under
+systemd. There is a token for that, valid for a year. Create it once:
+
+```
+claude setup-token
+```
+
+The token it prints does not belong in the systemd unit, nor in an
+environment variable in `~/.profile` – both sit on disk in plain text.
+POSTKutsche puts it where the network tokens live: in the keyring, otherwise
+in `~/.config/postkutsche/zugaenge.json` with mode `600`.
+
+```
+postkutsche denker schluessel kommando
+```
+
+Input stays invisible and doesn't end up in the shell history. On each call
+POSTKutsche hands the token to the child process as `CLAUDE_CODE_OAUTH_TOKEN`
+– through the environment, not the command line: whatever stands there,
+anyone can read with `ps`.
+
+With no token stored, the sign-in on the machine keeps applying.
 
 **`offen` – anything speaking the OpenAI shape.** One route for many
 providers: Ollama on your own machine, LM Studio, OpenRouter, DeepSeek,

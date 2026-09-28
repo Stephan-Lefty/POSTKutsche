@@ -196,6 +196,16 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   jetzt zuerst ausgepackt. Und erkannt wird die abgelaufene Anmeldung auch,
   wenn sie sich »Failed to authenticate: OAuth session expired« nennt und das
   Wort »login« gar nicht enthält – bisher wurde nur danach gesucht.
+- **Claude Code nimmt jetzt auch einen hinterlegten Zugang.** Bisher hing der
+  Weg `kommando` allein an der Anmeldung auf der Maschine – und die läuft ab.
+  Für einen Dienst, hinter dem niemand sitzt, war das untauglich: Alle paar
+  Tage von Hand anmelden geht unter systemd nicht. `claude setup-token` legt
+  einen Zugang an, der ein Jahr gilt; `postkutsche denker schluessel kommando`
+  legt ihn in den Schlüsselbund, ersatzweise nach `zugaenge.json` mit Rechten
+  600 – dieselbe Ablage wie für die Netzwerke, also nicht in die Datenbank und
+  nicht in die systemd-Einheit. Weitergereicht wird er über die Umgebung des
+  Kindprozesses, nicht über die Befehlszeile: Was dort steht, liest jeder mit
+  `ps`. Ohne hinterlegten Zugang gilt weiter die Anmeldung auf der Maschine.
 - **»denker pruefen« meldete »Antwortet«, ohne gefragt zu haben.** Für den Weg
   `kommando` sah die Prüfung nur nach, ob `claude` im Suchpfad liegt. Eine
   abgelaufene Anmeldung sieht man der Datei nicht an, also ging der Lauf los

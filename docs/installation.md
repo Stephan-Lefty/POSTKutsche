@@ -167,12 +167,40 @@ Beim ersten Start einmal `/login` eingeben und anmelden. Danach findet
 POSTKutsche den Befehl von selbst.
 
 Die Anmeldung hält nicht ewig. Läuft sie ab, meldet POSTKutsche »Claude Code
-ist nicht angemeldet« – dann noch einmal `claude` starten und `/login`. Ob es
-gerade geht, sagt:
+ist nicht angemeldet«. Ob sie gerade gilt, sagen zwei Befehle – der erste
+fragt Claude Code selbst, der zweite stellt eine echte kleine Anfrage:
 
 ```
+claude auth status
 postkutsche denker pruefen
 ```
+
+Ist sie weg, hilft `claude auth login`.
+
+**Für einen Dienst, hinter dem niemand sitzt,** ist das der falsche Weg: Alle
+paar Tage von Hand anmelden geht nicht, wenn POSTKutsche unter systemd läuft.
+Dafür gibt es einen Zugang, der ein Jahr gilt. Einmal anlegen:
+
+```
+claude setup-token
+```
+
+Der ausgegebene Zugang gehört nicht in die systemd-Einheit und nicht in eine
+Umgebungsvariable in `~/.profile` – beides steht im Klartext auf der Platte.
+POSTKutsche legt ihn dorthin, wo auch die Netzwerkzugänge liegen: in den
+Schlüsselbund, ersatzweise nach `~/.config/postkutsche/zugaenge.json` mit
+Rechten `600`.
+
+```
+postkutsche denker schluessel kommando
+```
+
+Die Eingabe bleibt unsichtbar und landet nicht im Verlauf der Shell.
+Beim Aufruf reicht POSTKutsche den Zugang als `CLAUDE_CODE_OAUTH_TOKEN` an
+den Kindprozess weiter – über die Umgebung, nicht über die Befehlszeile: Was
+dort steht, liest jeder mit `ps`.
+
+Ist kein Zugang hinterlegt, gilt weiter die Anmeldung auf der Maschine.
 
 **`offen` – alles, was die OpenAI-Form spricht.** Ein Weg für viele Anbieter:
 Ollama auf dem eigenen Rechner, LM Studio, OpenRouter, DeepSeek, Mistral,

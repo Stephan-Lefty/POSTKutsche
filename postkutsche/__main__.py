@@ -198,7 +198,8 @@ def _zerleger() -> argparse.ArgumentParser:
     dkw.set_defaults(handlung=_denker_waehlen)
 
     dks = dk_unter.add_parser("schluessel", help="Zugangsschlüssel hinterlegen")
-    dks.add_argument("weg", choices=[denker.OFFEN, denker.ANTHROPISCH])
+    dks.add_argument("weg",
+                     choices=[denker.KOMMANDO, denker.OFFEN, denker.ANTHROPISCH])
     dks.set_defaults(handlung=_denker_schluessel)
 
     dkp = dk_unter.add_parser("pruefen", help="antwortet der gewählte Weg?")
@@ -555,6 +556,8 @@ def _denker_schluessel(ablage: Ablage, args: argparse.Namespace) -> int:
     # Unsichtbar eingeben, damit der Schlüssel weder auf dem Schirm noch in
     # der Verlaufsdatei der Shell stehen bleibt.
     kennung = f"denker-{args.weg}"
+    if args.weg == denker.KOMMANDO:
+        print("Langlebigen Zugang anlegen mit: claude setup-token")
     schluessel = getpass.getpass(
         f"Schlüssel für »{args.weg}« (Eingabe bleibt unsichtbar): ")
     if not schluessel.strip():
@@ -581,6 +584,9 @@ def _denker_pruefen(ablage: Ablage, args: argparse.Namespace) -> int:
     # Ob ein Schlüssel da ist, ja - wie er lautet, nie.
     if weg in (denker.OFFEN, denker.ANTHROPISCH):
         print(f"Schlüssel: {'hinterlegt' if einstellungen.get('schluessel') else 'keiner'}")
+    elif weg == denker.KOMMANDO:
+        print("Zugang: hinterlegt" if einstellungen.get("schluessel")
+              else "Zugang: keiner – es gilt die Anmeldung auf der Maschine")
 
     if denker.verfuegbar(weg, projekt):
         print("\nAntwortet.")

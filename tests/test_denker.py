@@ -9,6 +9,7 @@ Fassung, ein Satz vor dem JSON.
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from unittest import mock
 
@@ -336,6 +337,42 @@ class Aufruf(unittest.TestCase):
             with self.assertRaises(kommando.ClaudeFehler) as f:
                 kommando.fassungen(INHALT, ["mastodon"])
         self.assertIn("angemeldet", str(f.exception))
+
+    def test_hinterlegter_zugang_geht_in_die_umgebung(self):
+        roh = _antwort(mastodon=_fassung())
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(stdout=roh)) as lauf:
+            kommando.fassungen(INHALT, ["mastodon"],
+                               einstellungen={"schluessel": "geheim-123"})
+        umgebung = lauf.call_args.kwargs["env"]
+        self.assertEqual(umgebung[kommando.ZUGANGSVARIABLE], "geheim-123")
+
+    def test_ohne_hinterlegten_zugang_gilt_die_anmeldung_der_maschine(self):
+        # Eine leere Variable wäre schlimmer als gar keine: Sie überschriebe
+        # die Anmeldung, die auf der Maschine liegt.
+        roh = _antwort(mastodon=_fassung())
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch("subprocess.run", return_value=_lauf(stdout=roh)) as lauf:
+            kommando.fassungen(INHALT, ["mastodon"], einstellungen={})
+        self.assertNotIn(kommando.ZUGANGSVARIABLE, lauf.call_args.kwargs["env"])
+
+    def test_der_zugang_steht_nicht_in_der_befehlszeile(self):
+        # Was dort steht, liest jeder mit »ps«.
+        roh = _antwort(mastodon=_fassung())
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(stdout=roh)) as lauf:
+            kommando.fassungen(INHALT, ["mastodon"],
+                               einstellungen={"schluessel": "geheim-123"})
+        self.assertNotIn("geheim-123", " ".join(lauf.call_args[0][0]))
+
+    def test_auch_die_probe_nimmt_den_zugang_mit(self):
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run",
+                        return_value=_lauf(stdout=json.dumps({"result": "{}"}))) as lauf:
+            kommando.erreichbar({"schluessel": "geheim-123"})
+        self.assertEqual(lauf.call_args.kwargs["env"][kommando.ZUGANGSVARIABLE],
+                         "geheim-123")
 
     def test_erreichbar_fragt_wirklich_nach(self):
         # Der Suchpfad allein lügt: Die Datei liegt da, die Anmeldung ist weg.

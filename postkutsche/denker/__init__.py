@@ -111,12 +111,13 @@ def _einstellungen_fuer(weg: str,
         angaben = konfiguration.denker_lesen()
     einstellungen = dict(angaben.get(weg) or {})
 
-    if weg in (OFFEN, ANTHROPISCH) and "schluessel" not in einstellungen:
+    if weg in (KOMMANDO, OFFEN, ANTHROPISCH) and "schluessel" not in einstellungen:
         kennung = str(einstellungen.get("schluessel_kennung") or f"denker-{weg}")
         try:
             einstellungen["schluessel"] = zugaenge.holen(kennung)
         except zugaenge.KeinZugang:
-            # Ollama läuft ohne Schlüssel. Fehlt einer, wo er gebraucht wird,
+            # Ollama läuft ohne Schlüssel, und Claude Code bringt seine
+            # Anmeldung meist selbst mit. Fehlt einer, wo er gebraucht wird,
             # sagt das der Weg selbst - mit einer Meldung, die den Befehl nennt.
             pass
     return einstellungen
@@ -135,9 +136,12 @@ def nicht_da(weg: str) -> str:
     installieren« sagt, schickt jemanden mit Ollama in die Irre.
     """
     return {
-        KOMMANDO: ("»claude« ist nicht im Suchpfad. Claude Code installieren "
-                   "(npm install -g @anthropic-ai/claude-code), starten und "
-                   "mit /login anmelden."),
+        KOMMANDO: ("Claude Code antwortet nicht. Installiert? "
+                   "»npm install -g @anthropic-ai/claude-code«. Angemeldet? "
+                   "»claude auth status« – wenn nicht, »claude auth login«. "
+                   "Für einen Dienst ohne angemeldete Sitzung: »claude "
+                   "setup-token«, dann »postkutsche denker schluessel "
+                   "kommando«."),
         OFFEN: ("Der Dienst antwortet nicht. Läuft er? Bei Ollama: »ollama "
                 "serve«. Adresse und Modell stehen in "
                 "~/.config/postkutsche/denker.json."),

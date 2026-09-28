@@ -31,6 +31,11 @@ from .netz import ZEITLIMIT, DenkerFehler, DenkerFehlt
 
 BEFEHL = "claude"
 
+#: Umgebungsvariable, über die Claude Code einen langlebigen Zugang annimmt.
+#: `claude setup-token` legt einen an, der ein Jahr gilt - der Weg für einen
+#: Dienst, hinter dem niemand sitzt, der sich alle paar Tage neu anmeldet.
+ZUGANGSVARIABLE = "CLAUDE_CODE_OAUTH_TOKEN"
+
 #: Die alten Namen dieses Moduls. Seit es vier Wege gibt, heißen die Fehler
 #: nicht mehr nach Claude - aber ein Umbenennen in jedem Aufrufer wäre Arbeit
 #: ohne Gewinn.
@@ -62,6 +67,7 @@ def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
             'Antworte genau mit: {"fassungen": {}}',
             (einstellungen or {}).get("modell"),
             zeitlimit=PROBEZEIT,
+            schluessel=(einstellungen or {}).get("schluessel"),
         )
     except DenkerFehler:
         return False
@@ -87,6 +93,7 @@ def fassungen(
     text = _aufrufen(
         vorlagen.anweisung(inhalt, fuer, projekt, zusatz, frueher, wissen, art),
         modell or (einstellungen or {}).get("modell"),
+        schluessel=(einstellungen or {}).get("schluessel"),
     )
     return vorlagen.antwort_lesen(text, fuer)
 
@@ -104,12 +111,13 @@ def nachbessern(
     text = _aufrufen(
         vorlagen.nachbesserung(inhalt, netzwerk, bisher, frage, antwort, zusatz),
         (einstellungen or {}).get("modell"),
+        schluessel=(einstellungen or {}).get("schluessel"),
     )
     return vorlagen.antwort_lesen(text, [netzwerk])[netzwerk]
 
 
 def _aufrufen(anweisung: str, modell: str | None = None,
-              zeitlimit: int = ZEITLIMIT) -> str:
+              zeitlimit: int = ZEITLIMIT, schluessel: str | None = None) -> str:
     if not vorhanden():
         raise DenkerFehlt(
             "»claude« ist nicht im Suchpfad. Claude Code installieren "
@@ -120,6 +128,13 @@ def _aufrufen(anweisung: str, modell: str | None = None,
     befehl = [BEFEHL, "-p", anweisung, "--output-format", "json"]
     if modell:
         befehl += ["--model", modell]
+
+    # Ein hinterlegter Zugang schlägt die Anmeldung auf der Maschine. Er geht
+    # über die Umgebung des Kindprozesses, nicht über die Befehlszeile - was
+    # dort steht, liest jeder mit »ps«.
+    umgebung = {**os.environ, "CLAUDE_CODE_ENTRYPOINT": "postkutsche"}
+    if schluessel:
+        umgebung[ZUGANGSVARIABLE] = schluessel
 
     # Der Aufruf soll schreiben, nicht stöbern. Ein leeres Arbeitsverzeichnis
     # nimmt ihm die Gelegenheit, im Projekt herumzulesen.
@@ -133,7 +148,7 @@ def _aufrufen(anweisung: str, modell: str | None = None,
                 cwd=leer,
                 # Ohne das erbt der Aufruf unsere eigene Sitzung samt
                 # Berechtigungen - er soll für sich stehen.
-                env={**os.environ, "CLAUDE_CODE_ENTRYPOINT": "postkutsche"},
+                env=umgebung,
             )
         except FileNotFoundError as fehler:
             raise DenkerFehlt(str(fehler)) from fehler
