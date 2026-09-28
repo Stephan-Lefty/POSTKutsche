@@ -42,6 +42,52 @@ BESTAND_STUNDEN = 12
 #: zehn Minuten nichts von sich hören lässt, läuft nicht mehr.
 LAUF_VERFALL = 600
 
+#: Wie lange die Auskunft »der Denker antwortet« gilt. Die Prüfung ist eine
+#: echte kleine Anfrage - bei Claude Code ein Prozessstart, also Sekunden.
+#: Sie bei jedem Aufruf des Kalenders zu wiederholen wäre albern; eine
+#: Anmeldung läuft nicht zwischen zwei Klicks ab.
+DENKER_STAND_GILT = 900
+
+#: Je Weg der letzte Prüfstand: {"zeit": monotonic, "geht": bool}. Der Weg
+#: ist der Schlüssel und nicht das Projekt, weil zwei Projekte mit demselben
+#: Weg nicht zweimal geprüft werden müssen.
+_denker_stand: dict[str, dict[str, Any]] = {}
+_denker_sperre = threading.Lock()
+
+
+def denker_stand(weg: str) -> dict[str, Any] | None:
+    """Der letzte Prüfstand dieses Weges – oder None, wenn er nichts taugt.
+
+    Nichts taugt er, solange nie geprüft wurde und wenn die Auskunft zu alt
+    ist. Beides sieht von außen gleich aus: »weiß ich nicht«. Ein »weiß ich
+    nicht« als »geht nicht« auszugeben wäre der schlimmere Fehler - dann
+    stünde beim Start jedes Mal eine rote Warnung, die sich Sekunden später
+    selbst widerruft.
+    """
+    with _denker_sperre:
+        stand = _denker_stand.get(weg)
+    if stand is None:
+        return None
+    if (time.monotonic() - stand["zeit"]) > DENKER_STAND_GILT:
+        return None
+    return dict(stand)
+
+
+def denker_nachsehen(weg: str, einstellungen: dict[str, Any]) -> bool:
+    """Prüft den Weg wirklich und merkt sich das Ergebnis."""
+    from .. import denker
+
+    geht = denker.WEGE[weg].erreichbar(einstellungen)
+    with _denker_sperre:
+        _denker_stand[weg] = {"zeit": time.monotonic(), "geht": geht}
+    return geht
+
+
+def denker_vergessen() -> None:
+    """Wirft den Prüfstand weg – für Tests und nach einem Wegwechsel."""
+    with _denker_sperre:
+        _denker_stand.clear()
+
 
 def kategorien_des_projekts(projekt: Any,
                             bereich: str | None = None,
@@ -619,6 +665,12 @@ class Behandler(BaseHTTPRequestHandler):
         Die Oberfläche sagt es vor dem Planen dazu: Wer glaubt, Claude
         schreibe gerade, und in Wahrheit steht der Weg auf »hand«, wundert
         sich sonst über leere Felder.
+
+        **Ob er auch antwortet**, steht getrennt daneben. Diese Auskunft
+        kostet eine echte Anfrage, also wird sie nicht hier erhoben, sondern
+        nachgeschlagen; fehlt sie, holt ein Faden sie nach und der nächste
+        Aufruf hat sie. Den Kalender dafür sekundenlang warten zu lassen
+        wäre der falsche Handel - er soll aufgehen, nicht prüfen.
         """
         from .. import denker
 
@@ -626,12 +678,34 @@ class Behandler(BaseHTTPRequestHandler):
         with self._ablage() as a:
             projekt = a.projekt(kennung) if kennung else None
         weg, einstellungen = denker.waehlen(projekt)
+
+        stand = denker_stand(weg)
+        if stand is None and weg != denker.HAND:
+            threading.Thread(
+                target=self._denker_nachsehen_still,
+                args=(weg, einstellungen),
+                daemon=True,
+            ).start()
+
         self._json({
             "weg": weg,
             "name": denker.NAMEN[weg],
             "modell": einstellungen.get("modell") or "",
             "schreibt": weg != denker.HAND,
+            # None heißt »noch nicht geprüft« und darf nicht als »geht nicht«
+            # gelesen werden - die Oberfläche unterscheidet das.
+            "geht": True if weg == denker.HAND else (stand or {}).get("geht"),
+            "abhilfe": denker.nicht_da(weg),
         })
+
+    @staticmethod
+    def _denker_nachsehen_still(weg: str, einstellungen: dict[str, Any]) -> None:
+        try:
+            denker_nachsehen(weg, einstellungen)
+        except Exception:  # noqa: BLE001
+            # Ein gescheiterter Blick darf den Dienst nicht mitnehmen. Beim
+            # nächsten Aufruf wird es wieder versucht.
+            pass
 
     def _beitrag_neu(self, rumpf: dict[str, Any]) -> None:
         """Ein Beitrag, den niemand gefunden hat – du willst ihn einfach.
@@ -1135,11 +1209,40 @@ class Behandler(BaseHTTPRequestHandler):
                         "zustand": ablage_modul.FASSUNG_ABGEHOLT})
 
 
+def sagen(text: str) -> None:
+    """`print`, aber sofort.
+
+    Hängt die Ausgabe nicht an einem Terminal, puffert Python sie blockweise
+    - unter systemd steht im Journal also nichts, bis ein paar Kilobyte
+    zusammengekommen sind. Bei vier Zeilen beim Start heißt das: nie. Genau
+    die Zeile, die vor einer abgelaufenen Anmeldung warnt, käme nie an.
+    """
+    print(text, flush=True)
+
+
+def _denker_beim_start(melden=sagen) -> None:
+    """Sagt auf der Konsole, wer schreibt – und ob er antwortet."""
+    from .. import denker
+
+    try:
+        weg, einstellungen = denker.waehlen()
+        if weg == denker.HAND:
+            melden(f"Es schreibt: {denker.NAMEN[weg]}")
+            return
+        if denker_nachsehen(weg, einstellungen):
+            melden(f"Es schreibt: {denker.NAMEN[weg]} – antwortet.")
+        else:
+            melden(f"Es schreibt: {denker.NAMEN[weg]} – antwortet NICHT.")
+            melden(denker.nicht_da(weg))
+    except Exception as fehler:  # noqa: BLE001
+        melden(f"Wer schreibt, ließ sich nicht feststellen: {fehler}")
+
+
 def starten(
     ablage_pfad: Path | None = None,
     port: int = 8770,
     oeffnen: bool = True,
-    melden=print,
+    melden=sagen,
 ) -> None:
     """Startet den Dienst und öffnet den Browser."""
     behandler = partial(Behandler)
@@ -1154,6 +1257,14 @@ def starten(
     melden("Beenden mit Strg+C.")
     if oeffnen:
         webbrowser.open(adresse)
+
+    # Nachsehen, ob der Denker antwortet - aber nebenher. Eine abgelaufene
+    # Anmeldung soll beim Start auffallen und nicht erst mitten in einer
+    # Wochenplanung; den Start dafür um Sekunden zu verzögern wäre aber der
+    # falsche Handel, denn ohne Denker kann man den Kalender trotzdem lesen,
+    # freigeben und senden.
+    threading.Thread(target=_denker_beim_start, args=(melden,),
+                     daemon=True).start()
 
     try:
         server.serve_forever()

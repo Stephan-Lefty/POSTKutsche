@@ -196,6 +196,20 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   jetzt zuerst ausgepackt. Und erkannt wird die abgelaufene Anmeldung auch,
   wenn sie sich »Failed to authenticate: OAuth session expired« nennt und das
   Wort »login« gar nicht enthält – bisher wurde nur danach gesucht.
+- **Beim Start wird nachgesehen, ob der Denker antwortet.** Bisher fiel eine
+  abgelaufene Anmeldung erst mitten in einer Wochenplanung auf. Jetzt steht
+  beim Hochfahren auf der Konsole, wer schreibt und ob er antwortet, und in
+  der Oberfläche erscheint eine rote Leiste unter dem Kopf, solange er es
+  nicht tut – samt Abhilfe. Geprüft wird nebenher: Der Kalender soll aufgehen
+  und nicht warten, und ohne Denker kann man ihn lesen, freigeben und senden.
+  Der Prüfstand hält eine Viertelstunde, damit nicht jeder Seitenaufruf eine
+  Anfrage kostet. »Noch nicht geprüft« wird dabei streng von »geht nicht«
+  unterschieden – eine Warnung, die sich Sekunden später selbst widerruft,
+  lernt man zu übersehen.
+- **Die Startmeldungen kamen unter systemd nie an.** `print()` puffert
+  blockweise, sobald die Ausgabe nicht an einem Terminal hängt; bei vier
+  Zeilen heißt das: Im Journal steht nichts. Aufgefallen beim Nachsehen der
+  neuen Startmeldung, die genau deshalb fehlte.
 - **Auf einer frisch gestarteten Maschine sperrte ein toter Kampagnenlauf.**
   Ein Lauf ohne Zeitstempel sollte als tot gelten; gerechnet wurde aber mit
   einer Null, und `time.monotonic()` zählt ab dem Hochfahren. Nach Wochen

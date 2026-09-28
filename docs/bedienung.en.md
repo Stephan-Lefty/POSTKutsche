@@ -100,6 +100,15 @@ postkutsche denker pruefen --projekt meinblog
 How the routes are set up is in the
 [installation guide](installation.en.md#4-decide-who-writes-the-texts).
 
+**If it doesn't answer, it says so at the top.** On start POSTKutsche checks
+whether the chosen route really answers and prints the result to the
+console. Should it fail later – an expired sign-in, a stopped Ollama – a red
+bar appears below the header and stays until it works again. It re-checks
+every few minutes.
+
+The bar also says what to do. The calendar stays usable meanwhile: looking,
+approving and sending work without a writer, only no new texts appear.
+
 ## A post in detail
 
 ![A post, opened](bilder/beitrag.png)

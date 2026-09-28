@@ -41,6 +41,18 @@ class Form(unittest.TestCase):
                     farben.rgb(falsch)
 
 
+def _mischen(vorne: str, hinten: str, anteil: float) -> str:
+    """Was `color-mix(in srgb, vorne <anteil>%, hinten)` ergibt.
+
+    In sRGB gemischt heißt: die Kanalwerte linear zwischen beiden Farben,
+    ohne Umweg über den Linearraum. Genau das tut der Browser bei
+    `in srgb`, und nur deshalb darf hier so einfach gerechnet werden.
+    """
+    v, h = farben.rgb(vorne), farben.rgb(hinten)
+    kanäle = (round(v[i] * anteil + h[i] * (1 - anteil)) for i in range(3))
+    return "#" + "".join(f"{k:02x}" for k in kanäle)
+
+
 class Kontraste(unittest.TestCase):
     """WCAG 2.1 verlangt 4.5 für Fließtext und 3.0 für große Schrift.
 
@@ -80,6 +92,17 @@ class Kontraste(unittest.TestCase):
         # der übernommenen Palette und ist erst hier aufgefallen.
         self.assertGreater(farben.kontrast(farben.GRAU_LEISE, farben.GRAU_PAPIER), 4.5)
         self.assertGreater(farben.kontrast(farben.GRAU_MITTE, farben.GRAU_NACHT), 4.5)
+
+    def test_die_warnleiste_ist_in_beiden_themen_lesbar(self):
+        # Die Leiste unter dem Kopf, die stehen bleibt, solange der Denker
+        # nicht antwortet. Ihr Grund ist in der CSS ein `color-mix`: zwölf
+        # Prozent Rot in der Fläche. Getönte Gründe sind die Stelle, an der
+        # ein Kontrast unbemerkt wegrutscht - am Bildschirm sieht rosa immer
+        # harmlos aus.
+        hell = _mischen(farben.ROT, farben.WEISS, 0.12)
+        self.assertGreater(farben.kontrast(farben.GRAU_DUNKEL, hell), 4.5)
+        dunkel = _mischen(farben.ROT_HELL, farben.GRAU_KOHLE, 0.12)
+        self.assertGreater(farben.kontrast(farben.GRAU_HELL, dunkel), 4.5)
 
     def test_grau_mitte_taugt_nicht_fuer_hellen_grund(self):
         # Hält den Grund fest, warum es zwei Töne gibt. Wer GRAU_MITTE hier

@@ -355,6 +355,26 @@ button { font: inherit; cursor: pointer; }
 }
 .meldung.schlecht { background: var(--rot); color: #fff; }
 
+/* Antwortet der Denker nicht, bleibt das stehen. Nicht am unteren Rand wie
+   eine Meldung, sondern quer unter dem Kopf: Der Zustand geht nicht von
+   selbst vorbei, und man soll ihn sehen, bevor man eine Woche plant. */
+.warnleiste {
+  margin: 0;
+  padding: 9px 18px;
+  background: color-mix(in srgb, var(--rot) 12%, var(--flaeche));
+  border-bottom: 2px solid var(--rot);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.warnleiste code {
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 13px;
+}
+
 .leer { color: var(--text-leise); padding: 30px 0; text-align: center; }
 
 /* Auf dem Handy nebeneinander zu stellen ergibt drei unlesbare Spalten. */

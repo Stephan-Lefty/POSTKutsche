@@ -103,6 +103,16 @@ postkutsche denker pruefen --projekt meinblog
 Wie die Wege eingerichtet werden, steht in der
 [Installationsanleitung](installation.md#4-festlegen-wer-die-texte-schreibt).
 
+**Wenn er nicht antwortet, steht es oben.** Beim Start sieht POSTKutsche
+nach, ob der eingestellte Weg wirklich antwortet, und schreibt das Ergebnis
+auf die Konsole. Fällt er später aus – eine abgelaufene Anmeldung, ein
+beendetes Ollama –, erscheint unter dem Kopf eine rote Leiste, die stehen
+bleibt, bis es wieder geht. Nachgesehen wird alle paar Minuten.
+
+Die Leiste sagt auch gleich, was zu tun ist. Der Kalender bleibt derweil
+benutzbar: Ansehen, freigeben und senden geht ohne Denker, nur neue Texte
+entstehen keine.
+
 ## Ein Beitrag im Einzelnen
 
 ![Ein Beitrag, aufgeschlagen](bilder/beitrag.png)

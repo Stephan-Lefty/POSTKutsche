@@ -142,8 +142,10 @@ def nicht_da(weg: str) -> str:
                    "Für einen Dienst ohne angemeldete Sitzung: »claude "
                    "setup-token«, dann »postkutsche denker schluessel "
                    "kommando«."),
-        OFFEN: ("Der Dienst antwortet nicht. Läuft er? Bei Ollama: »ollama "
-                "serve«. Adresse und Modell stehen in "
+        # »Der Dienst« wäre zweideutig: POSTKutsche ist auch einer, und die
+        # Meldung steht in seiner eigenen Oberfläche.
+        OFFEN: ("Die offene Schnittstelle antwortet nicht. Läuft sie? Bei "
+                "Ollama: »ollama serve«. Adresse und Modell stehen in "
                 "~/.config/postkutsche/denker.json."),
         ANTHROPISCH: ("Die Anthropic-Schnittstelle antwortet nicht. Schlüssel "
                       "hinterlegt? »postkutsche denker schluessel anthropisch«."),

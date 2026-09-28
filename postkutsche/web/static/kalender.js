@@ -105,6 +105,12 @@ async function anfangen() {
   } catch (fehler) {
     melden(`Eigene Beiträge nicht verfügbar: ${fehler.message}`, true);
   }
+
+  // Beim Start steht die Antwort noch nicht fest - der Dienst holt sie
+  // nebenher. Deshalb gleich einmal fragen und dann in Ruhe weiter.
+  denkerWachen();
+  setTimeout(denkerWachen, 8000);
+  setInterval(denkerWachen, DENKER_NACHSEHEN);
 }
 
 // -- Wochenplanung ----------------------------------------------------------
@@ -519,6 +525,40 @@ async function denkerZeigen() {
   } catch (fehler) {
     // Kein Grund, das Anlegen zu verhindern - es ist eine Auskunft.
     zeile.textContent = "";
+  }
+}
+
+/** Wie oft nachgesehen wird, ob der Denker noch antwortet.
+ *
+ * Der Dienst merkt sich seinen Prüfstand eine Viertelstunde, dieser Abruf
+ * kostet also fast nichts. Fünf Minuten heißt: Läuft die Anmeldung mitten
+ * am Tag ab, sieht man es, bevor man eine Woche plant - und nicht erst an
+ * der roten Zeile hinterher.
+ */
+const DENKER_NACHSEHEN = 5 * 60 * 1000;
+
+/** Warnt, solange der eingestellte Denker nicht antwortet.
+ *
+ * `geht === null` heißt »noch nicht geprüft« und darf nicht warnen: Beim
+ * Start steht die Antwort erst nach ein paar Sekunden fest, und eine
+ * Warnung, die sich selbst widerruft, lernt man zu übersehen.
+ */
+async function denkerWachen() {
+  const leiste = $("#denkerwarnung");
+  try {
+    const daten = await hole("/api/denker");
+    if (daten.geht === false) {
+      // Nur die Abhilfe: Sie nennt schon selbst, wer nicht antwortet. Den
+      // Namen davorzusetzen ergäbe »X antwortet nicht. X antwortet nicht.«
+      leiste.textContent = daten.abhilfe;
+      leiste.hidden = false;
+    } else {
+      leiste.hidden = true;
+    }
+  } catch (fehler) {
+    // Antwortet der Dienst selbst nicht, ist das ein anderes Problem und
+    // steht schon woanders. Hier nichts behaupten.
+    leiste.hidden = true;
   }
 }
 
