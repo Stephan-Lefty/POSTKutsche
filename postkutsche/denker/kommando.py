@@ -235,3 +235,13 @@ def _auspacken(roh: str) -> str:
         if isinstance(wert, str) and wert.strip():
             return wert
     return roh
+
+
+def roh(anweisung: str, einstellungen: dict[str, Any] | None = None) -> str:
+    """Eine fertige Anweisung stellen und die Antwort unausgewertet liefern.
+
+    Für Aufrufer, die ihre Anweisung selbst bauen – die Wochenformate
+    verlangen neben den Fassungen auch die Felder der Grafik.
+    """
+    e = einstellungen or {}
+    return _aufrufen(anweisung, e.get("modell"), schluessel=e.get("schluessel"))

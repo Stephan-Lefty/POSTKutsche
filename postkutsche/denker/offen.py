@@ -129,3 +129,8 @@ def _text_holen(daten: dict[str, Any]) -> str:
             "Modell hilft."
         )
     raise DenkerFehler(f"Die Antwort enthielt keinen Text: {str(nachricht)[:200]}")
+
+
+def roh(anweisung: str, einstellungen: dict[str, Any] | None = None) -> str:
+    """Eine fertige Anweisung stellen und die Antwort unausgewertet liefern."""
+    return _aufrufen(anweisung, einstellungen or {})

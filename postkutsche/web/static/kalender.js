@@ -102,6 +102,7 @@ async function anfangen() {
 
   try {
     eigenenVorbereiten();
+    wochenformateVorbereiten();
   } catch (fehler) {
     melden(`Eigene Beiträge nicht verfügbar: ${fehler.message}`, true);
   }
@@ -586,6 +587,124 @@ async function eigenenAnlegen(e) {
     melden(antwort.meldung || `Angelegt für ${antwort.lesbar}.`,
            Boolean(antwort.meldung));
   } catch (fehler) {
+    melden(fehler.message, true);
+  } finally {
+    knopf.disabled = false;
+    knopf.textContent = "Anlegen";
+  }
+}
+
+/** Die beiden Wochenformate: »Produkt der Woche« und »Tipp der Woche«.
+ *
+ * Sie erscheinen wöchentlich und unterscheiden sich nur darin, was man
+ * hineingibt – beim Produkt einen Verweis in den Shop, beim Tipp ein Thema.
+ * Alles andere ist gleich, deshalb steht das Fenster hier einmal und wird
+ * zweimal ausgestattet. Zwei fast gleiche Funktionen wären nach der ersten
+ * Änderung nicht mehr gleich.
+ */
+function wochenformateVorbereiten() {
+  wochenfenster({
+    kasten: "#produkt", knopf: "#produkt-auf", form: "#produkt-form",
+    zu: "#p-zu", los: "#p-los", projekt: "#p-projekt", netze: "#p-netze",
+    tag: "#p-tag", zeit: "#p-zeit", stand: "#p-stand",
+    weg: "/api/woche/produkt",
+    leeren: () => { $("#p-adresse").value = ""; },
+    sammeln: () => ({ adresse: $("#p-adresse").value.trim() }),
+  });
+  wochenfenster({
+    kasten: "#tipp", knopf: "#tipp-auf", form: "#tipp-form",
+    zu: "#t-zu", los: "#t-los", projekt: "#t-projekt", netze: "#t-netze",
+    tag: "#t-tag", zeit: "#t-zeit", stand: "#t-stand",
+    weg: "/api/woche/tipp",
+    leeren: () => {
+      $("#t-thema").value = "";
+      $("#t-hinweise").value = "";
+      $("#t-bild").value = "";
+    },
+    sammeln: () => ({
+      thema: $("#t-thema").value.trim(),
+      hinweise: $("#t-hinweise").value.trim(),
+      bild: $("#t-bild").value.trim(),
+    }),
+  });
+}
+
+function wochenfenster(f) {
+  const kasten = $(f.kasten);
+  const auswahl = $(f.projekt);
+
+  $(f.knopf).onclick = () => {
+    auswahl.innerHTML = "";
+    stand.projekte.forEach((p) => {
+      const eintrag = document.createElement("option");
+      eintrag.value = p.kennung;
+      eintrag.textContent = p.name;
+      auswahl.append(eintrag);
+    });
+
+    const netze = $(f.netze);
+    netze.innerHTML = "";
+    Object.values(stand.netzwerke).forEach((n) => {
+      const feld = document.createElement("input");
+      feld.type = "checkbox";
+      feld.value = n.kennung;
+      // Die drei Netzwerke, für die diese Formate gedacht sind, stehen
+      // angehakt da. Mastodon lässt sich dazunehmen, ist aber nicht gemeint.
+      feld.checked = ["facebook", "instagram", "linkedin"].includes(n.kennung);
+      const beschriftung = document.createElement("label");
+      beschriftung.style.borderColor = n.farbe;
+      beschriftung.append(feld, document.createTextNode(n.name));
+      netze.append(beschriftung);
+    });
+
+    // Morgen, halb zehn – wie beim Beitrag von Hand und aus demselben Grund.
+    const morgen = new Date();
+    morgen.setDate(morgen.getDate() + 1);
+    $(f.tag).value = tagesschluessel(morgen);
+    $(f.zeit).value = "09:30";
+    $(f.stand).hidden = true;
+    f.leeren();
+    kasten.hidden = false;
+  };
+
+  $(f.zu).onclick = () => (kasten.hidden = true);
+  kasten.onclick = (e) => { if (e.target === kasten) kasten.hidden = true; };
+  $(f.form).onsubmit = (e) => wochenformatAnlegen(e, f);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !kasten.hidden) kasten.hidden = true;
+  });
+}
+
+async function wochenformatAnlegen(e, f) {
+  e.preventDefault();
+  const netze = [...$(f.netze).querySelectorAll("input:checked")]
+    .map((k) => k.value);
+  if (!netze.length) return melden("Wähle mindestens ein Netzwerk.", true);
+
+  const knopf = $(f.los);
+  const zeile = $(f.stand);
+  knopf.disabled = true;
+  knopf.textContent = "Wird angelegt …";
+  // Der Lauf dauert: eine Anfrage an Claude und zwei Grafiken. Ohne diesen
+  // Hinweis sieht es nach einer hängenden Oberfläche aus.
+  zeile.textContent = "Text wird geschrieben, dann werden die Grafiken "
+    + "gezeichnet. Das dauert etwa eine Minute.";
+  zeile.hidden = false;
+  try {
+    const antwort = await hole(f.weg, {
+      projekt: $(f.projekt).value,
+      geplant: `${$(f.tag).value}T${$(f.zeit).value}`,
+      netzwerke: netze,
+      ...f.sammeln(),
+    });
+    $(f.kasten).hidden = true;
+    await monatLaden();
+    blattOeffnen(antwort.id);
+    melden(antwort.meldung || `Angelegt für ${antwort.lesbar}.`,
+           Boolean(antwort.meldung));
+  } catch (fehler) {
+    zeile.textContent = fehler.message;
     melden(fehler.message, true);
   } finally {
     knopf.disabled = false;

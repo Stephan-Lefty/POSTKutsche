@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .. import ablage as ablage_modul
 from .. import netzwerke, zeiten
+from .. import wochenformat as wochenformat_modul
 
 STATISCH = Path(__file__).parent / "static"
 
@@ -426,6 +427,10 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._wissen_streichen(rumpf)
             if pfad == "/api/beitrag/neu":
                 return self._beitrag_neu(rumpf)
+            if pfad == "/api/woche/produkt":
+                return self._woche(rumpf, wochenformat_modul.PRODUKT)
+            if pfad == "/api/woche/tipp":
+                return self._woche(rumpf, wochenformat_modul.TIPP)
             if pfad == "/api/kampagne":
                 return self._kampagne(rumpf)
             if pfad == "/api/kampagne/abbrechen":
@@ -779,6 +784,35 @@ class Behandler(BaseHTTPRequestHandler):
             self._json({"id": beitrag, "geplant": geplant,
                         "lesbar": zeiten.lesbar(geplant),
                         "weg": weg, "meldung": meldung})
+
+    def _woche(self, rumpf: dict[str, Any], art: str) -> None:
+        """»Tipp der Woche« und »Produkt der Woche« anlegen.
+
+        Beides dauert: eine Claude-Anfrage und zwei Grafiken, zusammen leicht
+        eine Minute. Trotzdem wird hier gewartet statt im Hintergrund
+        gearbeitet – anders als bei der Wochenplanung entsteht *ein* Beitrag,
+        und wer ihn anlegt, will wissen, ob er fertig geworden ist. Ein
+        Fortschrittsbalken für einen einzigen Schritt wäre Theater.
+        """
+        kennung = str(rumpf.get("projekt", "")).strip()
+        netze = [str(n) for n in (rumpf.get("netzwerke") or [])]
+        geplant = zeiten.von_ortszeit(str(rumpf["geplant"]))
+
+        with self._ablage() as a:
+            try:
+                if art == wochenformat_modul.PRODUKT:
+                    ergebnis = wochenformat_modul.produkt(
+                        a, kennung, str(rumpf.get("adresse", "")).strip(),
+                        geplant, netze)
+                else:
+                    ergebnis = wochenformat_modul.tipp(
+                        a, kennung, str(rumpf.get("thema", "")),
+                        geplant, netze,
+                        bild_adresse=str(rumpf.get("bild", "")).strip() or None,
+                        hinweise=str(rumpf.get("hinweise", "")))
+            except wochenformat_modul.WochenFehler as fehler:
+                return self._fehler(str(fehler))
+        self._json(ergebnis)
 
     def _freigeben(self, rumpf: dict[str, Any]) -> None:
         nummer = int(rumpf["id"])

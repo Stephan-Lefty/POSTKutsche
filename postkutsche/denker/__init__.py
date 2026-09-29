@@ -202,6 +202,27 @@ def nachbessern(
         einstellungen=einstellungen)
 
 
+def fragen(anweisung: str, weg: str | None = None,
+           einstellungen: dict[str, Any] | None = None,
+           projektdaten: Any = None) -> str:
+    """Eine selbst gebaute Anweisung stellen und die rohe Antwort bekommen.
+
+    `schreiben` baut die Anweisung selbst und wertet sie selbst aus – das ist
+    für den Regelfall richtig. Die Wochenformate verlangen aber neben den
+    Fassungen auch die Felder der Grafik; dafür braucht es eine eigene
+    Anweisung und eine eigene Auswertung. Hier ist die Ebene darunter.
+
+    `hand` kann das nicht: Dort gibt es kein Modell, das man fragen könnte.
+    """
+    weg, einstellungen = _bestimmen(weg, einstellungen, projektdaten)
+    if weg == HAND:
+        raise DenkerFehler(
+            "Der Weg »hand« schreibt keine Texte – er legt nur ein Gerüst an. "
+            "Für Tipp und Produkt der Woche braucht es ein Modell: "
+            "»postkutsche denker waehlen kommando«.")
+    return WEGE[weg].roh(anweisung, einstellungen)
+
+
 def _bestimmen(weg: str | None, einstellungen: dict[str, Any] | None,
                projektdaten: Any) -> tuple[str, dict[str, Any]]:
     if weg is None:

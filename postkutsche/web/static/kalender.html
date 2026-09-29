@@ -19,6 +19,8 @@
   </nav>
 
   <button id="eigener-auf" class="schlicht">Beitrag von Hand</button>
+  <button id="produkt-auf" class="schlicht">Produkt der Woche</button>
+  <button id="tipp-auf" class="schlicht">Tipp der Woche</button>
   <button id="kampagne-auf" class="knopf">Woche planen</button>
 
   <button id="thema" class="schlicht" aria-label="Helles oder dunkles Thema">◐</button>
@@ -190,6 +192,94 @@
     <div class="knoepfe">
       <button type="submit" class="knopf" id="e-los">Anlegen</button>
       <button type="button" class="knopf leise" id="e-zu">Abbrechen</button>
+    </div>
+  </form>
+</div>
+
+<div id="produkt" class="ueberlagerung" hidden>
+  <form id="produkt-form" class="kasten">
+    <h2>Produkt der Woche</h2>
+    <!-- Eingabe ist ein Verweis in den Shop, alles Weitere holt POSTKutsche
+         selbst: Titel, Merkmale, Foto und den ausgezeichneten Preis. -->
+    <p class="schlagworte">Verweis auf das Produkt einfügen – Titel, Merkmale,
+      Foto und Preis werden von der Seite gelesen. Bis wann das Angebot gilt,
+      ergibt sich aus der Woche: Montag bis Sonntag.</p>
+
+    <label>Projekt
+      <select id="p-projekt" required></select>
+    </label>
+
+    <label>Verweis auf das Produkt
+      <input id="p-adresse" type="url" required
+        placeholder="https://…/produkt.html">
+    </label>
+
+    <div class="paar">
+      <label>Tag
+        <input id="p-tag" type="date" required>
+      </label>
+      <label>Uhrzeit
+        <input id="p-zeit" type="time" required>
+      </label>
+    </div>
+
+    <label>Netzwerke
+      <span id="p-netze" class="marken"></span>
+    </label>
+
+    <p class="schlagworte" id="p-stand" hidden></p>
+
+    <div class="knoepfe">
+      <button type="submit" class="knopf" id="p-los">Anlegen</button>
+      <button type="button" class="knopf leise" id="p-zu">Abbrechen</button>
+    </div>
+  </form>
+</div>
+
+<div id="tipp" class="ueberlagerung" hidden>
+  <form id="tipp-form" class="kasten">
+    <h2>Tipp der Woche</h2>
+    <!-- Hier gibt es keine Quelle, die man lesen könnte: Das Thema ist die
+         Eingabe. Ein Stimmungsbild liefert niemand mit, deshalb das Feld. -->
+    <p class="schlagworte">Ein Thema genügt – Text und Grafik entstehen daraus.
+      Je genauer das Thema, desto brauchbarer der Tipp.</p>
+
+    <label>Projekt
+      <select id="t-projekt" required></select>
+    </label>
+
+    <label>Thema
+      <input id="t-thema" required
+        placeholder="Wie pflege ich im Herbst Außentüren richtig?">
+    </label>
+
+    <label>Vorgaben (kann leer bleiben)
+      <textarea id="t-hinweise" rows="2"
+        placeholder="Worauf es ankommt, was nicht hineinsoll."></textarea>
+    </label>
+
+    <label>Bild für die Grafik (kann leer bleiben)
+      <input id="t-bild" type="url" placeholder="https://…/foto.jpg">
+    </label>
+
+    <div class="paar">
+      <label>Tag
+        <input id="t-tag" type="date" required>
+      </label>
+      <label>Uhrzeit
+        <input id="t-zeit" type="time" required>
+      </label>
+    </div>
+
+    <label>Netzwerke
+      <span id="t-netze" class="marken"></span>
+    </label>
+
+    <p class="schlagworte" id="t-stand" hidden></p>
+
+    <div class="knoepfe">
+      <button type="submit" class="knopf" id="t-los">Anlegen</button>
+      <button type="button" class="knopf leise" id="t-zu">Abbrechen</button>
     </div>
   </form>
 </div>
