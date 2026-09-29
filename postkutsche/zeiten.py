@@ -95,6 +95,22 @@ def wochengrenzen(bezug: datetime) -> tuple[str, str]:
     return schreiben(montag), schreiben(montag + timedelta(days=7))
 
 
+def wochenschluss(bezug: datetime) -> str:
+    """Der Sonntag derselben Woche, 23:59 Ortszeit – als UTC-Stempel.
+
+    Ein Angebot der Woche läuft von Montag bis Sonntag. Wann es endet, ist
+    deshalb keine Eingabe, sondern eine Rechnung: Wer das Datum tippt, tippt
+    es irgendwann falsch, und dann steht in der Anzeige ein Ende, das schon
+    vorbei ist.
+
+    23:59 und nicht 00:00 des Folgetags, weil beides derselbe Augenblick ist,
+    aber nur eines davon in einer Anzeige richtig aussieht.
+    """
+    ort = bezug.astimezone(ORTSZONE) if bezug.tzinfo else bezug.replace(tzinfo=ORTSZONE)
+    sonntag = ort + timedelta(days=6 - ort.weekday())
+    return schreiben(sonntag.replace(hour=23, minute=59, second=0, microsecond=0))
+
+
 def lesbar(stempel: str) -> str:
     """Für Ausgaben auf der Kommandozeile: »Mo 01.09.2026, 18:00«."""
     tage = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")

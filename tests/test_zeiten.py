@@ -84,6 +84,34 @@ class Grenzen(unittest.TestCase):
         self.assertEqual(zeiten.nach_ortszeit(bis).strftime("%H:%M"), "00:00")
 
 
+class Wochenschluss(unittest.TestCase):
+    """Ein Angebot der Woche läuft von Montag bis Sonntag."""
+
+    def test_von_jedem_wochentag_aus_derselbe_sonntag(self):
+        for datum in (datetime(2026, 9, 28), datetime(2026, 9, 30),
+                      datetime(2026, 10, 2), datetime(2026, 10, 4)):
+            with self.subTest(datum=datum.date()):
+                self.assertEqual(
+                    zeiten.lesbar(zeiten.wochenschluss(datum)), "So 04.10.2026, 23:59")
+
+    def test_der_montag_danach_gehoert_zur_naechsten_woche(self):
+        self.assertEqual(
+            zeiten.lesbar(zeiten.wochenschluss(datetime(2026, 10, 5))),
+            "So 11.10.2026, 23:59")
+
+    def test_auch_in_der_woche_der_zeitumstellung(self):
+        # Der 25.10.2026 ist selbst der Umstellungstag. Wer eine feste
+        # Stundenzahl addierte, landete hier auf 22:59 oder 00:59.
+        self.assertEqual(
+            zeiten.lesbar(zeiten.wochenschluss(datetime(2026, 10, 20))),
+            "So 25.10.2026, 23:59")
+
+    def test_der_stempel_steht_in_utc(self):
+        # Anfang November gilt Winterzeit: 23:59 Ortszeit sind 22:59 UTC.
+        self.assertEqual(
+            zeiten.wochenschluss(datetime(2026, 10, 26)), "2026-11-01T22:59:00Z")
+
+
 class Anzeige(unittest.TestCase):
     def test_lesbar(self):
         self.assertEqual(zeiten.lesbar("2026-09-01T16:00:00Z"), "Di 01.09.2026, 18:00")

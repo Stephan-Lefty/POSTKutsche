@@ -531,3 +531,60 @@ class KategorienameBeimEigenbau(unittest.TestCase):
     def test_ein_pfad_aus_nichts_als_list_html(self):
         # Nicht schoen, aber besser als eine leere Beschriftung.
         self.assertEqual(seitenkarte._letztes_stueck("list.html"), "list.html")
+
+
+class Preis(unittest.TestCase):
+    """Der Preis kommt aus dem Auszeichnungsfeld, nie aus dem Fließtext."""
+
+    # Nachgebaut aus einer echten Produktseite: Über dem Preis stehen die
+    # Merkmale, darunter ein Empfehlungsschieber mit einem *fremden* Artikel –
+    # samt eigenem Preis und eigenem Streichpreis.
+    SEITE = """
+      <ul>
+        <li>U-Wert: 0,7 W/m&sup2;K</li>
+        <li>Stufenbelastung bis zu 250 kg</li>
+      </ul>
+      <p><strong><strike> 1.100,00 &euro;</strike> (12.82% gespart)</strong></p>
+      <span class="item-price"><strong><span itemprop="price">959,00 &euro;</span></strong>*</span>
+      <div class="empfehlungen">
+        <p>Andere Treppe</p>
+        <p>Inhalt 1 Stk. - 1.329,00 &euro;/ Stk.</p>
+        <p><strike>1.500,00 &euro;</strike></p>
+      </div>
+    """
+
+    def test_der_ausgezeichnete_preis_gilt(self):
+        self.assertEqual(seitenkarte.preis(self.SEITE)["jetzt"], "959,00 €")
+
+    def test_der_preis_im_fliesstext_wird_nicht_genommen(self):
+        # 1.329 gehört zum Artikel im Schieber. Wer den Text nach Zahlen
+        # absucht, bewirbt irgendwann den falschen Preis – in einer Anzeige.
+        gefunden = seitenkarte.preis(self.SEITE)
+        self.assertNotIn("1.329", str(gefunden))
+
+    def test_der_frühere_preis_steht_davor_nicht_dahinter(self):
+        # Der Streichpreis des Schiebers (1.500) steht *nach* dem Preisfeld
+        # und darf nicht als »vorher« durchgehen.
+        self.assertEqual(seitenkarte.preis(self.SEITE)["vorher"], "1.100,00 €")
+
+    def test_ohne_auszeichnung_gibt_es_keinen_preis(self):
+        # Kein Preis ist ein brauchbares Ergebnis: Dann wird gefragt statt
+        # geraten.
+        self.assertIsNone(seitenkarte.preis("<p>Nur 42,00 € heute!</p>"))
+
+    def test_leeres_preisfeld_zaehlt_nicht(self):
+        self.assertIsNone(seitenkarte.preis('<span itemprop="price"> </span>'))
+
+
+class Merkmale(unittest.TestCase):
+    def test_die_liste_ueber_dem_preis_gilt(self):
+        gefunden = seitenkarte.merkmale(Preis.SEITE)
+        self.assertEqual(gefunden[0], "U-Wert: 0,7 W/m²K")
+        self.assertEqual(len(gefunden), 2)
+
+    def test_listen_hinter_dem_preis_bleiben_draussen(self):
+        roh = Preis.SEITE + "<ul><li>Fußzeile</li><li>Impressum</li></ul>"
+        self.assertNotIn("Impressum", seitenkarte.merkmale(roh))
+
+    def test_ohne_liste_bleibt_es_leer(self):
+        self.assertEqual(seitenkarte.merkmale("<p>nichts</p>"), [])

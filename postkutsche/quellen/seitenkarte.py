@@ -825,7 +825,73 @@ def seite(adresse: str) -> dict[str, object]:
         "bild_adresse": bild,
         "veroeffentlicht": None,  # Solche Seiten haben kein Datum, dem zu trauen wäre
         "kategorien": [],
+        "preis": preis(roh),
+        "merkmale": merkmale(roh),
     }
+
+
+# Der Preis steht im Auszeichnungsfeld, nicht im Fließtext.
+#
+# Das ist keine Vorliebe, sondern ein gemessener Reinfall: Auf einer
+# Produktseite dieses Shops stand im Fließtext »Inhalt 1 Stk. - 1.329,00 €«,
+# und dieser Preis gehörte zu einem ganz anderen Artikel aus dem
+# Empfehlungsschieber daneben. Das eigentliche Produkt kostete 959 €. Wer den
+# Fließtext nach Zahlen absucht, bewirbt früher oder später den falschen Preis
+# - und das in einer Anzeige.
+#
+# `itemprop="price"` ist dagegen eine Zusage der Seite über *dieses* Produkt.
+# Steht sie nicht da, gibt es keinen Preis, und dann wird gefragt statt geraten.
+_PREIS = re.compile(
+    r"""<[^>]+itemprop\s*=\s*["']price["'][^>]*>(.*?)</""", re.IGNORECASE | re.DOTALL)
+_PREIS_VORHER = re.compile(r"<strike[^>]*>(.*?)</strike>", re.IGNORECASE | re.DOTALL)
+
+
+def preis(roh: str) -> dict[str, str] | None:
+    """Was das Stück kostet – oder nichts, wenn die Seite es nicht zusagt.
+
+    Zurück kommt `{"jetzt": "959,00 €", "vorher": "1.100,00 €"}`; »vorher«
+    fehlt, wenn es kein durchgestrichener Preis gibt.
+    """
+    treffer = _PREIS.search(roh)
+    if not treffer:
+        return None
+    jetzt = entmarken(treffer.group(1)).strip()
+    if not jetzt:
+        return None
+    gefunden = {"jetzt": jetzt}
+    # Der frühere Preis steht davor und durchgestrichen. Gesucht wird nur im
+    # Stück vor dem Preis: Weiter unten stehen die Empfehlungen, und deren
+    # Streichpreise gehören anderen Artikeln.
+    davor = roh[max(0, treffer.start() - 1200):treffer.start()]
+    vorher = _PREIS_VORHER.findall(davor)
+    if vorher:
+        wert = entmarken(vorher[-1]).strip()
+        if wert:
+            gefunden["vorher"] = wert
+    return gefunden
+
+
+_MERKMALSPUNKT = re.compile(r"<li[^>]*>(.*?)</li>", re.IGNORECASE | re.DOTALL)
+
+
+def merkmale(roh: str, grenze: int = 12) -> list[str]:
+    """Die Stichpunkte über dem Preis – das, was den Artikel ausmacht.
+
+    Gelesen wird die letzte Liste *vor* dem Preisfeld. Weiter oben steht die
+    Navigation, weiter unten stehen Empfehlungen und Fußzeile; beides besteht
+    ebenfalls aus `<li>` und hätte mit dem Produkt nichts zu tun.
+    """
+    treffer = _PREIS.search(roh)
+    davor = roh[:treffer.start()] if treffer else roh
+    beginn = davor.rfind("<ul")
+    if beginn < 0:
+        return []
+    gefunden = []
+    for stueck in _MERKMALSPUNKT.findall(davor[beginn:]):
+        text = entmarken(stueck).strip()
+        if text and text not in gefunden:
+            gefunden.append(text)
+    return gefunden[:grenze]
 
 
 _TITEL = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)

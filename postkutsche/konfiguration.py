@@ -108,6 +108,57 @@ def denker_lesen() -> dict[str, Any]:
     return daten
 
 
+def markendatei() -> Path:
+    return ordner() / "marken.json"
+
+
+def marken_lesen() -> dict[str, dict[str, Any]]:
+    """Das Auftreten nach außen, je Projekt: Logo, Ruf­nummer, Anschrift.
+
+    Aus demselben Grund hier und nicht im Quelltext wie die Seiten selbst: Ein
+    Logo ist eine eingetragene Marke, eine Rufnummer und eine Mailadresse sind
+    Kontaktdaten, und beides gehört nicht in ein öffentliches Repository – auch
+    nicht in dessen Versionsgeschichte. `test_keine_echten_adressen.py` würde es
+    ohnehin bemerken.
+
+    Der Aufbau, mit einem Eintrag je Projektkennung:
+
+        {
+          "meinshop": {
+            "logo": "logo.png",
+            "telefon": "030 - 000 000 00",
+            "zeiten": "Mo.-Fr. 8:00-17:00 Uhr",
+            "netz": "www.beispiel.example",
+            "mail": "info@example.org",
+            "ueber": ["Türen und Tore", "Brandschutz", "Beratung"]
+          }
+        }
+
+    Ein relativer Logopfad wird von diesem Ordner aus gelesen, damit die Datei
+    umziehen kann, ohne dass Pfade brechen. Fehlt ein Feld, bleibt die Stelle
+    in der Grafik leer – das ist besser als ein Platzhalter, der versehentlich
+    mit veröffentlicht wird.
+    """
+    datei = markendatei()
+    if not datei.exists():
+        return {}
+    daten = _lesen(datei, "Marken")
+    if not isinstance(daten, dict):
+        raise KonfigurationsFehler(
+            f"{datei} muss ein Objekt enthalten, kein {type(daten).__name__}."
+        )
+    return daten
+
+
+def marke(kennung: str) -> dict[str, Any]:
+    """Die Angaben eines Projekts, mit aufgelöstem Logopfad."""
+    eintrag = dict(marken_lesen().get(kennung) or {})
+    logo = eintrag.get("logo")
+    if logo and not Path(logo).is_absolute():
+        eintrag["logo"] = str(ordner() / logo)
+    return eintrag
+
+
 class KonfigurationsFehler(Exception):
     """Die Konfigurationsdatei lässt sich nicht lesen."""
 
