@@ -14,6 +14,7 @@ Oberfläche ändert.
 
 - [Der Kalender](#der-kalender)
 - [Einen Beitrag selbst anlegen](#einen-beitrag-selbst-anlegen)
+- [Tipp und Produkt der Woche](#tipp-und-produkt-der-woche)
 - [Wer die Texte schreibt](#wer-die-texte-schreibt)
 - [Ein Beitrag im Einzelnen](#ein-beitrag-im-einzelnen)
 - [Rückfragen beantworten](#rückfragen-beantworten)
@@ -79,6 +80,58 @@ und deine Sätze im Entwurf und der Rest ist deine Sache.
 Danach geht der Beitrag gleich auf, und du kannst den Text an Ort und Stelle
 ändern. Antwortet der Dienst gerade nicht, entsteht der Beitrag trotzdem –
 der Termin ist das Wichtigere, der Text lässt sich tippen.
+
+## Tipp und Produkt der Woche
+
+Zwei Formate, die wöchentlich erscheinen und beide mehr liefern als Text: Aus
+einer einzigen Eingabe entstehen die Beitragstexte *und* eine fertige Grafik
+im Hausstil, für Facebook und LinkedIn im Querformat, für Instagram im
+Hochformat.
+
+**»Produkt der Woche«** braucht nur den Verweis auf ein Produkt im Shop.
+Titel, Merkmale, Foto und Preis werden von der Seite gelesen. Bis wann das
+Angebot gilt, wird nicht gefragt, sondern gerechnet: Ein Angebot der Woche
+läuft von Montag bis Sonntag, und in der Grafik steht der Sonntag der Woche,
+in der der Beitrag erscheint.
+
+**Der Preis kommt ausschließlich aus dem Auszeichnungsfeld der Seite**
+(`itemprop="price"`), nie aus dem Fließtext. Das ist keine Pedanterie: Auf
+einer echten Produktseite stand im Fließtext ein Preis von 1.329 €, der zu
+einem ganz anderen Artikel aus der Empfehlungsliste daneben gehörte – das
+Produkt selbst kostete 959 €. Steht kein ausgezeichneter Preis auf der Seite,
+entsteht **kein** Beitrag; hier wird abgebrochen statt geraten, denn eine
+Anzeige mit falschem Preis ist schlimmer als keine Anzeige. Die Ersparnis wird
+aus beiden Preisen gerechnet und nicht abgeschrieben.
+
+**»Tipp der Woche«** braucht nur ein Thema – etwa »Wie pflege ich im Herbst
+Außentüren richtig?«. Daraus entstehen drei Blöcke mit je vier Ratschlägen,
+ein Kasten mit Warnungen und einer mit dem, was auch ein Fachmann nicht auf
+dem Schirm hat. Unter »Vorgaben« lässt sich sagen, worauf es ankommt und was
+nicht hineinsoll. Ein Stimmungsbild liefert niemand mit; das Feld dafür kann
+leer bleiben, dann bleibt die Fotospalte dunkel.
+
+Beide Formate tragen dasselbe Gerüst – Logo, Fotospalte, Kastenspalte,
+Kontakt an derselben Stelle. Wer sie nebeneinander sieht, erkennt denselben
+Absender, bevor er ein Wort gelesen hat.
+
+**Was dabei entsteht:** der Beitrag im Kalender, die Texte je Netzwerk, beide
+Grafiken und ein Alternativtext, der wiedergibt, was im Bild steht. Den
+braucht, wer einen Vorleser benutzt – ohne ihn wäre die ganze Aussage
+unzugänglich, denn sie steckt im Bild.
+
+**Veröffentlicht wird von Hand**, wie bei allen anderen Beiträgen auch: Text
+kopieren, Bild ablegen, im Netzwerk einstellen, zurückkommen und abhaken.
+
+Der Lauf dauert etwa eine Minute – eine Anfrage an Claude und zwei Grafiken.
+Antwortet Claude nicht oder fehlt Firefox, entsteht der Beitrag trotzdem, nur
+ohne Text beziehungsweise ohne Bild, und es steht dabei, woran es lag.
+
+**Wo Logo und Rufnummer herkommen:** aus `~/.config/postkutsche/marken.json`,
+nicht aus dem Programm. Dort steht je Projekt, welches Logo, welche Nummer,
+welche Mailadresse und welche vier Zeilen im Kasten »Über …« erscheinen.
+Mehrere Projekte können sich denselben Auftritt teilen – ein Eintrag
+`{"wie": "anderekennung"}` verweist auf einen anderen, statt die Angaben zu
+kopieren.
 
 ## Wer die Texte schreibt
 

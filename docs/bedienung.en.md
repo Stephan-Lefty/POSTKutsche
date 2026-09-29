@@ -13,6 +13,7 @@ interface changes. The interface itself is German only.
 
 - [The calendar](#the-calendar)
 - [Creating a post yourself](#creating-a-post-yourself)
+- [Tip and product of the week](#tip-and-product-of-the-week)
 - [Who writes the texts](#who-writes-the-texts)
 - [A post in detail](#a-post-in-detail)
 - [Answering queries](#answering-queries)
@@ -76,6 +77,55 @@ land in the draft and the rest is yours.
 The post then opens right away so you can edit the text in place. If the
 service isn't answering, the post is created anyway – the date is the more
 important part, the text can be typed.
+
+## Tip and product of the week
+
+Two formats that appear weekly and both deliver more than text: from a single
+input come the post texts *and* a finished graphic in the house style —
+landscape for Facebook and LinkedIn, portrait for Instagram.
+
+**»Produkt der Woche«** (product of the week) only needs the link to a product
+in the shop. Title, features, photo and price are read from the page. Until
+when the offer runs isn't asked but calculated: an offer of the week runs
+Monday to Sunday, and the graphic shows the Sunday of the week the post
+appears in.
+
+**The price comes exclusively from the page's markup** (`itemprop="price"`),
+never from the body text. That is not pedantry: on a real product page the
+body text held a price of 1,329 € belonging to an entirely different article
+from the recommendation list beside it — the product itself cost 959 €. If the
+page carries no marked-up price, **no** post is created; here the run stops
+rather than guesses, because an advert with a wrong price is worse than no
+advert. The saving is calculated from both prices, not copied.
+
+**»Tipp der Woche«** (tip of the week) only needs a subject — say »How do I
+care for exterior doors in autumn?«. Out of it come three blocks of four
+pieces of advice each, a box of warnings, and one with what even a
+professional tends to forget. Under »Vorgaben« you can say what matters and
+what should stay out. Nobody supplies a mood image; that field may stay empty,
+and then the photo column stays dark.
+
+Both formats carry the same frame — logo, photo column, box column, contact in
+the same places. Seen side by side they are recognisably from one sender
+before a word is read.
+
+**What comes out:** the post in the calendar, the texts per network, both
+graphics, and an alternative text describing what the image says. That is for
+whoever uses a screen reader — without it the whole message is out of reach,
+because it sits in the image.
+
+**Publishing happens by hand**, as with every other post: copy the text, file
+the image, put it into the network, come back and tick it off.
+
+A run takes about a minute — one request to Claude and two graphics. If Claude
+doesn't answer or Firefox is missing, the post is created anyway, only without
+text or without image, and it says what went wrong.
+
+**Where logo and phone number come from:** `~/.config/postkutsche/marken.json`,
+not the program. It holds per project which logo, which number, which mail
+address and which four lines appear in the »Über …« box. Several projects can
+share one appearance — an entry `{"wie": "otherkey"}` points at another one
+instead of copying the details.
 
 ## Who writes the texts
 

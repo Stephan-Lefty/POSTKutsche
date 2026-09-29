@@ -453,6 +453,21 @@ def nachbesserung(
 MERKMALE_ANZAHL = 4
 MERKMAL_ZEICHEN = 42
 
+#: Muss in beiden Wochenformaten dabeistehen.
+#:
+#: Die Grundregeln verlangen eine Rückfrage, wenn für ein Netzwerk mit
+#: Bildpflicht kein Bild vorliegt - richtig im Regelfall, falsch hier: Aus
+#: den Feldern, die gerade gefüllt werden, entsteht anschließend die Grafik,
+#: und zwar für jedes Netzwerk. Beim ersten echten Durchlauf am 2026-09-29
+#: fragte Instagram prompt nach einem Bild. Eine offene Rückfrage sperrt die
+#: Freigabe - das wäre jede Woche passiert.
+BILD_ENTSTEHT = """\
+**Zum Bild frag nicht.** Aus den Feldern unter »grafik« wird anschließend
+eine Grafik gezeichnet, für jedes Netzwerk und im passenden Format. Es liegt
+also für alle ein Bild vor, auch für Instagram. Schreib deshalb nichts über
+fehlende Bilder in »rueckfrage« und fordere keines an.\
+"""
+
 WOCHE_FORMAT = """{
   "grafik": { … siehe unten … },
   "fassungen": {
@@ -601,6 +616,8 @@ def wochenanweisung(
         "## Was bei diesem Format anders ist",
         "",
         PRODUKTREGELN if art == "produkt" else TIPPREGELN,
+        "",
+        BILD_ENTSTEHT,
     ]
     teile += _wissensteil(wissen or [])
     teile += [

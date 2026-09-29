@@ -210,8 +210,11 @@ body {{ width:{BREITE}px; height:{HOEHE}px; overflow:hidden; color:#fff;
   font-family:{SCHRIFT}; background:{NACHT}; position:relative; }}
 
 /* Linke Fotospalte, nach rechts ins Dunkel auslaufend. */
+/* Der Ausschnitt liegt rechts der Mitte. Shopfotos tragen oft links unten
+   einen eingebrannten Werbekasten; der säße sonst mitten in der Spalte und
+   doppelte sich mit der Beschriftung daneben. */
 .foto {{ position:absolute; inset:0 auto 0 0; width:400px; height:100%;
-  object-fit:cover; object-position:50% 45%; }}
+  object-fit:cover; object-position:62% 45%; }}
 .blende {{ position:absolute; inset:0 auto 0 250px; width:200px;
   background:linear-gradient(90deg,{NACHT}00,{NACHT}cc 70%,{NACHT}); }}
 .schleier {{ position:absolute; inset:0 auto 0 0; width:400px;

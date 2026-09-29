@@ -10,22 +10,6 @@ wurde.
 
 ### Als Nächstes
 
-- **Tipp der Woche und Produkt der Woche, mit eigener Grafik.** Beide Projekte
-  stehen seit dem 2026-09-29 (`tipp-woche`, `produkt-woche`). Sie bekommen
-  Unterschiedliches vorgesetzt: der Tipp ein Thema – etwa »Wie pflege ich im
-  Herbst Außentüren richtig?« –, das Produkt einen Link in den Shop. Daraus
-  sollen Text *und* Bild entstehen. Getrennt gehalten sind sie wegen des
-  Projektwissens: Es geht in jeden Entwurf seines Projekts, und eine Regel
-  über Türpflege hat in einem Produkttext nichts verloren.
-
-  Ein Muster im Hausstil ist gebaut: HTML mit Platzhaltern, von Firefox als
-  PNG ausgegeben, alles Veränderliche in einem Datensatz. Was fehlt, ist
-  nichts Programmiertes: die verdichtete Grotesk des Hausstils (hier steht nur
-  DejaVu Condensed), das Logo als Datei statt nachgezeichnet, und woher das
-  Stimmungsbild zum Tipp kommt – ein Produktfoto holt `bilder.py` schon, ein
-  Herbstbild hat niemand. Offen außerdem das Hochformat: Der Entwurf ist 3:2,
-  Instagram will 4:5, und ein Zuschnitt aus der Mitte zerschneidet dieses
-  Layout.
 - **Die Projektpalette ist aufgebraucht.** Mit sieben Projekten sind alle fünf
   Farben aus `PROJEKTFARBEN` vergeben. Die beiden neuen haben Oliv und Türkis
   bekommen; Oliv liegt nur 28° vom Gelb des ersten Shops, Türkis 20° vom
@@ -119,6 +103,13 @@ wurde.
   Geld; der Workflow steht deshalb schon in der Sparfassung.
 
 ## Erledigt
+
+- **Tipp und Produkt der Woche** (2026-09-29): Zwei wöchentliche Formate mit
+  eigener Grafik im Hausstil. Beim Produkt genügt ein Verweis in den Shop,
+  beim Tipp ein Thema; Text, Querformat, Hochformat für Instagram und ein
+  Alternativtext entstehen daraus. Preis und Angebotsende werden gelesen
+  beziehungsweise gerechnet, nie vom Modell abgeschrieben. Veröffentlicht wird
+  über den Handbetrieb wie bei allen anderen Beiträgen.
 
 - **Nicht mehr nur Claude** (2026-09-24): Vier Wege zum Text – `claude -p`,
   jeder Dienst in der OpenAI-Form (Ollama, ChatGPT, OpenRouter …), die

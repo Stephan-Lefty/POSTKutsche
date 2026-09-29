@@ -88,6 +88,17 @@ class Wochenformate(unittest.TestCase):
         self.assertIn("Herbstpflege von Außentüren", anweisung)
         self.assertIn("Genau drei Blöcke", anweisung)
 
+    def test_nach_bildern_wird_nicht_gefragt(self):
+        # Am 2026-09-29 im ersten echten Durchlauf: Instagram fragte nach
+        # einem Bild, obwohl die Grafik gerade erst entsteht. Eine offene
+        # Rückfrage sperrt die Freigabe – das wäre jede Woche passiert.
+        for art, quelle in (("produkt", Wochenformate.QUELLE),
+                            ("tipp", {"thema": "Türpflege"})):
+            with self.subTest(art=art):
+                anweisung = vorlagen.wochenanweisung(art, quelle, ["instagram"])
+                self.assertIn("Zum Bild frag nicht", anweisung)
+                self.assertIn("auch für Instagram", anweisung)
+
     def test_ohne_netzwerk_gibt_es_nichts_zu_schreiben(self):
         with self.assertRaises(ValueError):
             vorlagen.wochenanweisung("produkt", self.QUELLE, [])

@@ -11,6 +11,32 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Tipp und Produkt der Woche** (2026-09-29). Zwei wöchentliche Formate, die
+  aus einer einzigen Eingabe Text *und* Grafik liefern: beim Produkt aus einem
+  Verweis in den Shop, beim Tipp aus einem Thema. Die Grafik entsteht im
+  Hausstil, quer für Facebook und LinkedIn, hoch für Instagram – Instagram
+  bekommt eine eigene Anordnung statt eines Mittenzuschnitts, der genau die
+  Preisbox wegschnitte. Beide Formate teilen dasselbe Gerüst, damit man den
+  Absender erkennt, bevor man ein Wort liest.
+- **Ein Alternativtext zu jeder Grafik.** Die ganze Aussage steckt im Bild;
+  wer einen Vorleser benutzt, bekäme sonst nichts. Er entsteht aus denselben
+  Feldern wie das Bild und kostet deshalb nichts extra.
+- **Preise aus dem Auszeichnungsfeld** (`itemprop="price"`), nie aus dem
+  Fließtext. Gemessen an einer echten Produktseite: Dort stand im Fließtext
+  ein Preis von 1.329 €, der zu einem Artikel aus der Empfehlungsliste
+  daneben gehörte, während das Produkt 959 € kostete. Fehlt die Auszeichnung,
+  entsteht kein Beitrag – eine Anzeige mit falschem Preis ist schlimmer als
+  keine Anzeige.
+- **Das Angebotsende wird gerechnet, nicht getippt.** Ein Angebot der Woche
+  läuft Montag bis Sonntag; `zeiten.wochenschluss` liefert den Sonntag 23:59
+  der jeweiligen Woche, auch über die Zeitumstellung hinweg.
+- **`marken.json` für den Auftritt nach außen.** Logo, Rufnummer, Mailadresse
+  und die Kurzvorstellung stehen unter `~/.config/postkutsche/`, nicht im
+  Repository – ein Logo ist eine eingetragene Marke, eine Rufnummer ein
+  Kontaktdatum, und die Versionsgeschichte vergisst nichts. Mehrere Projekte
+  teilen sich einen Auftritt über `{"wie": "anderekennung"}`.
+
+
 - **Das Gerüst.** SQLite-Ablage für Projekte, gefundene Inhalte, geplante
   Beiträge, Fassungen je Netzwerk und Konten. Kommandozeile zum Einrichten,
   Anzeigen, Anlegen, Pausieren und Löschen von Projekten.

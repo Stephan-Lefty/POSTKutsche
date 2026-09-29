@@ -9,21 +9,6 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
-- **Tip of the week and product of the week, each with its own graphic.** Both
-  projects exist since 2026-09-29 (`tipp-woche`, `produkt-woche`). They are fed
-  differently: the tip gets a subject — say »How do I care for exterior doors
-  in autumn?« —, the product gets a link into the shop. Text *and* image should
-  come out of that. They are kept apart because of project knowledge: it goes
-  into every draft of its project, and a rule about door care has no business
-  in a product text.
-
-  A sample in the house style is built: HTML with placeholders, rendered to PNG
-  by Firefox, everything variable in one record. What's missing isn't code: the
-  condensed grotesque of the house style (only DejaVu Condensed is installed
-  here), the logo as a file instead of redrawn, and where the mood image for a
-  tip comes from — `bilder.py` already fetches a product photo, an autumn
-  picture nobody has. Also open is portrait format: the draft is 3:2, Instagram
-  wants 4:5, and a centre crop cuts this layout apart.
 - **The project palette is used up.** With seven projects all five colours in
   `PROJEKTFARBEN` are taken. The two new ones got olive and turquoise; olive
   sits only 28° from the first shop's yellow, turquoise 20° from the teal of
@@ -106,6 +91,13 @@ aren't deleted, they move down — with the date they were done.
   is already in its frugal form.
 
 ## Done
+
+- **Tip and product of the week** (2026-09-29): two weekly formats with their
+  own graphic in the house style. The product needs only a link into the shop,
+  the tip only a subject; text, landscape, portrait for Instagram and an
+  alternative text come out of it. Price and offer deadline are read or
+  calculated, never copied from the model. Publishing goes through the by-hand
+  mode like every other post.
 
 - **No longer Claude only** (2026-09-24): four routes to a text – `claude -p`,
   any service in the OpenAI shape (Ollama, ChatGPT, OpenRouter …), the
