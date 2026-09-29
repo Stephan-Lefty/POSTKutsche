@@ -206,5 +206,31 @@ class Ordnerbild(unittest.TestCase):
             self.assertIn("Icon=./.postkutsche.png",
                           (ordner / ".directory").read_text(encoding="utf-8"))
 
+
+class Startdatei(unittest.TestCase):
+    """Auf dem Datenträger liegt etwas zum Anklicken."""
+
+    def test_skript_und_verknuepfung_wandern_mit(self):
+        with tempfile.TemporaryDirectory() as o:
+            wurzel = Path(o)
+            lokal, stick = wurzel / "lokal", wurzel / "stick"
+            (lokal / "ablage").mkdir(parents=True)
+            (lokal / "einstellungen").mkdir()
+            (lokal / "ablage" / "postkutsche.db").write_text("x", encoding="utf-8")
+            with mock.patch.dict(os.environ, {
+                    "POSTKUTSCHE_CONFIG": str(lokal / "einstellungen"),
+                    "POSTKUTSCHE_DOKUMENTE": str(lokal)}):
+                uebergabe.uebergeben(lokal / "ablage" / "postkutsche.db",
+                                     stick, "mitnehmen")
+            ordner = stick / uebergabe.UNTERORDNER
+            self.assertTrue((ordner / "postkutsche-tragbar.sh").exists())
+            start = ordner / "POSTKutsche starten.desktop"
+            self.assertTrue(start.exists())
+            # Relativ zum eigenen Ort, nicht mit festem Pfad: Der
+            # Datenträger hängt am nächsten Rechner woanders.
+            inhalt = start.read_text(encoding="utf-8")
+            self.assertIn("dirname %k", inhalt)
+            self.assertNotIn(str(stick), inhalt)
+
 if __name__ == "__main__":
     unittest.main()

@@ -183,7 +183,9 @@ def uebergeben(ablage_pfad: Path | str, ziel: Path | str, richtung: str,
         kopiert.append(name)
 
     if richtung == "mitnehmen":
-        _ordnerbild(nach["ablage"].parent)
+        wurzel = nach["ablage"].parent
+        _ordnerbild(wurzel)
+        _startdatei(wurzel)
 
     # Zugangsdaten sind auch am neuen Ort schutzbedürftig. Auf FAT bleibt
     # das wirkungslos - dort hilft nur ein anderes Dateisystem.
@@ -196,6 +198,40 @@ def uebergeben(ablage_pfad: Path | str, ziel: Path | str, richtung: str,
 
     return {"richtung": richtung, "kopiert": kopiert,
             "dateien": quelle["dateien"], "groesse": quelle["groesse"]}
+
+
+def _startdatei(wurzel: Path) -> None:
+    """Startskript und eine anklickbare Verknüpfung auf den Datenträger.
+
+    Ohne sie müsste man am fremden Rechner ein Terminal öffnen und den
+    Pfad tippen – genau das, was man unterwegs nicht will.
+
+    Die `.desktop` ruft das Skript daneben auf, nicht einen festen Pfad:
+    Der Datenträger hängt woanders, und ein absoluter Pfad wäre am
+    nächsten Rechner falsch. KDE fragt beim ersten Doppelklick nach, ob
+    die Datei ausgeführt werden darf – das ist so gewollt und lässt sich
+    von hier aus nicht abschalten.
+    """
+    import shutil as sh
+
+    skript = Path(__file__).parent.parent / "werkzeuge" / "postkutsche-tragbar.sh"
+    if not skript.exists():
+        return
+    try:
+        ziel = wurzel / skript.name
+        sh.copy(skript, ziel)
+        ziel.chmod(0o755)
+        start = wurzel / "POSTKutsche starten.desktop"
+        start.write_text(
+            "[Desktop Entry]\nType=Application\nName=POSTKutsche starten\n"
+            "Comment=Kalender aus diesem Ordner öffnen\n"
+            f"Exec=bash -c 'cd \"$(dirname %k)\" && ./{skript.name} kalender'\n"
+            "Icon=./.postkutsche.png\nTerminal=true\n",
+            encoding="utf-8")
+        start.chmod(0o755)
+    except OSError:
+        # Wie beim Symbol: Die Daten sind wichtiger als die Bequemlichkeit.
+        pass
 
 
 def _ordnerbild(wurzel: Path) -> None:
