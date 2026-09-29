@@ -103,6 +103,7 @@ async function anfangen() {
   try {
     eigenenVorbereiten();
     wochenformateVorbereiten();
+    uebergabeVorbereiten();
   } catch (fehler) {
     melden(`Eigene Beiträge nicht verfügbar: ${fehler.message}`, true);
   }
@@ -570,6 +571,75 @@ async function tippseiteWachen() {
     }
   } catch (fehler) {
     leiste.hidden = true;
+  }
+}
+
+/** Die Übergabe: Arbeitsstand mitnehmen oder zurückholen.
+ *
+ * Keine Synchronisation in beide Richtungen - zu jedem Zeitpunkt ist genau
+ * ein Ort der gültige. Wer in die falsche Richtung greift, bekommt eine
+ * Rückfrage: Der Dienst antwortet mit 409, wenn die Zielseite neuer ist.
+ */
+function uebergabeVorbereiten() {
+  $("#u-hin").onclick = () => uebergabeLos("mitnehmen");
+  $("#u-her").onclick = () => uebergabeLos("zurueckholen");
+  uebergabeStand();
+  // Ein Stick wird mitten in der Sitzung angesteckt - deshalb nachsehen,
+  // aber selten: Der Ordner wird dabei durchgezählt.
+  setInterval(uebergabeStand, 60000);
+}
+
+function mb(zahl) {
+  return `${(zahl / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function uebergabeStand() {
+  const zeile = $("#u-stand");
+  const hin = $("#u-hin");
+  const her = $("#u-her");
+  try {
+    const d = await hole("/api/uebergabe");
+    if (!d.traeger) {
+      zeile.textContent = "Kein Datenträger angesteckt.";
+      hin.disabled = her.disabled = true;
+      return;
+    }
+    hin.disabled = false;
+    her.disabled = !d.dort.da;
+    const dort = d.dort.da
+      ? `${d.dort.dateien} Dateien, ${mb(d.dort.groesse)}`
+      : "noch leer";
+    // Welche Seite neuer ist, ist die einzige Angabe, die vor einem
+    // Fehlgriff schützt - deshalb steht sie dabei und nicht im Kleingedruckten.
+    const wo = d.neuer === "dort" ? " – dort ist der neuere Stand" : "";
+    zeile.textContent = `Stick: ${dort}${wo}`;
+  } catch (fehler) {
+    zeile.textContent = "";
+    hin.disabled = her.disabled = true;
+  }
+}
+
+async function uebergabeLos(richtung, trotzdem = false) {
+  const wort = richtung === "mitnehmen" ? "Auf den Stick" : "Zurückholen";
+  const knopf = richtung === "mitnehmen" ? $("#u-hin") : $("#u-her");
+  knopf.disabled = true;
+  knopf.textContent = "…";
+  try {
+    const d = await hole("/api/uebergabe/los", { richtung, trotzdem });
+    melden(`${d.dateien} Dateien kopiert (${mb(d.groesse)}).`);
+    await uebergabeStand();
+  } catch (fehler) {
+    // 409 heißt: Die Zielseite ist neuer. Hier wird gefragt und nicht
+    // stillschweigend überschrieben.
+    if (!trotzdem && /neuere Arbeit/.test(fehler.message)
+        && confirm(`${fehler.message}\n\nTrotzdem kopieren?`)) {
+      knopf.textContent = wort;
+      return uebergabeLos(richtung, true);
+    }
+    melden(fehler.message, true);
+  } finally {
+    knopf.disabled = false;
+    knopf.textContent = wort;
   }
 }
 

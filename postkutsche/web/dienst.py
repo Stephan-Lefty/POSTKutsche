@@ -406,6 +406,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._datei(pfad[len("/static/"):])
             if pfad == "/api/projekte":
                 return self._projekte()
+            if pfad == "/api/uebergabe":
+                return self._uebergabe_stand()
             if pfad == "/api/tippseite":
                 return self._tippseite()
             if pfad == "/api/projektfarben":
@@ -479,6 +481,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._wissen_streichen(rumpf)
             if pfad == "/api/beitrag/neu":
                 return self._beitrag_neu(rumpf)
+            if pfad == "/api/uebergabe/los":
+                return self._uebergabe_los(rumpf)
             if pfad == "/api/woche/produkt":
                 return self._woche(rumpf, wochenformat_modul.PRODUKT)
             if pfad == "/api/woche/tipp":
@@ -845,6 +849,40 @@ class Behandler(BaseHTTPRequestHandler):
             self._json({"id": beitrag, "geplant": geplant,
                         "lesbar": zeiten.lesbar(geplant),
                         "weg": weg, "meldung": meldung})
+
+    def _uebergabe_stand(self) -> None:
+        """Was auf beiden Seiten liegt – Grundlage für die beiden Knöpfe."""
+        from .. import uebergabe as u
+
+        traeger = u.datentraeger_suchen()
+        if not traeger:
+            return self._json({
+                "traeger": None,
+                "hinweis": ("Kein Datenträger für POSTKutsche gefunden. "
+                            "Erwartet wird ein angesteckter Datenträger, in "
+                            "dessen Namen »POSTKutsche« vorkommt."),
+            })
+        ziel = traeger[0]
+        with self._ablage() as a:
+            stand = u.vergleich(a.pfad, ziel)
+        self._json({"traeger": str(ziel), **stand})
+
+    def _uebergabe_los(self, rumpf: dict[str, Any]) -> None:
+        """Mitnehmen oder zurückholen – die eigentliche Übergabe."""
+        from .. import uebergabe as u
+
+        traeger = u.datentraeger_suchen()
+        if not traeger:
+            return self._fehler("Kein Datenträger angesteckt.", 404)
+        richtung = str(rumpf.get("richtung", ""))
+        with self._ablage() as a:
+            pfad = a.pfad
+        try:
+            ergebnis = u.uebergeben(pfad, traeger[0], richtung,
+                                    trotzdem=bool(rumpf.get("trotzdem")))
+        except u.UebergabeFehler as fehler:
+            return self._fehler(str(fehler), 409)
+        self._json(ergebnis)
 
     def _tippseite(self) -> None:
         """Ob die Tipp-Seite die laufende Woche zeigt.
