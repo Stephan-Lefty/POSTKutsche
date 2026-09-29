@@ -599,6 +599,9 @@ button { font: inherit; cursor: pointer; }
   border-radius: 7px;
   border: 3px solid var(--flaeche);
 }
+/* Der Wochenkopf ist ein Knopf: Ein Klick klappt die Woche zu. Die Titel
+   in den Kärtchen bleiben dafür vollständig - wer Platz braucht, klappt
+   zu, statt dass das Programm Text wegnimmt. */
 .wochenkopf {
   grid-column: 1 / -1;
   font-size: 12px;
@@ -606,9 +609,26 @@ button { font: inherit; cursor: pointer; }
   padding: 10px 4px 2px;
   border-top: 1px solid var(--linie);
   margin-top: 4px;
+  background: none;
+  border-left: none; border-right: none; border-bottom: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
 }
+.wochenkopf:hover { color: var(--text); }
+/* Das Dreieck zeigt, wohin der Klick führt - ohne es sieht der Kopf aus
+   wie eine Beschriftung und niemand probiert es. */
+.wochenkopf::before {
+  content: "▾";
+  display: inline-block;
+  width: 1.1em;
+  transition: transform .12s;
+}
+.wochenkopf[aria-expanded="false"]::before { transform: rotate(-90deg); }
 .wochenkopf:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 .wochenkopf.jetzt { color: var(--blau); font-weight: 600; }
+.tag[hidden], .kw[hidden] { display: none; }
 .laedt { grid-column: 1 / -1; text-align: center; color: var(--text-leise);
          font-size: 12px; padding: 10px; }
 

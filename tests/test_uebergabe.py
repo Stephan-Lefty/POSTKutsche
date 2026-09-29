@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import tempfile
-import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -42,10 +41,21 @@ class Zweiseitig(unittest.TestCase):
         (self.lokal / bilder.SAMMELORDNER).mkdir(exist_ok=True)
         (self.lokal / bilder.SAMMELORDNER / "bild.png").write_text("x", encoding="utf-8")
 
+    def _drueben(self) -> Path:
+        """Die Ablage auf dem Datenträger – seit dem Unterordner zwei Ebenen tief."""
+        return self.stick / uebergabe.UNTERORDNER / "ablage" / "postkutsche.db"
+
+    def _stick_neuer(self, inhalt: str = "neuer") -> None:
+        """Macht den Stand auf dem Stick eindeutig jünger."""
+        drueben = self._drueben()
+        drueben.write_text(inhalt, encoding="utf-8")
+        spaeter = drueben.stat().st_mtime + uebergabe.GLEICH_SPANNE + 60
+        os.utime(drueben, (spaeter, spaeter))
+
     def test_mitnehmen_legt_den_stand_auf_den_traeger(self):
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
-        self.assertTrue((self.stick / "ablage" / "postkutsche.db").exists())
-        self.assertTrue((self.stick / "einstellungen" / "projekte.json").exists())
+        self.assertTrue(self._drueben().exists())
+        self.assertTrue((self.stick / uebergabe.UNTERORDNER / "einstellungen" / "projekte.json").exists())
 
     def test_am_alten_ort_bleibt_alles_liegen(self):
         # Kopiert, nicht verschoben: Beim ersten Mal will man vergleichen.
@@ -54,7 +64,7 @@ class Zweiseitig(unittest.TestCase):
 
     def test_zurueckholen_bringt_den_stand_wieder_her(self):
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
-        (self.stick / "ablage" / "postkutsche.db").write_text("dort", encoding="utf-8")
+        self._drueben().write_text("dort", encoding="utf-8")
         uebergabe.uebergeben(self.db, self.stick, "zurueckholen")
         self.assertEqual(self.db.read_text(encoding="utf-8"), "dort")
 
@@ -62,22 +72,20 @@ class Zweiseitig(unittest.TestCase):
         # Der einzige Weg, sich hier zu schaden – deshalb der einzige,
         # der nachfragt.
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
-        time.sleep(0.01)
-        (self.stick / "ablage" / "postkutsche.db").write_text("neuer", encoding="utf-8")
+        self._stick_neuer()
         with self.assertRaises(uebergabe.UebergabeFehler) as fehler:
             uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
         self.assertIn("neuere Arbeit", str(fehler.exception))
         self.assertEqual(
-            (self.stick / "ablage" / "postkutsche.db").read_text(encoding="utf-8"),
+            self._drueben().read_text(encoding="utf-8"),
             "neuer")
 
     def test_mit_trotzdem_wird_doch_ueberschrieben(self):
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
-        time.sleep(0.01)
-        (self.stick / "ablage" / "postkutsche.db").write_text("neuer", encoding="utf-8")
+        self._stick_neuer()
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen", trotzdem=True)
         self.assertEqual(
-            (self.stick / "ablage" / "postkutsche.db").read_text(encoding="utf-8"),
+            self._drueben().read_text(encoding="utf-8"),
             "hier")
 
     def test_ohne_stand_auf_dem_traeger_gibt_es_nichts_zu_holen(self):
@@ -94,8 +102,12 @@ class Zweiseitig(unittest.TestCase):
         self.assertEqual(v["neuer"], "hier")
         self.assertFalse(v["dort"]["da"])
         uebergabe.uebergeben(self.db, self.stick, "mitnehmen")
-        time.sleep(0.01)
-        (self.stick / "ablage" / "postkutsche.db").write_text("neuer", encoding="utf-8")
+        # Deutlich später, sonst gilt der Stand zu Recht als gleich:
+        # Sekundenbruchteile trennen zwei Kopien, nicht zwei Arbeitsstände.
+        drueben = self._drueben()
+        drueben.write_text("neuer", encoding="utf-8")
+        spaeter = drueben.stat().st_mtime + uebergabe.GLEICH_SPANNE + 60
+        os.utime(drueben, (spaeter, spaeter))
         self.assertEqual(uebergabe.vergleich(self.db, self.stick)["neuer"], "dort")
 
 
@@ -115,6 +127,60 @@ class Datentraeger(unittest.TestCase):
         with mock.patch.object(uebergabe, "WECHSELORTE", ("/gibt/es/nicht",)):
             self.assertEqual(uebergabe.datentraeger_suchen("wer"), [])
 
+
+
+class GleicherStand(unittest.TestCase):
+    """Direkt nach einer Übergabe sind beide Seiten gleich."""
+
+    def test_nach_dem_mitnehmen_gilt_der_stand_als_gleich(self):
+        # Am 2026-09-29 meldete die Oberfläche »dort ist der neuere Stand«
+        # unmittelbar nachdem dorthin kopiert worden war: Die Zeitstempel
+        # unterscheiden sich um Sekundenbruchteile.
+        with tempfile.TemporaryDirectory() as o:
+            wurzel = Path(o)
+            lokal, stick = wurzel / "lokal", wurzel / "stick"
+            (lokal / "ablage").mkdir(parents=True)
+            (lokal / "einstellungen").mkdir()
+            (lokal / "ablage" / "postkutsche.db").write_text("x", encoding="utf-8")
+            db = lokal / "ablage" / "postkutsche.db"
+            with mock.patch.dict(os.environ, {
+                    "POSTKUTSCHE_CONFIG": str(lokal / "einstellungen"),
+                    "POSTKUTSCHE_DOKUMENTE": str(lokal)}):
+                uebergabe.uebergeben(db, stick, "mitnehmen")
+                self.assertEqual(uebergabe.vergleich(db, stick)["neuer"], "gleich")
+
+
+class Unterordner(unittest.TestCase):
+    """Alles liegt unter POSTKutsche/, nichts im Wurzelverzeichnis."""
+
+    def test_der_stand_landet_im_unterordner(self):
+        with tempfile.TemporaryDirectory() as o:
+            wurzel = Path(o)
+            lokal, stick = wurzel / "lokal", wurzel / "stick"
+            (lokal / "ablage").mkdir(parents=True)
+            (lokal / "einstellungen").mkdir()
+            (lokal / "ablage" / "postkutsche.db").write_text("x", encoding="utf-8")
+            with mock.patch.dict(os.environ, {
+                    "POSTKUTSCHE_CONFIG": str(lokal / "einstellungen"),
+                    "POSTKUTSCHE_DOKUMENTE": str(lokal)}):
+                uebergabe.uebergeben(lokal / "ablage" / "postkutsche.db",
+                                     stick, "mitnehmen")
+            # Der Stick bleibt für anderes brauchbar.
+            self.assertTrue((stick / "POSTKutsche" / "ablage").is_dir())
+            self.assertFalse((stick / "ablage").exists())
+
+    def test_ein_ziel_auf_den_unterordner_wird_nicht_verdoppelt(self):
+        orte = uebergabe.dort("/stick/POSTKutsche")
+        self.assertEqual(orte["ablage"], Path("/stick/POSTKutsche/ablage"))
+
+    def test_ein_traeger_mit_dem_ordner_wird_erkannt(self):
+        # Dann darf der Stick heißen, wie er will.
+        with tempfile.TemporaryDirectory() as o:
+            wurzel = Path(o) / "stephan"
+            (wurzel / "Urlaub2026" / "POSTKutsche").mkdir(parents=True)
+            with mock.patch.object(uebergabe, "WECHSELORTE", (str(Path(o)),)):
+                gefunden = uebergabe.datentraeger_suchen("stephan")
+        self.assertEqual([p.name for p in gefunden], ["Urlaub2026"])
 
 if __name__ == "__main__":
     unittest.main()

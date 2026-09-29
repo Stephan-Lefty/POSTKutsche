@@ -460,6 +460,38 @@ function ordnerZeigen(block, wo) {
   block.append(kasten);
 }
 
+/** Welche Wochen zugeklappt sind – gemerkt wie die Projekthäkchen.
+ *
+ * Im Browser, also je Rechner: Was am Schreibtisch sinnvoll zugeklappt ist,
+ * muss es auf dem Laptop nicht sein.
+ */
+const WOCHEN_SPEICHER = "postkutsche-wochen";
+
+function wochenZustand() {
+  try {
+    return JSON.parse(localStorage.getItem(WOCHEN_SPEICHER) || "{}");
+  } catch (fehler) {
+    return {};
+  }
+}
+
+function wochenKlappen(kennung) {
+  const kopf = document.querySelector(`.wochenkopf[data-woche="${kennung}"]`);
+  const zu = kopf.getAttribute("aria-expanded") === "true";
+  kopf.setAttribute("aria-expanded", String(!zu));
+  document.querySelectorAll(
+    `.tag[data-woche="${kennung}"], .kw[data-woche="${kennung}"]`
+  ).forEach((feld) => { feld.hidden = zu; });
+
+  const stand = wochenZustand();
+  stand[kennung] = zu;
+  try {
+    localStorage.setItem(WOCHEN_SPEICHER, JSON.stringify(stand));
+  } catch (fehler) {
+    // Ohne Speicher klappt es trotzdem, nur eben nicht über das Neuladen.
+  }
+}
+
 /** Das Fenster »Beitrag von Hand«.
  *
  * Bis hierher entstand ein Beitrag nur aus einem abgerufenen Inhalt oder aus
@@ -611,7 +643,11 @@ async function uebergabeStand() {
       : "noch leer";
     // Welche Seite neuer ist, ist die einzige Angabe, die vor einem
     // Fehlgriff schützt - deshalb steht sie dabei und nicht im Kleingedruckten.
-    const wo = d.neuer === "dort" ? " – dort ist der neuere Stand" : "";
+    const wo = {
+      dort: " – dort ist der neuere Stand",
+      hier: " – hier ist der neuere Stand",
+      gleich: " – gleicher Stand",
+    }[d.neuer] || "";
     zeile.textContent = `Stick: ${dort}${wo}`;
   } catch (fehler) {
     zeile.textContent = "";
@@ -1464,8 +1500,13 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
     const montag = tageSpaeter(vonMontag, w * 7);
     const kw = kalenderwoche(montag);
 
-    const kopf = document.createElement("div");
+    // Jede Woche ist ein Klappfach. Die Titel bleiben vollständig – wer
+    // Platz braucht, klappt zu, statt dass das Programm Text wegnimmt.
+    const kennung = `${kw.jahr}-${kw.woche}`;
+    const kopf = document.createElement("button");
+    kopf.type = "button";
     kopf.className = "wochenkopf";
+    kopf.dataset.woche = kennung;
     const sonntag = tageSpaeter(montag, 6);
     kopf.textContent =
       `KW ${kw.woche} · ${montag.toLocaleDateString("de-DE", { day: "2-digit", month: "long" })}` +
@@ -1475,11 +1516,23 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
       kopf.classList.add("jetzt");
       kopf.textContent += " · diese Woche";
     }
+    const jetzt = kalenderwoche(new Date());
+    // Die laufende Woche ist offen, ältere sind zu. Was man einmal von Hand
+    // umgestellt hat, gilt weiter – sonst klappt sich die Ansicht bei jedem
+    // Nachladen wieder zurecht und man kämpft dagegen an.
+    const gemerkt = wochenZustand()[kennung];
+    const vergangen = kw.jahr < jetzt.jahr
+      || (kw.jahr === jetzt.jahr && kw.woche < jetzt.woche);
+    const zu = gemerkt === undefined ? vergangen : gemerkt;
+    kopf.setAttribute("aria-expanded", String(!zu));
+    kopf.onclick = () => wochenKlappen(kennung);
     stuecke.append(kopf);
 
     const kwFeld = document.createElement("div");
     kwFeld.className = "kw";
+    kwFeld.dataset.woche = kennung;
     kwFeld.textContent = kw.woche;
+    if (zu) kwFeld.hidden = true;
     stuecke.append(kwFeld);
 
     for (let i = 0; i < 7; i++) {
@@ -1488,6 +1541,8 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
       const kasten = document.createElement("div");
       kasten.className = "tag" + (schluessel === heute ? " heute" : "");
       kasten.dataset.tag = schluessel;
+      kasten.dataset.woche = kennung;
+      if (zu) kasten.hidden = true;
 
       const zahl = document.createElement("span");
       zahl.className = "zahl";

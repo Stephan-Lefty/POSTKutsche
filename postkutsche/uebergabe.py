@@ -34,11 +34,15 @@ STUECKE = ("einstellungen", "ablage", "dokumente")
 KENNDATEI = Path("ablage") / "postkutsche.db"
 
 
-#: Woran ein Datenträger für POSTKutsche zu erkennen ist. Der Name des
-#: Einhängepunktes genügt: Wer einen Stick dafür nimmt, beschriftet ihn auch
-#: so, und alles andere – Gerätenummern, UUIDs – ändert sich von Rechner zu
-#: Rechner und wäre damit genau die Einstellung, die man unterwegs nachziehen
-#: müsste.
+#: Der Ordner auf dem Datenträger. Alles liegt darunter, nichts im
+#: Wurzelverzeichnis – so bleibt der Stick für anderes brauchbar, und man
+#: sieht auf einen Blick, was zu POSTKutsche gehört.
+UNTERORDNER = "POSTKutsche"
+
+#: Woran ein Datenträger zu erkennen ist. Entweder er trägt einen Ordner
+#: dieses Namens, oder er heißt selbst so. Nicht an einem gemerkten Pfad:
+#: Der heißt am nächsten Rechner womöglich anders, und Gerätenummern und
+#: UUIDs wären genau die Einstellung, die man unterwegs nachziehen müsste.
 ERKENNUNG = "postkutsche"
 
 #: Wo Wechseldatenträger unter Linux auftauchen.
@@ -63,7 +67,13 @@ def datentraeger_suchen(benutzer: str | None = None) -> list[Path]:
             continue
         try:
             for eintrag in sorted(wurzel.iterdir()):
-                if eintrag.is_dir() and ERKENNUNG in eintrag.name.lower():
+                if not eintrag.is_dir():
+                    continue
+                # Ein Ordner »POSTKutsche« darauf zählt – dann darf der
+                # Datenträger heißen, wie er will, und für anderes dienen.
+                if (eintrag / UNTERORDNER).is_dir():
+                    gefunden.append(eintrag)
+                elif ERKENNUNG in eintrag.name.lower():
                     gefunden.append(eintrag)
         except OSError:
             continue
@@ -85,9 +95,12 @@ def hier(ablage_pfad: Path | str) -> dict[str, Path]:
 
 
 def dort(ziel: Path | str) -> dict[str, Path]:
-    """Wo der Stand auf dem Datenträger liegt."""
-    ziel = Path(ziel)
-    return {name: ziel / name for name in STUECKE}
+    """Wo der Stand auf dem Datenträger liegt – immer unter `POSTKutsche/`."""
+    wurzel = Path(ziel)
+    # Zeigt das Ziel schon auf den Unterordner, nicht doppelt anhängen.
+    if wurzel.name != UNTERORDNER:
+        wurzel = wurzel / UNTERORDNER
+    return {name: wurzel / name for name in STUECKE}
 
 
 def stand(orte: dict[str, Path]) -> dict[str, Any]:
@@ -107,12 +120,23 @@ def stand(orte: dict[str, Path]) -> dict[str, Any]:
             "dateien": dateien, "groesse": groesse}
 
 
+#: Ab wann zwei Stände als verschieden gelten. Direkt nach einer Übergabe
+#: unterscheiden sich die Zeitstempel um Sekundenbruchteile – je nachdem,
+#: wie lange das Kopieren dauerte und was das Dateisystem an Auflösung
+#: mitbringt. Ohne diese Spanne meldete die Oberfläche am 2026-09-29 »dort
+#: ist der neuere Stand«, unmittelbar nachdem dorthin kopiert worden war.
+GLEICH_SPANNE = 120
+
+
 def vergleich(ablage_pfad: Path | str, ziel: Path | str) -> dict[str, Any]:
     """Was auf beiden Seiten liegt – für die Anzeige vor dem Klick."""
     a, b = stand(hier(ablage_pfad)), stand(dort(ziel))
     neuer = None
     if a["da"] and b["da"]:
-        neuer = "hier" if a["zeit"] > b["zeit"] else "dort"
+        if abs(a["zeit"] - b["zeit"]) <= GLEICH_SPANNE:
+            neuer = "gleich"
+        else:
+            neuer = "hier" if a["zeit"] > b["zeit"] else "dort"
     elif a["da"]:
         neuer = "hier"
     elif b["da"]:
