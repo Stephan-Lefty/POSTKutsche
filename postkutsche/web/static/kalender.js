@@ -1583,8 +1583,11 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
     bereich.scrollTop += bereich.scrollHeight - vorher;
   } else {
     raster.append(stuecke);
-  wochenHoeheSetzen();
   }
+  // Nach beiden Richtungen: Die nachgeladenen Wochen zählen mit, und nur
+  // dann stimmt die Höhe der offenen. Stand vorher im else-Zweig und griff
+  // deshalb beim Nachladen nach oben nie.
+  wochenHoeheSetzen();
   laedtGerade = false;
 }
 
