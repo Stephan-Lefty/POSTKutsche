@@ -123,5 +123,56 @@ class Fortschreiben(unittest.TestCase):
         self.assertTrue(self.neu.startswith("<html><head>"))
 
 
+
+class GleicheWoche(unittest.TestCase):
+    """Wird innerhalb derselben Woche nachgebessert, wird ersetzt."""
+
+    def test_dieselbe_woche_wandert_nicht_ins_archiv(self):
+        # Sonst stünde KW 40 zweimal auf der Seite: oben als aktueller Tipp,
+        # darunter als Vorwoche. Am 2026-09-29 genau so passiert.
+        neu = tippseite.erneuern(SEITE, TIPP, 40, date(2026, 9, 28))
+        archiv = neu[neu.find(tippseite.ARCHIV_AUF):
+                     neu.find(tippseite.ARCHIV_ZU)]
+        self.assertNotIn("KW 40", archiv)
+        self.assertIn("KW 39", archiv)          # der ältere bleibt
+        self.assertIn("Kalenderwoche 40", neu)  # oben steht der neue
+
+    def test_die_naechste_woche_archiviert_wie_gehabt(self):
+        neu = tippseite.erneuern(SEITE, TIPP, 41, MONTAG)
+        archiv = neu[neu.find(tippseite.ARCHIV_AUF):
+                     neu.find(tippseite.ARCHIV_ZU)]
+        self.assertIn("KW 40", archiv)
+
+
+class Verweise(unittest.TestCase):
+    """Passende Artikel stehen unten im Kasten, nicht im Fließtext."""
+
+    EINER = [{"text": "Kriechöl", "adresse": "https://shop.example/oel.html"}]
+
+    def test_der_verweis_steht_am_ende_des_tipps(self):
+        neu = tippseite.erneuern(SEITE, dict(TIPP, verweise=self.EINER),
+                                 41, MONTAG)
+        aktuell = neu[neu.find(tippseite.AKTUELL_AUF):
+                      neu.find(tippseite.AKTUELL_ZU)]
+        self.assertIn("Passend dazu aus unserem Sortiment", aktuell)
+        self.assertIn('href="https://shop.example/oel.html"', aktuell)
+        # Nach dem letzten Absatz, nicht mittendrin.
+        self.assertLess(aktuell.find("<strong>Betonung</strong>"),
+                        aktuell.find("Passend dazu"))
+
+    def test_ohne_verweise_entsteht_kein_leerer_kasten(self):
+        neu = tippseite.erneuern(SEITE, TIPP, 41, MONTAG)
+        self.assertNotIn("Passend dazu", neu)
+
+    def test_ein_eintrag_ohne_adresse_wird_uebergangen(self):
+        neu = tippseite.erneuern(
+            SEITE, dict(TIPP, verweise=[{"text": "ohne Ziel"}]), 41, MONTAG)
+        self.assertNotIn("Passend dazu", neu)
+
+    def test_anfuehrungszeichen_in_der_adresse_brechen_nichts_auf(self):
+        boese = [{"text": "x", "adresse": 'https://a.example/"><script>'}]
+        neu = tippseite.erneuern(SEITE, dict(TIPP, verweise=boese), 41, MONTAG)
+        self.assertNotIn("<script>", neu)
+
 if __name__ == "__main__":
     unittest.main()

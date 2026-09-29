@@ -62,6 +62,11 @@ def erneuern(seite: str, tipp: dict[str, Any], woche: int, montag) -> str:
                 "nicht zu erkennen, welcher Teil ersetzt werden soll.")
 
     bisher = _bisheriger_tipp(seite)
+    # Wird innerhalb derselben Woche nachgebessert, wird ersetzt und nicht
+    # archiviert. Sonst stünde dieselbe Kalenderwoche zweimal auf der Seite –
+    # einmal oben als der aktuelle Tipp, einmal darunter als Vorwoche.
+    if bisher and str(bisher["woche"]) == str(woche):
+        bisher = None
     datum = f"{montag.day}. {MONATE[montag.month - 1]} {montag.year}"
 
     seite = _ersetzen(seite, AKTUELL_AUF, AKTUELL_ZU,
@@ -95,9 +100,35 @@ def _ersetzen(seite: str, auf: str, zu: str, neu: str) -> str:
     return seite[:zeilenende] + neu + seite[ende:]
 
 
+def _verweise(eintraege: list[dict[str, str]]) -> str:
+    """Passende Artikel am Ende des Tipps – als Kasten, nicht im Fließtext.
+
+    Ein Ratgeber, in dem mitten im Satz ein Shoplink steht, liest sich wie
+    eine Anzeige mit Ratgeberanstrich. Unten ein abgesetzter Hinweis
+    »passend dazu« bleibt ein Angebot und drängt sich nicht auf.
+
+    Die Verweise gibt der Betreiber vor; sie werden nicht vom Modell erfunden.
+    Ein erfundener Artikellink führt ins Leere und ist schlimmer als keiner.
+    """
+    if not eintraege:
+        return ""
+    zeilen = "".join(
+        f'                \t<li><a href="{html.escape(str(e["adresse"]), quote=True)}">'
+        f'{html.escape(str(e.get("text") or e["adresse"]))}</a></li>\n'
+        for e in eintraege if e.get("adresse"))
+    if not zeilen:
+        return ""
+    return f"""            <div class="border-top">&nbsp;</div>
+            <p class="noMargin"><small><strong>Passend dazu aus unserem Sortiment</strong></small></p>
+            <ul>
+{zeilen}            </ul>
+"""
+
+
 def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
     """Der Block mit dem Tipp dieser Woche."""
-    text = "".join(_stueck(s) for s in tipp["absaetze"])
+    text = ("".join(_stueck(s) for s in tipp["absaetze"])
+            + _verweise(tipp.get("verweise") or []))
     return f"""
     <div class="row">
     \t<div class="col-xs-12">
