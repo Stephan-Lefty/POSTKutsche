@@ -1530,13 +1530,14 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
       kopf.textContent += " · diese Woche";
     }
     const jetzt = kalenderwoche(new Date());
-    // Die laufende Woche ist offen, ältere sind zu. Was man einmal von Hand
-    // umgestellt hat, gilt weiter – sonst klappt sich die Ansicht bei jedem
-    // Nachladen wieder zurecht und man kämpft dagegen an.
+    // Offen ist die laufende Woche, alles andere ist zu – auch die
+    // kommenden. Sonst wächst die Zahl der offenen Wochen beim Scrollen,
+    // weil ständig neue nachgeladen werden, und die aufgeklappte Woche
+    // schrumpft wieder zusammen. Was man von Hand umgestellt hat, gilt
+    // weiter; sonst kämpfte man gegen die Ansicht an.
     const gemerkt = wochenZustand()[kennung];
-    const vergangen = kw.jahr < jetzt.jahr
-      || (kw.jahr === jetzt.jahr && kw.woche < jetzt.woche);
-    const zu = gemerkt === undefined ? vergangen : gemerkt;
+    const laufend = kw.jahr === jetzt.jahr && kw.woche === jetzt.woche;
+    const zu = gemerkt === undefined ? !laufend : gemerkt;
     kopf.setAttribute("aria-expanded", String(!zu));
     kopf.onclick = () => wochenKlappen(kennung);
     stuecke.append(kopf);
