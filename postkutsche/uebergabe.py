@@ -206,11 +206,16 @@ def _startdatei(wurzel: Path) -> None:
     Ohne sie müsste man am fremden Rechner ein Terminal öffnen und den
     Pfad tippen – genau das, was man unterwegs nicht will.
 
-    Die `.desktop` ruft das Skript daneben auf, nicht einen festen Pfad:
-    Der Datenträger hängt woanders, und ein absoluter Pfad wäre am
-    nächsten Rechner falsch. KDE fragt beim ersten Doppelklick nach, ob
-    die Datei ausgeführt werden darf – das ist so gewollt und lässt sich
-    von hier aus nicht abschalten.
+    Der Pfad in `Exec` ist absolut. Ein relativer wäre schöner – am
+    nächsten Rechner hängt der Datenträger woanders –, aber die Feldcodes
+    der Desktop-Norm (`%k`) werden innerhalb von Anführungszeichen nicht
+    zuverlässig ersetzt, und dann tut ein Doppelklick gar nichts. Deshalb
+    fest eingetragen und dafür bei jedem Start vom Datenträger neu
+    geschrieben: `postkutsche-tragbar.sh` zieht den Pfad nach, sobald er
+    sich geändert hat.
+
+    KDE fragt beim ersten Doppelklick, ob die Datei ausgeführt werden darf.
+    Das ist so gewollt und lässt sich von hier aus nicht abschalten.
     """
     import shutil as sh
 
@@ -221,17 +226,26 @@ def _startdatei(wurzel: Path) -> None:
         ziel = wurzel / skript.name
         sh.copy(skript, ziel)
         ziel.chmod(0o755)
-        start = wurzel / "POSTKutsche starten.desktop"
-        start.write_text(
-            "[Desktop Entry]\nType=Application\nName=POSTKutsche starten\n"
-            "Comment=Kalender aus diesem Ordner öffnen\n"
-            f"Exec=bash -c 'cd \"$(dirname %k)\" && ./{skript.name} kalender'\n"
-            "Icon=./.postkutsche.png\nTerminal=true\n",
-            encoding="utf-8")
-        start.chmod(0o755)
+        _verknuepfung(wurzel, ziel)
     except OSError:
         # Wie beim Symbol: Die Daten sind wichtiger als die Bequemlichkeit.
         pass
+
+
+def _verknuepfung(wurzel: Path, skript: Path) -> None:
+    """Die anklickbare Datei mit dem jetzt gültigen Pfad."""
+    start = wurzel / "POSTKutsche starten.desktop"
+    start.write_text(
+        "[Desktop Entry]\n"
+        "Type=Application\n"
+        "Name=POSTKutsche starten\n"
+        "Comment=Kalender aus diesem Ordner öffnen\n"
+        f"Exec=\"{skript}\" kalender\n"
+        f"Path={wurzel}\n"
+        f"Icon={wurzel / '.postkutsche.png'}\n"
+        "Terminal=true\n",
+        encoding="utf-8")
+    start.chmod(0o755)
 
 
 def _ordnerbild(wurzel: Path) -> None:

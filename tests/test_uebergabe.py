@@ -226,11 +226,14 @@ class Startdatei(unittest.TestCase):
             self.assertTrue((ordner / "postkutsche-tragbar.sh").exists())
             start = ordner / "POSTKutsche starten.desktop"
             self.assertTrue(start.exists())
-            # Relativ zum eigenen Ort, nicht mit festem Pfad: Der
-            # Datenträger hängt am nächsten Rechner woanders.
+            # Der Pfad steht fest drin: Die Feldcodes der Desktop-Norm
+            # greifen in Anführungszeichen nicht, und dann tut ein
+            # Doppelklick gar nichts. Das Startskript zieht ihn bei jedem
+            # Lauf nach, falls der Datenträger woanders hängt.
             inhalt = start.read_text(encoding="utf-8")
-            self.assertIn("dirname %k", inhalt)
-            self.assertNotIn(str(stick), inhalt)
+            self.assertIn(f'Exec="{ordner}/postkutsche-tragbar.sh" kalender',
+                          inhalt)
+            self.assertIn(f"Path={ordner}", inhalt)
 
 if __name__ == "__main__":
     unittest.main()

@@ -39,5 +39,22 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 1
 fi
 
+# Die Verknüpfung trägt einen absoluten Pfad (die Feldcodes der
+# Desktop-Norm greifen in Anführungszeichen nicht). Damit sie auch an
+# einem Rechner stimmt, an dem der Datenträger anders eingehängt ist,
+# wird sie bei jedem Start neu geschrieben.
+START="$HIER/POSTKutsche starten.desktop"
+cat > "$START" <<ENDE
+[Desktop Entry]
+Type=Application
+Name=POSTKutsche starten
+Comment=Kalender aus diesem Ordner öffnen
+Exec="$HIER/$(basename -- "$0")" kalender
+Path=$HIER
+Icon=$HIER/.postkutsche.png
+Terminal=true
+ENDE
+chmod 755 "$START" 2>/dev/null || true
+
 echo "POSTKutsche läuft aus: $HIER"
 exec python3 -m postkutsche "$@"
