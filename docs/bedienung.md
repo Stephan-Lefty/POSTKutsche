@@ -119,6 +119,26 @@ Grafiken und ein Alternativtext, der wiedergibt, was im Bild steht. Den
 braucht, wer einen Vorleser benutzt – ohne ihn wäre die ganze Aussage
 unzugänglich, denn sie steckt im Bild.
 
+**Der Tipp schreibt auch die Webseite fort.** Steht in `marken.json` unter
+»tippseite« eine Adresse, entsteht zusätzlich eine fertige HTML-Datei: der
+neue Tipp ausführlich, die Grafik der Woche anklickbar im Text, ein
+hervorgehobener Merksatz, passende Artikel als Kästchen mit Bild – und der
+bisherige Tipp wandert als Kachel ins Archiv der Vorwochen. Titel,
+Beschreibung für Google und beide Datumsangaben werden mitgezogen.
+
+Von den Grafiken entsteht eine verkleinerte Fassung; gezeigt wird die kleine,
+ein Klick öffnet die große in einem neuen Reiter. Ohne Pillow entfällt das,
+dann steht beides auf derselben Datei.
+
+Hochgeladen wird von Hand. Nach dem Anlegen steht dabei, was wohin gehört:
+
+```
+Noch hochzuladen auf www.beispiel.example:
+  Tipp-der-Woche.html → /
+  2026-KW40-thema.png → /images/tipp/
+  2026-KW40-thema-klein.jpg → /images/tipp/
+```
+
 **Veröffentlicht wird von Hand**, wie bei allen anderen Beiträgen auch: Text
 kopieren, Bild ablegen, im Netzwerk einstellen, zurückkommen und abhaken.
 

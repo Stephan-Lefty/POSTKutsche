@@ -18,6 +18,15 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   bekommt eine eigene Anordnung statt eines Mittenzuschnitts, der genau die
   Preisbox wegschnitte. Beide Formate teilen dasselbe Gerüst, damit man den
   Absender erkennt, bevor man ein Wort liest.
+- **Der Tipp der Woche schreibt die Webseite fort** (2026-09-29). Aus
+  demselben Lauf entsteht eine fertige HTML-Datei: der Tipp ausführlich, die
+  Grafik anklickbar im Text, ein Merksatz, passende Artikel als Kästchen mit
+  Bild. Der bisherige Tipp wandert als Kachel ins Archiv – die Grafik trägt
+  ihn schon in Kurzform, sie noch einmal in Worte zu fassen hieße, dasselbe
+  zweimal zu pflegen. Von jeder Grafik entsteht eine verkleinerte Fassung
+  (gemessen: 380 kB werden zu 50 kB); gezeigt wird die kleine, ein Klick
+  öffnet die große. Hochgeladen wird von Hand, und der Hinweis danach nennt
+  Zielpfad und Rechner.
 - **Ein Alternativtext zu jeder Grafik.** Die ganze Aussage steckt im Bild;
   wer einen Vorleser benutzt, bekäme sonst nichts. Er entsteht aus denselben
   Feldern wie das Bild und kostet deshalb nichts extra.

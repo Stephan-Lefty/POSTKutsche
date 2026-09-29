@@ -114,6 +114,26 @@ graphics, and an alternative text describing what the image says. That is for
 whoever uses a screen reader — without it the whole message is out of reach,
 because it sits in the image.
 
+**The tip also updates the web page.** If `marken.json` holds an address under
+»tippseite«, a finished HTML file is written as well: the new tip at length,
+the graphic of the week clickable in the text, a pulled-out key sentence,
+matching articles as boxes with a picture — and the previous tip moves into
+the archive of past weeks as a tile. Title, the description for Google and
+both date fields are carried along.
+
+A scaled-down copy of each graphic is made; the small one is shown, a click
+opens the full one in a new tab. Without Pillow that is skipped and both point
+at the same file.
+
+Uploading is by hand. After creating the post it says what goes where:
+
+```
+Noch hochzuladen auf www.beispiel.example:
+  Tipp-der-Woche.html → /
+  2026-KW40-thema.png → /images/tipp/
+  2026-KW40-thema-klein.jpg → /images/tipp/
+```
+
 **Publishing happens by hand**, as with every other post: copy the text, file
 the image, put it into the network, come back and tick it off.
 
