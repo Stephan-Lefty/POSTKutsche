@@ -114,6 +114,18 @@ graphics, and an alternative text describing what the image says. That is for
 whoever uses a screen reader — without it the whole message is out of reach,
 because it sits in the image.
 
+**A blue bar reminds you to upload.** POSTKutsche checks which calendar week
+the live page shows. If it is older than the current one, the notice appears
+below the header — in both cases: when the tip hasn't been written yet, and
+when the file is sitting finished under »Dokumente« but hasn't been uploaded.
+The second case is the one people forget. The bar disappears by itself once
+the page shows the right week. If the page doesn't answer, nothing is
+claimed.
+
+**You are not asked for the project.** Each window belongs to one project
+(`tipp-woche`, `produkt-woche`); if it exists, the selector is hidden. If it
+is missing, the selector comes back so nobody ends up stuck.
+
 **The tip also updates the web page.** If `marken.json` holds an address under
 »tippseite«, a finished HTML file is written as well: the new tip at length,
 the graphic of the week clickable in the text, a pulled-out key sentence,
@@ -315,6 +327,11 @@ when a run is hanging.
 
 **The interface looks unchanged although something was changed.** The browser
 is holding on to the old files: Ctrl+Shift+R once.
+
+**There's a blue bar about the tip page.** Then `Tipp-der-Woche.html`
+still shows an older calendar week online. Either this week's tip is
+missing, or the finished file is still sitting in
+`~/Dokumente/POSTKutsche/` and hasn't been uploaded.
 
 **A view reports an error that sounds like the API.** Files in the browser
 take effect immediately, the Python part only after the service restarts:

@@ -119,6 +119,20 @@ Grafiken und ein Alternativtext, der wiedergibt, was im Bild steht. Den
 braucht, wer einen Vorleser benutzt – ohne ihn wäre die ganze Aussage
 unzugänglich, denn sie steckt im Bild.
 
+**Eine blaue Leiste erinnert ans Hochladen.** POSTKutsche sieht nach, welche
+Kalenderwoche auf der Seite im Netz steht. Ist es eine ältere als die
+laufende, erscheint der Hinweis unter dem Kopf – und zwar in beiden Fällen:
+wenn der Tipp noch nicht geschrieben ist und wenn die Datei zwar fertig unter
+»Dokumente« liegt, aber nicht hochgeladen wurde. Genau der zweite Fall ist
+der, den man vergisst. Die Leiste verschwindet von allein, sobald die Seite
+die richtige Woche zeigt. Antwortet die Seite gerade nicht, wird nicht
+gewarnt.
+
+**Nach dem Projekt wird nicht gefragt.** Beide Fenster gehören zu je einem
+Projekt (`tipp-woche`, `produkt-woche`); gibt es das, ist die Auswahl
+ausgeblendet. Fehlt es, erscheint sie wieder, damit man nicht in einer
+Sackgasse sitzt.
+
 **Der Tipp schreibt auch die Webseite fort.** Steht in `marken.json` unter
 »tippseite« eine Adresse, entsteht zusätzlich eine fertige HTML-Datei: der
 neue Tipp ausführlich, die Grafik der Woche anklickbar im Text, ein
@@ -322,6 +336,11 @@ Die Woche steht vorn, damit man nach ein paar Monaten weiß, was weg kann.
 
 **Die Oberfläche sieht aus wie vorher, obwohl etwas geändert wurde.** Der
 Browser hält die alten Dateien fest: einmal Strg+Shift+R.
+
+**Oben steht eine blaue Leiste zur Tipp-Seite.** Dann zeigt
+`Tipp-der-Woche.html` im Netz noch eine ältere Kalenderwoche. Entweder
+fehlt der Tipp dieser Woche, oder die fertige Datei liegt noch unter
+`~/Dokumente/POSTKutsche/` und ist nicht hochgeladen.
 
 **Eine Ansicht meldet einen Fehler, der nach Schnittstelle klingt.** Die
 Dateien im Browser wirken sofort, der Python-Teil erst nach einem Neustart
