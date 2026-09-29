@@ -475,6 +475,18 @@ function wochenZustand() {
   }
 }
 
+/** Sagt dem Stilblatt, wie viele Wochen gerade offen sind.
+ *
+ * Bei einer einzigen soll sie fast den ganzen Bildschirm bekommen – genau
+ * dafür klappt man die anderen ja zu.
+ */
+function wochenHoeheSetzen() {
+  const offen = document.querySelectorAll(
+    '.wochenkopf[aria-expanded="true"]').length;
+  document.documentElement.style.setProperty(
+    "--offene-wochen", String(Math.max(1, Math.min(offen, 4))));
+}
+
 function wochenKlappen(kennung) {
   const kopf = document.querySelector(`.wochenkopf[data-woche="${kennung}"]`);
   const zu = kopf.getAttribute("aria-expanded") === "true";
@@ -483,6 +495,7 @@ function wochenKlappen(kennung) {
     `.tag[data-woche="${kennung}"], .kw[data-woche="${kennung}"]`
   ).forEach((feld) => { feld.hidden = zu; });
 
+  wochenHoeheSetzen();
   const stand = wochenZustand();
   stand[kennung] = zu;
   try {
@@ -1569,6 +1582,7 @@ async function bereichZeichnen(vonMontag, bisMontag, richtung) {
     bereich.scrollTop += bereich.scrollHeight - vorher;
   } else {
     raster.append(stuecke);
+  wochenHoeheSetzen();
   }
   laedtGerade = false;
 }

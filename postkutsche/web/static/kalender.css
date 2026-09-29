@@ -148,7 +148,12 @@ button { font: inherit; cursor: pointer; }
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: 10px;
-  min-height: max(132px, calc((100vh - 260px) / 4));
+  /* Die Höhe richtet sich danach, wie viele Wochen offen sind: Ist nur
+     eine aufgeklappt, bekommt sie fast den ganzen Bildschirm, bei vieren
+     teilen sie sich ihn. Die Zahl setzt das JavaScript beim Klappen;
+     ohne sie gilt 4 wie bisher. Die Untergrenze bleibt, damit ein Tag
+     auch auf einem kleinen Bildschirm noch Kärtchen zeigen kann. */
+  min-height: max(132px, calc((100vh - 240px) / var(--offene-wochen, 4)));
   padding: 6px;
 }
 .tag.fremd { opacity: 0.45; }
