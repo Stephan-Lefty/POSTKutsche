@@ -205,6 +205,39 @@ def pillow_da() -> bool:
         return False
 
 
+#: Breite der Vorschaufassung. 640 Pixel reichen für eine Kachel und für
+#: ein Bild im Fließtext auf jedem Bildschirm; die volle Fassung hängt
+#: einen Klick dahinter.
+VORSCHAU_BREITE = 640
+
+
+def verkleinern(quelle: Path | str, ziel: Path | str,
+                breite: int = VORSCHAU_BREITE) -> Path | None:
+    """Eine schmale Fassung fürs Web – oder nichts, wenn Pillow fehlt.
+
+    Eine Grafik im Facebook-Format wiegt gut 400 Kilobyte. Als Kachel im
+    Archiv wird sie auf ein Viertel der Breite heruntergerechnet, aber in
+    voller Größe geladen; bei fünf Kacheln sind das zwei Megabyte für eine
+    Übersicht. Deshalb liegt daneben eine kleine Fassung, und die große
+    hängt einen Klick dahinter.
+
+    Ohne Pillow kommt `None` zurück und der Aufrufer nimmt die volle
+    Fassung – dieselbe Regel wie beim Zuschneiden: Kür, keine Pflicht.
+    """
+    if not pillow_da():
+        return None
+    from PIL import Image
+
+    quelle, ziel = Path(quelle), Path(ziel)
+    with Image.open(quelle) as bild:
+        if bild.width <= breite:
+            return None  # Schon klein genug; eine zweite Datei wäre Ballast.
+        hoehe = round(bild.height * breite / bild.width)
+        bild.convert("RGB").resize((breite, hoehe), Image.LANCZOS).save(
+            ziel, quality=82, optimize=True)
+    return ziel
+
+
 def beschaffen(adresse: str, zuschneiden: bool = True) -> Path:
     """Holt ein Bild und legt es zugeschnitten ab. Gibt den Pfad zurück.
 

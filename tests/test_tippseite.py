@@ -224,5 +224,32 @@ class ArchivMitGrafiken(unittest.TestCase):
         self.assertLess(neu.find("https://a.example/neu.png"),
                         neu.find("Eine Überschrift"))
 
+class Vorschau(unittest.TestCase):
+    """Gezeigt wird die kleine Fassung, verlinkt die große."""
+
+    BILD = [{"adresse": "https://a.example/gross.png",
+             "vorschau": "https://a.example/klein.jpg", "alt": "x"}]
+
+    def test_im_text_zeigt_die_kleine_und_verlinkt_die_grosse(self):
+        neu = tippseite.erneuern(SEITE, dict(TIPP, bilder=self.BILD), 41, MONTAG)
+        self.assertIn('src="https://a.example/klein.jpg"', neu)
+        self.assertIn('href="https://a.example/gross.png" target="_blank"', neu)
+
+    def test_ohne_vorschau_steht_beides_auf_derselben_datei(self):
+        ohne = [{"adresse": "https://a.example/nur.png", "alt": "x"}]
+        neu = tippseite.erneuern(SEITE, dict(TIPP, bilder=ohne), 41, MONTAG)
+        self.assertIn('src="https://a.example/nur.png"', neu)
+        self.assertIn('href="https://a.example/nur.png"', neu)
+
+    def test_die_kachel_erbt_beide_fassungen(self):
+        # Erst den Tipp mit Vorschau setzen, dann eine Woche weiter.
+        eins = tippseite.erneuern(SEITE, dict(TIPP, bilder=self.BILD), 41, MONTAG)
+        zwei = tippseite.erneuern(eins, TIPP, 42, MONTAG)
+        archiv = zwei[zwei.find(tippseite.ARCHIV_AUF):
+                      zwei.find(tippseite.ARCHIV_ZU)]
+        self.assertIn("klein.jpg", archiv)   # gezeigt
+        self.assertIn("gross.png", archiv)   # verlinkt
+
+
 if __name__ == "__main__":
     unittest.main()

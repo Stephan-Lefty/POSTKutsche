@@ -93,8 +93,11 @@ def _bisheriger_tipp(seite: str) -> dict[str, str] | None:
     # Was auf ihr steht, muss niemand noch einmal in Worte fassen.
     bild = re.search(r'<img src="([^"]+)"[^>]*?alt="([^"]*)"', block, re.S)
     if bild:
-        gefunden["bild"] = bild.group(1)
+        gefunden["vorschau"] = bild.group(1)
         gefunden["alt"] = bild.group(2)
+        # Der Verweis zeigt auf die volle Fassung, das img auf die kleine.
+        gross = re.search(r'<a href="([^"]+)" target="_blank"', block)
+        gefunden["bild"] = gross.group(1) if gross else bild.group(1)
     return gefunden
 
 
@@ -179,9 +182,12 @@ def _bild(bild: dict[str, str]) -> str:
     if not bild.get("adresse"):
         return ""
     ziel = html.escape(str(bild["adresse"]), quote=True)
+    # Gezeigt wird die schmale Fassung, verlinkt die volle. Ohne Vorschau
+    # steht beides auf derselben Datei - dann ist der Klick eben umsonst.
+    zeigen = html.escape(str(bild.get("vorschau") or bild["adresse"]), quote=True)
     stueck = f"""            <p class="text-center">
             \t<a href="{ziel}" target="_blank" rel="noopener">
-                \t<img src="{ziel}"
+                \t<img src="{zeigen}"
                          class="img-responsive"
                          alt="{html.escape(str(bild.get("alt") or ""), quote=True)}" />
                 </a>
@@ -298,8 +304,9 @@ def _kachel(eintrag: dict[str, str]) -> str:
     bild = eintrag.get("bild")
     if bild:
         ziel = html.escape(str(bild), quote=True)
+        zeigen = html.escape(str(eintrag.get("vorschau") or bild), quote=True)
         marke = f"""        \t<a href="{ziel}" target="_blank" rel="noopener">
-            \t<img src="{ziel}" class="img-responsive"
+            \t<img src="{zeigen}" class="img-responsive"
                      alt="{html.escape(str(eintrag.get("alt") or titel), quote=True)}" />
             </a>
 """
@@ -347,7 +354,7 @@ def _kopf_nachziehen(seite: str, tipp: dict[str, Any], woche: int,
     seite = re.sub(
         r'(<meta\s+name="description"\s+content=")[^"]*(")',
         lambda m: m.group(1) + html.escape(
-            f"Jeden Montag ein neuer Praxistipp von HaBeFa.de. Diese Woche: {kurz}",
+            f"Jede Woche ein neuer Praxistipp. Diese Woche: {kurz}",
             quote=True) + m.group(2),
         seite, count=1)
     seite = re.sub(
