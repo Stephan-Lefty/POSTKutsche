@@ -56,10 +56,23 @@ def produkt(ablage, kennung: str, adresse: str, geplant: str,
     daraus gerechnet – Montag bis Sonntag, siehe `zeiten.wochenschluss`.
     """
     projekt = _projekt(ablage, kennung, PRODUKT)
+    # Erst prüfen, dann abrufen: Ein Seitenabruf dauert ein paar Sekunden, und
+    # danach zu hören, dass kein Netzwerk gewählt ist, ärgert zu Recht.
+    _netze_pruefen(netze)
+    if not adresse.strip().lower().startswith(("http://", "https://")):
+        raise WochenFehler(
+            "Für das Produkt der Woche wird ein Verweis auf die Produktseite "
+            "gebraucht, beginnend mit »https://«.")
     try:
         seiteninhalt = seitenkarte.seite(adresse)
     except seitenkarte.AbrufFehler as fehler:
         raise WochenFehler(f"Die Produktseite ließ sich nicht lesen: {fehler}") from fehler
+    except (ValueError, OSError) as fehler:
+        # urllib wirft bei einer unbrauchbaren Adresse »unknown url type« -
+        # richtig, aber nichts, womit jemand etwas anfangen kann.
+        raise WochenFehler(
+            f"Mit dieser Adresse kann POSTKutsche nichts anfangen: {fehler}"
+        ) from fehler
 
     preis = seiteninhalt.get("preis")
     if not preis or not preis.get("jetzt"):
@@ -132,10 +145,19 @@ def tipp(ablage, kennung: str, thema: str, geplant: str, netze: list[str],
     Fotospalte dunkel; das ist brauchbar, aber blass.
     """
     projekt = _projekt(ablage, kennung, TIPP)
+    _netze_pruefen(netze)
     if not thema.strip():
         raise WochenFehler("Ohne Thema gibt es nichts zu schreiben.")
     quelle = {"thema": thema.strip(), "hinweise": hinweise.strip()}
     return _bauen(ablage, projekt, TIPP, quelle, geplant, netze, bild_adresse)
+
+
+def _netze_pruefen(netze: list[str]) -> None:
+    """Früh prüfen, was sich früh prüfen lässt."""
+    if not netze:
+        raise WochenFehler("Mindestens ein Netzwerk muss dabei sein.")
+    for netz in netze:
+        netzwerke.netzwerk(netz)  # wirft, wenn es das Netzwerk nicht gibt
 
 
 def _projekt(ablage, kennung: str, art: str = ""):
@@ -159,10 +181,7 @@ def _bauen(ablage, projekt, art: str, quelle: dict[str, Any], geplant: str,
     `feste_felder` sind Grafikangaben, die nicht vom Modell kommen – beim
     Produkt der Preis und die Laufzeit des Angebots.
     """
-    if not netze:
-        raise WochenFehler("Mindestens ein Netzwerk muss dabei sein.")
-    for netz in netze:
-        netzwerke.netzwerk(netz)  # wirft, wenn es das Netzwerk nicht gibt
+    _netze_pruefen(netze)
 
     meldungen: list[str] = []
     marke = konfiguration.marke(projekt.kennung) or dict(grafik.BEISPIEL_MARKE)

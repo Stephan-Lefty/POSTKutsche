@@ -254,3 +254,32 @@ class Vorgabeprojekt(unittest.TestCase):
             wochenformat._projekt(a, "", wochenformat.TIPP)
         self.assertIn("tipp-woche", str(fehler.exception))
         self.assertIn("projekt neu", str(fehler.exception))
+
+
+class FruehePruefung(unittest.TestCase):
+    """Was sich vor dem Seitenabruf klären lässt, wird vorher geklärt."""
+
+    def setUp(self):
+        ordner = tempfile.TemporaryDirectory()
+        self.addCleanup(ordner.cleanup)
+        self.pfad = Path(ordner.name) / "probe.db"
+        with ablage_modul.Ablage(self.pfad) as a:
+            a.projekt_anlegen("produkt-woche", "P", "https://shop.example",
+                              "seitenkarte")
+
+    def test_eine_leere_adresse_wird_verstaendlich_abgelehnt(self):
+        # urllib sagte »unknown url type: ''« – richtig, aber unbrauchbar.
+        with ablage_modul.Ablage(self.pfad) as a, \
+             self.assertRaises(wochenformat.WochenFehler) as fehler:
+            wochenformat.produkt(a, "", "", "2026-10-01T08:00:00Z", ["facebook"])
+        self.assertIn("https://", str(fehler.exception))
+
+    def test_ohne_netzwerk_wird_die_seite_gar_nicht_erst_geholt(self):
+        # Erst nach dem Abruf zu merken, dass kein Netzwerk gewählt ist,
+        # kostet Sekunden und ärgert zu Recht.
+        with mock.patch.object(seitenkarte, "text_und_ziel") as abruf, \
+             ablage_modul.Ablage(self.pfad) as a:
+            with self.assertRaises(wochenformat.WochenFehler):
+                wochenformat.produkt(a, "", "https://shop.example/t.html",
+                                     "2026-10-01T08:00:00Z", [])
+        abruf.assert_not_called()
