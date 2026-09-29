@@ -3,6 +3,96 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
+## Hier war Schluss (Stand 2026-09-29)
+
+686 Tests. Neu sind zwei wöchentliche Formate mit eigener Grafik: »Produkt
+der Woche« aus einem Shoplink, »Tipp der Woche« aus einem Thema. Beide sind
+im Kalender als Menüpunkt eingehängt, beide erzeugen Text *und* Bild, und
+beide laufen echt durch – am 2026-09-29 sind der erste Produktbeitrag und der
+erste Tipp entstanden und die Webseite dazu ist online.
+
+**Drei neue Module.** `grafik.py` zeichnet mit HTML und CSS, ausgegeben von
+Firefox im Kopflosbetrieb. `wochenformat.py` hält den Ablauf zusammen: lesen,
+schreiben lassen, zeichnen, in den Kalender. `tippseite.py` schreibt die
+Seite `Tipp-der-Woche.html` fort.
+
+**Ein Gerüst, zwei Füllungen.** Beide Formate teilen Logofeld, Fotospalte,
+Kastenspalte, Aufruf, Merkmalszeile und Kontakt – das ist der Zweck, nicht
+Sparsamkeit: Wer sie nebeneinander sieht, soll denselben Absender erkennen.
+Der Rahmen steht deshalb *einmal* in `grafik._seite`. Zwei Vorlagen driften
+auseinander, sobald an einer etwas geändert wird.
+
+**Was aus der Seite kommt und was aus dem Modell.** Der Preis kommt
+ausschließlich aus `itemprop="price"`, nie aus dem Fließtext: Auf einer
+echten Produktseite stand dort 1.329 €, gehörend zu einem Artikel aus dem
+Empfehlungsschieber daneben – das Produkt kostete 959 €. Fehlt die
+Auszeichnung, entsteht **kein** Beitrag; hier wird abgebrochen statt geraten,
+denn eine Anzeige mit falschem Preis ist schlimmer als keine Anzeige. Ebenso
+fest: Ersparnis (gerechnet), Angebotsende (`zeiten.wochenschluss`, Montag bis
+Sonntag) und die Blockfarben des Tipps. Wer die Farbe erfinden lässt, bekommt
+jede Woche eine andere und verliert genau den Wiedererkennungswert, für den
+das Gerüst gebaut ist.
+
+**Drei Fehler, die erst der echte Lauf zeigte** – alle drei hätten sich
+wöchentlich wiederholt:
+
+- **Instagram fragte nach einem Bild**, obwohl die Grafik aus denselben
+  Feldern gerade erst entsteht. Die Grundregel ist im Regelfall richtig, hier
+  falsch, und eine offene Rückfrage sperrt die Freigabe. Steht jetzt als
+  `vorlagen.BILD_ENTSTEHT` in beiden Wochenanweisungen.
+- **Der Tipp brach auf einem fehlenden Schlüssel »farbe« ab.** Die Tests
+  davor liefen alle mit abgeschaltetem Browser und erzeugten die Seite nie –
+  deshalb gibt es jetzt `test_grafik.py`, das die Seite wirklich baut.
+- **Der Preis stand dunkel auf dunkel.** Die Preisbox liegt in der weißen
+  Karte und erbte deren Schrift. Sieht man nur, wenn man rendert.
+
+**Firefox ist Kür.** Fehlt er, entsteht der Beitrag trotzdem, nur ohne Bild
+und mit einer Meldung. Zwei Eigenheiten, die Zeit gekostet haben: Ein
+laufender Firefox blockiert `--screenshot` (»is already running«) – jeder
+Lauf bekommt deshalb ein eigenes Profil in einem Wegwerfordner. Und
+`--screenshot` löst beim `load`-Ereignis aus: Was das Bild braucht, muss
+lokal neben der HTML liegen, sonst knipst es in eine halbfertige Seite.
+
+**Die Hausschrift ist DejaVu Sans Condensed**, Rückfall Nimbus Sans Narrow.
+Nicht die schönste, aber die einzige, die überall liegt – eine Schrift, die
+nachinstalliert werden muss, macht die Ausgabe auf einem anderen Rechner und
+in der CI kaputt. Sie läuft breiter als andere: Beim Umstellen lief prompt
+alles ineinander, beide Layouts sind auf sie hin durchgerechnet.
+
+**`marken.json` hält das Auftreten nach außen** – Logo, Rufnummer,
+Mailadresse, Kurzvorstellung, Adresse der Tipp-Seite. Unter
+`~/.config/postkutsche/`, nicht im Repository: Ein Logo ist eine eingetragene
+Marke, eine Rufnummer ein Kontaktdatum, und die Versionsgeschichte vergisst
+nichts. Mehrere Projekte teilen sich einen Auftritt über
+`{"wie": "anderekennung"}` statt über Kopien, die auseinanderlaufen.
+
+**Die Tipp-Seite trägt ihre eigene Pflegeanleitung im Kopf**, und die ist die
+Spezifikation: aktuellen Tipp ersetzen, bisherigen ins Archiv, Titel,
+Beschreibung und beide Datumsangaben nachziehen, fünf Wochen stehen lassen.
+Gearbeitet wird mit Textersatz an benannten Marken, nicht mit einem Parser –
+ein Parser formatiert Stellen um, die niemand angefasst hat, und danach sieht
+man im Vergleich nicht mehr, was sich wirklich geändert hat. Das
+auskommentierte Muster im Archiv wird ausgelassen; es sieht einem Eintrag zum
+Verwechseln ähnlich. Wird innerhalb derselben Woche nachgebessert, wird
+ersetzt statt archiviert, sonst steht dieselbe KW zweimal auf der Seite.
+
+**Das Archiv zeigt die Grafiken der Vorwochen als Kacheln**, nicht
+Kurzfassungen: Die Grafik trägt den Tipp schon, sie noch einmal in Worte zu
+fassen hieße, dasselbe zweimal zu pflegen. Damit bleibt ein alter Tipp
+lesbar, ohne dass Unterseiten entstehen, die niemand mehr durchsieht.
+
+**Hochgeladen wird von Hand**, wie bei Facebook und Instagram. Die fertige
+Seite und die Grafiken liegen im Wochenordner; die Meldung nennt Zielpfad und
+Rechner. Eine blaue Leiste im Kalender prüft die Seite im Netz und meldet
+sich, solange dort eine ältere Kalenderwoche steht – das deckt beides ab, den
+fehlenden Tipp und die nicht hochgeladene Datei.
+
+**Offen:** Das Archiv ist ungetestet im Betrieb – die erste Kachel entsteht
+erst mit KW 41. Der Merksatz kam bisher von Hand; ab dem nächsten Tipp
+verlangt ihn die Anweisung. Und die Projektpalette ist mit sieben Projekten
+aufgebraucht: `tipp-woche` und `produkt-woche` liegen farblich nah am
+HaBeFa-Shop.
+
 ## Hier war Schluss (Stand 2026-09-28)
 
 601 Tests. Die Kette läuft ganz durch: Quelle findet ein Produkt, ein Modell
@@ -236,6 +326,9 @@ schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
 | `denker/netz.py` | POST mit JSON über urllib, Fehlercodes als Sätze |
 | `denker/__init__.py` | die Weiche zwischen den vier Wegen, und `nicht_da` |
 | `kampagnen.py` | Thema, Kalenderwoche, Kategorien, Herstellerfilter |
+| `grafik.py` | ein Gerüst, zwei Füllungen, quer und hoch |
+| `wochenformat.py` | Tipp und Produkt der Woche, von der Eingabe zum Beitrag |
+| `tippseite.py` | schreibt `Tipp-der-Woche.html` fort |
 | `farben.py` | die gemeinsame Palette, auch für andere Projekte |
 | `__main__.py` | Kommandozeile |
 
