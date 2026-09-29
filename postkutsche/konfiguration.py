@@ -151,8 +151,23 @@ def marken_lesen() -> dict[str, dict[str, Any]]:
 
 
 def marke(kennung: str) -> dict[str, Any]:
-    """Die Angaben eines Projekts, mit aufgelöstem Logopfad."""
-    eintrag = dict(marken_lesen().get(kennung) or {})
+    """Die Angaben eines Projekts, mit aufgelöstem Logopfad.
+
+    Mehrere Projekte können denselben Auftritt haben – »Tipp der Woche« und
+    »Produkt der Woche« gehören zum selben Laden. Statt die Angaben zu
+    kopieren, verweist ein Eintrag mit `{"wie": "andereskennung"}` auf einen
+    anderen; Kopien laufen nach dem ersten Rufnummernwechsel auseinander.
+
+    Ein Verweis auf einen Verweis wird nicht verfolgt. Das ist keine
+    Sparsamkeit, sondern Absicht: Sonst bräuchte es einen Schutz gegen Ringe,
+    und eine Kette von Verweisen kann ohnehin niemand mehr lesen.
+    """
+    alle = marken_lesen()
+    eintrag = dict(alle.get(kennung) or {})
+    verweis = eintrag.pop("wie", None)
+    if verweis:
+        eintrag = {**(alle.get(verweis) or {}), **eintrag}
+        eintrag.pop("wie", None)
     logo = eintrag.get("logo")
     if logo and not Path(logo).is_absolute():
         eintrag["logo"] = str(ordner() / logo)

@@ -61,3 +61,87 @@ class GarantieGehoertNichtInEinenBeitrag(unittest.TestCase):
         stelle = vorlagen.GRUNDREGELN.index("Garantie")
         abschnitt = " ".join(vorlagen.GRUNDREGELN[stelle:stelle + 400].split())
         self.assertNotIn("Ausnahme", abschnitt.split("- Nichts erfinden")[0])
+
+
+class Wochenformate(unittest.TestCase):
+    """Tipp und Produkt der Woche füllen auch die Felder der Grafik."""
+
+    QUELLE = {"titel": "Gedämmte Bodentreppe", "adresse": "https://x.example/t.html",
+              "preis": {"jetzt": "959,00 €", "vorher": "1.100,00 €"},
+              "gueltig": "Sonntag, 04.10.2026", "merkmale": ["U-Wert 0,7"],
+              "text": "Beschreibung."}
+
+    def test_beim_produkt_ist_der_preis_ausdruecklich_erlaubt(self):
+        # Die Grundregeln verbieten Preise, weil ein Beitrag stehenbleibt und
+        # ein Preis sich ändert. Hier steht dabei, bis wann das Angebot gilt.
+        anweisung = vorlagen.wochenanweisung("produkt", self.QUELLE, ["facebook"])
+        self.assertIn("Keine Preise nennen", anweisung)      # die Grundregel
+        self.assertIn("Der Preis gehört hinein", anweisung)  # und die Ausnahme
+
+    def test_der_preis_aus_dem_fliesstext_wird_ausdruecklich_verboten(self):
+        anweisung = vorlagen.wochenanweisung("produkt", self.QUELLE, ["facebook"])
+        self.assertIn("keine Zahl aus dem Fließtext", anweisung)
+
+    def test_beim_tipp_steht_nur_das_thema_in_der_anweisung(self):
+        anweisung = vorlagen.wochenanweisung(
+            "tipp", {"thema": "Herbstpflege von Außentüren"}, ["facebook"])
+        self.assertIn("Herbstpflege von Außentüren", anweisung)
+        self.assertIn("Genau drei Blöcke", anweisung)
+
+    def test_ohne_netzwerk_gibt_es_nichts_zu_schreiben(self):
+        with self.assertRaises(ValueError):
+            vorlagen.wochenanweisung("produkt", self.QUELLE, [])
+
+
+class WochenantwortLesen(unittest.TestCase):
+    """Was die Fläche erzwingt, wird geprüft – sonst sieht man es erst im Bild."""
+
+    def _antwort(self, grafik):
+        import json
+        return json.dumps({
+            "grafik": grafik,
+            "fassungen": {"facebook": {"text": "Ein Satz.", "schlagworte": [],
+                                       "rueckfrage": None}}})
+
+    GUT = {"unterzeile": "Bodentreppe – Jetzt zugreifen!",
+           "name": "Wippro BasicStair SMART",
+           "merkmale": ["U-Wert 0,7 W/m²K", "bis 250 kg", "2,50–2,70 m",
+                        "einbaufertig"]}
+
+    def test_vier_merkmale_gehen_durch(self):
+        fassungen, grafik = vorlagen.wochenantwort_lesen(
+            self._antwort(self.GUT), ["facebook"], "produkt")
+        self.assertEqual(len(grafik["merkmale"]), 4)
+        self.assertIn("facebook", fassungen)
+
+    def test_fuenf_merkmale_werden_abgelehnt(self):
+        # Ein fünftes liefe unten aus der Karte heraus. Lieber neu schreiben
+        # lassen als eine Grafik mit abgeschnittener Zeile.
+        zu_viele = dict(self.GUT, merkmale=self.GUT["merkmale"] + ["noch eins"])
+        with self.assertRaises(vorlagen.AntwortFehler):
+            vorlagen.wochenantwort_lesen(self._antwort(zu_viele), ["facebook"], "produkt")
+
+    def test_ein_zu_langes_merkmal_wird_abgelehnt(self):
+        lang = dict(self.GUT, merkmale=["x" * 60] + self.GUT["merkmale"][1:])
+        with self.assertRaises(vorlagen.AntwortFehler) as fehler:
+            vorlagen.wochenantwort_lesen(self._antwort(lang), ["facebook"], "produkt")
+        self.assertIn("aus der Karte laufen", str(fehler.exception))
+
+    def test_ohne_grafik_ist_die_antwort_unbrauchbar(self):
+        import json
+        roh = json.dumps({"fassungen": {"facebook": {"text": "x", "rueckfrage": None}}})
+        with self.assertRaises(vorlagen.AntwortFehler):
+            vorlagen.wochenantwort_lesen(roh, ["facebook"], "produkt")
+
+    def test_der_tipp_braucht_drei_bloecke_mit_je_vier_punkten(self):
+        block = {"titel": "A\nB", "unter": "c", "punkte": ["1", "2", "3", "4"]}
+        gut = {"titel": "T", "unterzeile": "U", "vorspann": "v", "warum": "w",
+               "bloecke": [block, block, block],
+               "beachten": ["a", "b", "c", "d"], "wissen": "x", "cta": "y"}
+        _, grafik = vorlagen.wochenantwort_lesen(
+            self._antwort(gut), ["facebook"], "tipp")
+        self.assertEqual(len(grafik["bloecke"]), 3)
+
+        zwei = dict(gut, bloecke=[block, block])
+        with self.assertRaises(vorlagen.AntwortFehler):
+            vorlagen.wochenantwort_lesen(self._antwort(zwei), ["facebook"], "tipp")

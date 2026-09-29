@@ -437,3 +437,226 @@ def nachbesserung(
         }}}, indent=2, ensure_ascii=False),
     ]
     return "\n".join(teile)
+
+
+# -- Die Wochenformate -----------------------------------------------------
+#
+# »Tipp der Woche« und »Produkt der Woche« brauchen mehr als Text: Sie füllen
+# auch die Felder der Grafik. Deshalb ein eigener Weg statt eines Zusatzes zu
+# `anweisung` - und weil eine der Grundregeln hier ausdrücklich *nicht* gilt.
+
+#: Wie viele Merkmale die Produktkarte trägt und wie lang sie sein dürfen.
+#: Beides ist keine Vorliebe, sondern Platz: Die Schriftgrößen der Grafik sind
+#: auf vier einzeilige Merkmale ausgelegt. Ein fünftes oder ein umbrechendes
+#: läuft unten aus der Karte heraus. Deshalb muss der Text passen, statt dass
+#: die Grafik sich wehrt.
+MERKMALE_ANZAHL = 4
+MERKMAL_ZEICHEN = 42
+
+WOCHE_FORMAT = """{
+  "grafik": { … siehe unten … },
+  "fassungen": {
+    "<netzwerk>": {
+      "text": "der fertige Beitragstext",
+      "schlagworte": ["ohne", "raute"],
+      "rueckfrage": null
+    }
+  }
+}"""
+
+PRODUKTREGELN = f"""\
+Dies ist das »Produkt der Woche«. Zwei Dinge gelten hier anders als sonst:
+
+- **Der Preis gehört hinein**, in den Text wie in die Grafik. Er ist der
+  Anlass des Beitrags. Sonst gilt die Regel, keine Preise zu nennen, weil ein
+  Beitrag stehenbleibt und ein Preis sich ändert - hier steht dabei, bis wann
+  das Angebot gilt, und damit erledigt sich der Einwand.
+- **Du nennst nur den Preis, den du bekommen hast.** Rechne nichts aus, runde
+  nicht, und übernimm keine Zahl aus dem Fließtext des Artikels. Auf einer
+  Produktseite stehen Preise fremder Artikel aus Empfehlungslisten daneben;
+  einer davon wäre in einer Anzeige ein teurer Fehler.
+
+Zusätzlich zu den Fassungen füllst du »grafik«:
+
+  "grafik": {{
+    "unterzeile": "Bodentreppe – Jetzt zugreifen!",
+    "name": "kurzer Produktname, höchstens 30 Zeichen",
+    "merkmale": ["…", "…", "…", "…"]
+  }}
+
+Für die Grafik gilt:
+
+- **Genau {MERKMALE_ANZAHL} Merkmale, je höchstens {MERKMAL_ZEICHEN} Zeichen.**
+  Das ist kein Richtwert: Die Karte hat Platz für vier einzeilige Zeilen. Was
+  länger ist, bricht um und läuft unten heraus. Kürze lieber hart - »U-Wert
+  0,7 W/m²K, 6 cm Steinwolle« statt eines ganzen Satzes.
+- Keine Satzzeichen am Ende, keine ganzen Sätze. Es sind Stichpunkte.
+- Die wichtigsten vier, nicht die ersten vier. Was das Stück von anderen
+  unterscheidet, gehört nach oben.
+- Der »name« ist der Produktname ohne Werbezusätze: Hersteller und
+  Typbezeichnung, sonst nichts. Nicht der Seitentitel - der ist meist ein
+  ganzer Werbesatz.
+- Die »unterzeile« nennt die Warengattung und einen kurzen Aufruf.\
+"""
+
+TIPPREGELN = """\
+Dies ist der »Tipp der Woche«: ein Ratschlag, keine Werbung. Du verkaufst
+nichts, du erklärst etwas - und am Ende weiß der Leser, was er an diesem
+Wochenende tun kann.
+
+Zusätzlich zu den Fassungen füllst du »grafik«:
+
+  "grafik": {
+    "titel": "AUSSENTÜREN IM HERBST",
+    "unterzeile": "RICHTIG PFLEGEN",
+    "vorspann": "zwei Sätze, worum es geht",
+    "warum": "ein Satz: warum gerade jetzt",
+    "bloecke": [
+      {"titel": "DICHTUNGEN\\nUND SCHWELLE", "unter": "Der wichtigste Punkt",
+       "punkte": ["…", "…", "…", "…"]},
+      … genau drei …
+    ],
+    "beachten": ["…", "…", "…", "…"],
+    "wissen": "ein bis zwei Sätze, die überraschen",
+    "cta": "JETZT BERATEN LASSEN & PASSENDE TÜR FINDEN!"
+  }
+
+Für die Grafik gilt:
+
+- **Genau drei Blöcke mit je vier Punkten.** Weniger wirkt dünn, mehr passt
+  nicht auf die Fläche.
+- Blocktitel in Großbuchstaben, zweizeilig mit »\\n« getrennt, je Zeile
+  höchstens 14 Zeichen. »unter« ist eine knappe Einordnung, keine
+  Zusammenfassung.
+- Die Punkte sind Anweisungen, höchstens 80 Zeichen. Was zu tun ist, nicht
+  was gut wäre. Ein einzelnes Wort darf mit <b>…</b> hervorgehoben werden -
+  aber höchstens eines im ganzen Block, sonst trägt es nichts mehr.
+- »titel« und »unterzeile« sind Großbuchstaben, zusammen höchstens 40
+  Zeichen. Die Unterzeile erscheint in Gold.
+- Unter »beachten« stehen vier Warnungen: was schiefgeht, wenn man es falsch
+  macht. Wenn es um Bauteile mit Zulassung geht (Brandschutz, Rauchschutz),
+  gehört ein Hinweis dazu, dass daran nichts verändert werden darf.
+- »wissen« ist der Punkt, den auch ein Fachmann nicht auf dem Schirm hat.
+  Keine Wiederholung aus den Blöcken.
+
+Für die Texte gilt zusätzlich: Der stärkste Aufhänger ist der verbreitete
+Fehler - das, was viele gut gemeint falsch machen. Damit beginnst du, nicht
+mit einer Aufzählung.\
+"""
+
+
+def wochenanweisung(
+    art: str,
+    quelle: dict[str, Any],
+    fuer: list[str],
+    projekt: str = "",
+    wissen: list[dict[str, Any]] | None = None,
+) -> str:
+    """Die Anweisung für ein Wochenformat – Text und Grafikfelder in einem.
+
+    `art` ist »produkt« oder »tipp«. Bei »produkt« steht in `quelle`, was die
+    Produktseite hergab, samt Preis; bei »tipp« nur das Thema.
+    """
+    if not fuer:
+        raise ValueError("Ohne Netzwerk gibt es nichts zu schreiben.")
+
+    angaben = []
+    if art == "produkt":
+        angaben.append(f"Titel der Seite: {quelle.get('titel', '')}")
+        angaben.append(f"Adresse: {quelle.get('adresse', '')}")
+        preis = quelle.get("preis") or {}
+        angaben.append(f"Preis: {preis.get('jetzt', '– nicht bekannt –')}")
+        if preis.get("vorher"):
+            angaben.append(f"Früherer Preis: {preis['vorher']}")
+        angaben.append(f"Angebot läuft bis: {quelle.get('gueltig', '')}")
+        if quelle.get("merkmale"):
+            angaben.append("Merkmale laut Seite:\n- " +
+                           "\n- ".join(quelle["merkmale"]))
+        text = str(quelle.get("text", "")).strip()
+        if len(text) > 6000:
+            text = text[:6000] + "\n[hier gekürzt]"
+        angaben.append(f"\nText der Seite:\n{text}")
+    else:
+        angaben.append(f"Thema: {quelle.get('thema', '')}")
+        if quelle.get("hinweise"):
+            angaben.append(f"Vorgaben: {quelle['hinweise']}")
+
+    teile = [
+        "Du schreibst einen wöchentlich erscheinenden Beitrag für soziale "
+        "Netzwerke und füllst dazu die Felder einer Grafik. Du erfindest "
+        "nichts dazu.",
+        "",
+        f"## Die Quelle{f' (Projekt: {projekt})' if projekt else ''}",
+        "",
+        "\n".join(angaben),
+        "",
+        "## Für diese Netzwerke",
+        "",
+        "\n\n".join(_netzwerkteil(k) for k in fuer),
+        "",
+        "## Regeln",
+        "",
+        GRUNDREGELN,
+        "",
+        "## Was bei diesem Format anders ist",
+        "",
+        PRODUKTREGELN if art == "produkt" else TIPPREGELN,
+    ]
+    teile += _wissensteil(wissen or [])
+    teile += [
+        "",
+        "## Antworte ausschließlich mit diesem JSON",
+        "",
+        WOCHE_FORMAT,
+        "",
+        f"Erwartet werden Fassungen für: {', '.join(fuer)}.",
+        "Kein Text davor, kein Text danach, kein Code-Zaun.",
+    ]
+    return "\n".join(teile)
+
+
+def wochenantwort_lesen(
+    roh: str, erwartet: list[str], art: str
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Fassungen *und* Grafikfelder aus einer Antwort holen.
+
+    Die Fassungen gehen durch dieselbe Prüfung wie sonst. Für die Grafik wird
+    nur geprüft, was die Fläche erzwingt – Anzahl und Länge. Was dort nicht
+    passt, sieht man sonst erst im fertigen Bild.
+    """
+    fassungen = antwort_lesen(roh, erwartet)
+    daten = _json_finden(roh)
+    grafik = daten.get("grafik")
+    if not isinstance(grafik, dict):
+        raise AntwortFehler(
+            "In der Antwort steht kein Feld »grafik«. "
+            f"Anfang der Antwort: {roh[:160]!r}")
+
+    if art == "produkt":
+        merkmale = [str(m).strip() for m in (grafik.get("merkmale") or []) if str(m).strip()]
+        if len(merkmale) != MERKMALE_ANZAHL:
+            raise AntwortFehler(
+                f"Die Grafik braucht genau {MERKMALE_ANZAHL} Merkmale, "
+                f"bekommen sind {len(merkmale)}.")
+        zu_lang = [m for m in merkmale if len(m) > MERKMAL_ZEICHEN]
+        if zu_lang:
+            raise AntwortFehler(
+                f"Diese Merkmale sind länger als {MERKMAL_ZEICHEN} Zeichen und "
+                f"würden aus der Karte laufen: {zu_lang}")
+        grafik["merkmale"] = merkmale
+        if not str(grafik.get("name", "")).strip():
+            raise AntwortFehler("Der Grafik fehlt der »name«.")
+    else:
+        bloecke = grafik.get("bloecke") or []
+        if len(bloecke) != 3:
+            raise AntwortFehler(
+                f"Der Tipp braucht genau drei Blöcke, bekommen sind {len(bloecke)}.")
+        for nummer, block in enumerate(bloecke, 1):
+            punkte = [str(p).strip() for p in (block.get("punkte") or []) if str(p).strip()]
+            if len(punkte) != 4:
+                raise AntwortFehler(
+                    f"Block {nummer} braucht vier Punkte, hat aber {len(punkte)}.")
+            block["punkte"] = punkte
+        if len(grafik.get("beachten") or []) != 4:
+            raise AntwortFehler("Unter »beachten« gehören vier Punkte.")
+    return fassungen, grafik
