@@ -22,19 +22,28 @@ SEITE = """<html><head>
         <p class="noMargin"><small><strong>Kalenderwoche 40</strong> &middot; ab Montag, 28. September 2026</small></p>
         <h2>Vor dem Winter: Türdichtungen prüfen</h2>
     </div></div>
-    <div class="row"><div class="col-xs-12"><p>Alter Text.</p></div></div>
+    <div class="row"><div class="col-xs-12"><p>Alter Text.</p>
+        <p class="text-center"><a href="https://a.example/kw40.png" target="_blank" rel="noopener">
+            <img src="https://a.example/kw40.png" class="img-responsive" alt="Grafik KW 40" /></a></p>
+    </div></div>
 <!-- ============ ENDE TIPP AKTUELL ============ -->
 
 <!-- ============ TIPP ARCHIV ============ -->
     <div class="row"><div class="col-xs-12">
         <h2>Die Tipps der Vorwochen</h2>
-        <ul>
-<!-- MUSTER fuer einen Archiv-Eintrag:
-            <li><strong>KW 99 &middot; Muster</strong></li>
--->
-            <li><strong>KW 39 &middot; Garagentor einwintern</strong></li>
-        </ul>
     </div></div>
+    <div class="row">
+<!-- MUSTER fuer einen Archiv-Eintrag:
+        <div class="col-xs-6 col-sm-4 col-md-3"><p><small><strong>KW 99</strong><br />Muster</small></p>
+        </div>
+-->
+        <div class="col-xs-6 col-sm-4 col-md-3">
+        	<a href="https://a.example/kw39.png" target="_blank" rel="noopener">
+            	<img src="https://a.example/kw39.png" class="img-responsive" alt="KW 39" />
+            </a>
+            <p><small><strong>KW 39</strong><br />Garagentor einwintern</small></p>
+        </div>
+    </div>
 <!-- ============ ENDE TIPP ARCHIV ============ -->
 <p><small>Zuletzt aktualisiert: 28. September 2026 (KW 40)</small></p>
 </body></html>"""
@@ -85,7 +94,7 @@ class Fortschreiben(unittest.TestCase):
                 seite, dict(TIPP, titel=f"Thema {nummer}"), nummer, MONTAG)
         archiv = seite[seite.find(tippseite.ARCHIV_AUF):
                        seite.find(tippseite.ARCHIV_ZU)]
-        self.assertEqual(archiv.count("<li>"), tippseite.ARCHIV_WOCHEN)
+        self.assertEqual(archiv.count("col-xs-6"), tippseite.ARCHIV_WOCHEN)
 
     def test_titel_und_beschreibung_werden_nachgezogen(self):
         # »Beides ist fuer Google wichtig und darf nicht stehen bleiben«,
@@ -173,6 +182,47 @@ class Verweise(unittest.TestCase):
         boese = [{"text": "x", "adresse": 'https://a.example/"><script>'}]
         neu = tippseite.erneuern(SEITE, dict(TIPP, verweise=boese), 41, MONTAG)
         self.assertNotIn("<script>", neu)
+
+
+class ArchivMitGrafiken(unittest.TestCase):
+    """Die Grafik der Woche ist die Kurzfassung – sie wandert mit."""
+
+    def test_die_grafik_des_alten_tipps_landet_im_archiv(self):
+        neu = tippseite.erneuern(SEITE, TIPP, 41, MONTAG)
+        archiv = neu[neu.find(tippseite.ARCHIV_AUF):
+                     neu.find(tippseite.ARCHIV_ZU)]
+        self.assertIn("https://a.example/kw40.png", archiv)
+        self.assertIn("KW 40", archiv)
+
+    def test_die_kachel_oeffnet_in_einem_neuen_reiter(self):
+        neu = tippseite.erneuern(SEITE, TIPP, 41, MONTAG)
+        archiv = neu[neu.find(tippseite.ARCHIV_AUF):
+                     neu.find(tippseite.ARCHIV_ZU)]
+        self.assertIn('target="_blank"', archiv)
+        # Ohne rel="noopener" kann die geöffnete Seite auf die aufrufende
+        # zugreifen.
+        self.assertIn('rel="noopener"', archiv)
+
+    def test_das_bild_im_text_ist_anklickbar_und_volle_breite(self):
+        mit = dict(TIPP, bilder=[{"adresse": "https://a.example/neu.png",
+                                  "alt": "Neu", "unterschrift": "Die Woche"}])
+        neu = tippseite.erneuern(SEITE, mit, 41, MONTAG)
+        aktuell = neu[neu.find(tippseite.AKTUELL_AUF):
+                      neu.find(tippseite.AKTUELL_ZU)]
+        self.assertIn('href="https://a.example/neu.png" target="_blank"', aktuell)
+        self.assertIn("zum Vergrößern anklicken", aktuell)
+        # Keine schmale Spalte mehr - alles so breit wie der erste Absatz.
+        self.assertNotIn("col-sm-7", aktuell)
+        self.assertIn('<div class="col-xs-12">', aktuell)
+
+    def test_das_bild_steht_hinter_dem_ersten_absatz(self):
+        mit = dict(TIPP, bilder=[{"adresse": "https://a.example/neu.png",
+                                  "alt": "Neu"}])
+        neu = tippseite.erneuern(SEITE, mit, 41, MONTAG)
+        self.assertLess(neu.find("Ein erster Absatz."),
+                        neu.find("https://a.example/neu.png"))
+        self.assertLess(neu.find("https://a.example/neu.png"),
+                        neu.find("Eine Überschrift"))
 
 if __name__ == "__main__":
     unittest.main()

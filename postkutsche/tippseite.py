@@ -87,8 +87,15 @@ def _bisheriger_tipp(seite: str) -> dict[str, str] | None:
     titel = re.search(r"<h2[^>]*>(.*?)</h2>", block, re.S)
     if not (woche and titel):
         return None
-    return {"woche": woche.group(1),
-            "titel": re.sub(r"\s+", " ", titel.group(1)).strip()}
+    gefunden = {"woche": woche.group(1),
+                "titel": re.sub(r"\s+", " ", titel.group(1)).strip()}
+    # Die Grafik der Woche wandert mit ins Archiv: Sie ist die Kurzfassung.
+    # Was auf ihr steht, muss niemand noch einmal in Worte fassen.
+    bild = re.search(r'<img src="([^"]+)"[^>]*?alt="([^"]*)"', block, re.S)
+    if bild:
+        gefunden["bild"] = bild.group(1)
+        gefunden["alt"] = bild.group(2)
+    return gefunden
 
 
 def _ersetzen(seite: str, auf: str, zu: str, neu: str) -> str:
@@ -154,46 +161,50 @@ def _merksatz(text: str) -> str:
             f'{_mit_auszeichnung(text)}</p>\n            </blockquote>\n')
 
 
-def _bildspalte(bilder: list[dict[str, str]]) -> str:
-    """Die rechte Spalte: Grafik der Woche, darunter passende Artikelbilder.
+def _bild(bild: dict[str, str]) -> str:
+    """Ein Bild im Textfluss, über die ganze Breite und anklickbar.
 
-    Die Spalte gab es auf der Seite schon, bevor hier etwas automatisiert
-    wurde – ohne sie steht der Text über die ganze Breite und liest sich
-    als Bleiwüste. Jedes Bild darf verlinkt sein und trägt eine
-    Bildunterschrift; `alt` ist Pflicht, sonst ist die Seite für einen
-    Vorleser nur halb da.
+    Keine schmale Spalte daneben: Der Text nutzt die Breite des ersten
+    Absatzes, und das Bild tut es auch. Ein Klick öffnet es in einem neuen
+    Reiter in voller Größe – auf einer Seite über Beschläge und Dichtungen
+    will man Einzelheiten sehen, und die Fassung im Fließtext ist dafür zu
+    klein.
+
+    `rel="noopener"` gehört zu jedem `target="_blank"`: Ohne das kann die
+    geöffnete Seite über `window.opener` auf die aufrufende zugreifen.
+
+    `alt` ist Pflicht. Fehlt es, bleibt das Attribut leer statt zu raten –
+    eine falsche Beschreibung ist schlimmer als keine.
     """
-    if not bilder:
+    if not bild.get("adresse"):
         return ""
-    stuecke = []
-    for bild in bilder:
-        if not bild.get("adresse"):
-            continue
-        marke = (f'<img src="{html.escape(str(bild["adresse"]), quote=True)}"\n'
-                 f'                     class="img-responsive"\n'
-                 f'                     alt="{html.escape(str(bild.get("alt") or ""), quote=True)}" />')
-        if bild.get("verweis"):
-            marke = (f'<a href="{html.escape(str(bild["verweis"]), quote=True)}">\n'
-                     f'            \t{marke}\n            </a>')
-        stueck = f"        \t{marke}\n"
-        if bild.get("unterschrift"):
-            stueck += (f'            <p class="text-center"><small>'
-                       f'{html.escape(str(bild["unterschrift"]))}</small></p>\n')
-        stuecke.append(stueck)
-    if not stuecke:
-        return ""
-    return ('        <div class="col-xs-12 col-sm-5 col-md-4">\n'
-            + "\n".join(stuecke) + "        </div>\n")
+    ziel = html.escape(str(bild["adresse"]), quote=True)
+    stueck = f"""            <p class="text-center">
+            \t<a href="{ziel}" target="_blank" rel="noopener">
+                \t<img src="{ziel}"
+                         class="img-responsive"
+                         alt="{html.escape(str(bild.get("alt") or ""), quote=True)}" />
+                </a>
+            </p>
+"""
+    if bild.get("unterschrift"):
+        stueck += (f'            <p class="text-center"><small>'
+                   f'{html.escape(str(bild["unterschrift"]))} '
+                   f'<em>(zum Vergrößern anklicken)</em></small></p>\n')
+    return stueck
 
 
 def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
     """Der Block mit dem Tipp dieser Woche."""
-    text = ("".join(_stueck(s) for s in tipp["absaetze"])
-            + _verweise(tipp.get("verweise") or []))
-    bilder = _bildspalte(tipp.get("bilder") or [])
-    # Ohne Bild nimmt der Text die ganze Breite; mit Bild bleiben zwei
-    # Drittel, wie die Seite es vorher schon hatte.
-    breite = "col-xs-12 col-sm-7 col-md-8" if bilder else "col-xs-12"
+    stuecke = [_stueck(s) for s in tipp["absaetze"]]
+    # Das Bild kommt hinter den ersten Absatz: früh genug, um gesehen zu
+    # werden, aber erst, nachdem der Einstieg gesagt hat, worum es geht.
+    for bild in reversed(tipp.get("bilder") or []):
+        stuecke.insert(1, _bild(bild))
+    text = "".join(stuecke) + _verweise(tipp.get("verweise") or [])
+    bilder = ""
+    # Alles über die volle Breite - so breit wie der erste Absatz.
+    breite = "col-xs-12"
     return f"""
     <div class="row">
     \t<div class="col-xs-12">
@@ -245,31 +256,58 @@ def _archiv(seite: str, bisher: dict[str, str] | None) -> str:
     alt = _archiveintraege(seite)
     neu = []
     if bisher:
-        neu.append(f"""            \t<li>
-                \t<strong>KW {html.escape(bisher["woche"])} &middot; {html.escape(bisher["titel"])}</strong>
-                </li>
-""")
+        neu.append(_kachel(bisher))
     eintraege = (neu + alt)[:ARCHIV_WOCHEN]
     if not eintraege:
-        eintraege = ["""            \t<li>
-                \t<em>Der erste Tipp ist gerade erschienen.</em> Ab der kommenden Woche finden Sie
-                    an dieser Stelle die Tipps der Vorwochen zum Nachlesen.
-                </li>
-"""]
+        inhalt = """        <div class="col-xs-12">
+        \t<p><em>Der erste Tipp ist gerade erschienen.</em> Ab der kommenden Woche finden Sie
+                an dieser Stelle die Tipps der Vorwochen zum Nachlesen.</p>
+        </div>
+"""
+    else:
+        inhalt = "".join(eintraege)
     return f"""
     <div class="row">
     \t<div class="col-xs-12">
         \t<div class="border-top">&nbsp;</div>
         \t<h2>Die Tipps der Vorwochen</h2>
             <p>
-            \tHier sammeln wir die letzten fünf Tipps als Kurzfassung. Ältere Themen nehmen wir
-                heraus, sobald sie fachlich überholt sind - lieber wenige aktuelle Hinweise
-                als ein Archiv, in dem veraltete Normen weiterleben.
+            \tHier stehen die letzten fünf Tipps als Übersicht zum Anklicken. Ältere Themen
+                nehmen wir heraus, sobald sie fachlich überholt sind - lieber wenige aktuelle
+                Hinweise als ein Archiv, in dem veraltete Normen weiterleben.
             </p>
-            <ul>
-{"".join(eintraege)}            </ul>
         </div>
     </div>
+
+    <div class="row">
+{inhalt}    </div>
+"""
+
+
+def _kachel(eintrag: dict[str, str]) -> str:
+    """Ein Eintrag im Archiv: die Grafik der Woche, darunter Woche und Thema.
+
+    Die Grafik trägt den Tipp schon in Kurzform – drei Bereiche mit je vier
+    Punkten. Sie noch einmal in Worte zu fassen hieße, dasselbe zweimal zu
+    pflegen. Ein Klick öffnet sie in voller Größe in einem neuen Reiter;
+    damit ist der alte Tipp lesbar, ohne dass eine Unterseite dafür entsteht,
+    die niemand mehr durchsieht.
+    """
+    woche = html.escape(str(eintrag.get("woche", "")))
+    titel = html.escape(str(eintrag.get("titel", "")))
+    bild = eintrag.get("bild")
+    if bild:
+        ziel = html.escape(str(bild), quote=True)
+        marke = f"""        \t<a href="{ziel}" target="_blank" rel="noopener">
+            \t<img src="{ziel}" class="img-responsive"
+                     alt="{html.escape(str(eintrag.get("alt") or titel), quote=True)}" />
+            </a>
+"""
+    else:
+        marke = ""
+    return f"""        <div class="col-xs-6 col-sm-4 col-md-3">
+{marke}            <p><small><strong>KW {woche}</strong><br />{titel}</small></p>
+        </div>
 """
 
 
@@ -285,9 +323,12 @@ def _archiveintraege(seite: str) -> list[str]:
     if anfang < 0 or ende < 0:
         return []
     block = re.sub(r"<!--.*?-->", "", seite[anfang:ende], flags=re.S)
-    eintraege = re.findall(r"(\s*<li>.*?</li>\n?)", block, re.S)
-    # Der Platzhalter »Der erste Tipp ist gerade erschienen« ist kein Eintrag.
-    return [e for e in eintraege if "gerade erschienen" not in e]
+    # Die Kacheln, nicht die Umschläge: Gesucht sind Spalten mit einer
+    # Wochenangabe darin. Der einleitende Absatz steht in col-xs-12 und
+    # trägt keine, der Platzhalter ebenfalls nicht.
+    eintraege = re.findall(
+        r'(        <div class="col-xs-6[^"]*">.*?</div>\n)', block, re.S)
+    return [e for e in eintraege if "KW " in e]
 
 
 def _kopf_nachziehen(seite: str, tipp: dict[str, Any], woche: int,
