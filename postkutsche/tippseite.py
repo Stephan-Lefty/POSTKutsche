@@ -110,25 +110,90 @@ def _verweise(eintraege: list[dict[str, str]]) -> str:
     Die Verweise gibt der Betreiber vor; sie werden nicht vom Modell erfunden.
     Ein erfundener Artikellink führt ins Leere und ist schlimmer als keiner.
     """
-    if not eintraege:
+    brauchbar = [e for e in eintraege if e.get("adresse")]
+    if not brauchbar:
         return ""
-    zeilen = "".join(
-        f'                \t<li><a href="{html.escape(str(e["adresse"]), quote=True)}">'
-        f'{html.escape(str(e.get("text") or e["adresse"]))}</a></li>\n'
-        for e in eintraege if e.get("adresse"))
-    if not zeilen:
-        return ""
+    zeilen = ""
+    for e in brauchbar:
+        ziel = html.escape(str(e["adresse"]), quote=True)
+        name = html.escape(str(e.get("text") or e["adresse"]))
+        # Mit Bild wird daraus ein Kästchen, ohne Bild eine Zeile. Ein
+        # Artikel, den man sieht, wird eher angeklickt als einer, der als
+        # blauer Text unter einem Fachtext steht.
+        if e.get("bild"):
+            zeilen += f"""            <div class="row">
+            \t<div class="col-xs-4 col-sm-3">
+                \t<a href="{ziel}"><img src="{html.escape(str(e["bild"]), quote=True)}"
+                         class="img-responsive"
+                         alt="{html.escape(str(e.get("alt") or e.get("text") or ""), quote=True)}" /></a>
+                </div>
+                <div class="col-xs-8 col-sm-9">
+                \t<p><a href="{ziel}"><strong>{name}</strong></a><br />
+                    {html.escape(str(e.get("warum") or ""))}</p>
+                </div>
+            </div>
+"""
+        else:
+            zeilen += f'            <p><a href="{ziel}">{name}</a></p>\n'
     return f"""            <div class="border-top">&nbsp;</div>
             <p class="noMargin"><small><strong>Passend dazu aus unserem Sortiment</strong></small></p>
-            <ul>
-{zeilen}            </ul>
-"""
+{zeilen}"""
+
+
+def _merksatz(text: str) -> str:
+    """Ein abgesetzter Kasten mitten im Text.
+
+    Neun Absätze am Stück liest niemand zu Ende. Ein hervorgehobener Satz
+    unterbricht die Fläche und ist zugleich das, was hängenbleibt, wenn
+    jemand nur überfliegt – deshalb gehört dort die Kernaussage hinein und
+    keine Zusammenfassung.
+    """
+    if not text.strip():
+        return ""
+    return (f'            <blockquote>\n            \t<p>'
+            f'{_mit_auszeichnung(text)}</p>\n            </blockquote>\n')
+
+
+def _bildspalte(bilder: list[dict[str, str]]) -> str:
+    """Die rechte Spalte: Grafik der Woche, darunter passende Artikelbilder.
+
+    Die Spalte gab es auf der Seite schon, bevor hier etwas automatisiert
+    wurde – ohne sie steht der Text über die ganze Breite und liest sich
+    als Bleiwüste. Jedes Bild darf verlinkt sein und trägt eine
+    Bildunterschrift; `alt` ist Pflicht, sonst ist die Seite für einen
+    Vorleser nur halb da.
+    """
+    if not bilder:
+        return ""
+    stuecke = []
+    for bild in bilder:
+        if not bild.get("adresse"):
+            continue
+        marke = (f'<img src="{html.escape(str(bild["adresse"]), quote=True)}"\n'
+                 f'                     class="img-responsive"\n'
+                 f'                     alt="{html.escape(str(bild.get("alt") or ""), quote=True)}" />')
+        if bild.get("verweis"):
+            marke = (f'<a href="{html.escape(str(bild["verweis"]), quote=True)}">\n'
+                     f'            \t{marke}\n            </a>')
+        stueck = f"        \t{marke}\n"
+        if bild.get("unterschrift"):
+            stueck += (f'            <p class="text-center"><small>'
+                       f'{html.escape(str(bild["unterschrift"]))}</small></p>\n')
+        stuecke.append(stueck)
+    if not stuecke:
+        return ""
+    return ('        <div class="col-xs-12 col-sm-5 col-md-4">\n'
+            + "\n".join(stuecke) + "        </div>\n")
 
 
 def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
     """Der Block mit dem Tipp dieser Woche."""
     text = ("".join(_stueck(s) for s in tipp["absaetze"])
             + _verweise(tipp.get("verweise") or []))
+    bilder = _bildspalte(tipp.get("bilder") or [])
+    # Ohne Bild nimmt der Text die ganze Breite; mit Bild bleiben zwei
+    # Drittel, wie die Seite es vorher schon hatte.
+    breite = "col-xs-12 col-sm-7 col-md-8" if bilder else "col-xs-12"
     return f"""
     <div class="row">
     \t<div class="col-xs-12">
@@ -139,9 +204,9 @@ def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
     </div>
 
     <div class="row">
-    \t<div class="col-xs-12 col-sm-7 col-md-8">
+    \t<div class="{breite}">
 {text}        </div>
-    </div>
+{bilder}    </div>
 
 """
 
@@ -156,6 +221,8 @@ def _stueck(teil: Any) -> str:
     """
     if isinstance(teil, dict) and teil.get("ueber"):
         return f'            <h3>{html.escape(teil["ueber"])}</h3>\n'
+    if isinstance(teil, dict) and teil.get("merksatz"):
+        return _merksatz(str(teil["merksatz"]))
     return (f'            <p>\n            \t'
             f'{_mit_auszeichnung(str(teil))}\n            </p>\n')
 
