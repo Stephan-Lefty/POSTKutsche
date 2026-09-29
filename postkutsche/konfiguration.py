@@ -35,6 +35,12 @@ def ordner() -> Path:
     aus_umgebung = os.environ.get("POSTKUTSCHE_CONFIG")
     if aus_umgebung:
         return Path(aus_umgebung)
+    # Der gemeinsame Ordner für den tragbaren Betrieb - siehe
+    # `ablage.standard_pfad`. `POSTKUTSCHE_CONFIG` sticht ihn, damit die
+    # Tests weiterhin einen eigenen Ordner setzen können.
+    gemeinsam = os.environ.get("POSTKUTSCHE_ORDNER")
+    if gemeinsam:
+        return Path(gemeinsam) / "einstellungen"
     return Path.home() / ".config" / "postkutsche"
 
 

@@ -70,6 +70,9 @@ def dokumentenordner() -> Path:
        verzeichnis. Gibt es keinen, wird »Dokumente« angelegt – POSTKutsche
        spricht Deutsch, also ist das die bessere Wette als »Documents«.
     """
+    gemeinsam = os.environ.get("POSTKUTSCHE_ORDNER")
+    if gemeinsam and not os.environ.get("POSTKUTSCHE_DOKUMENTE"):
+        return Path(gemeinsam) / "dokumente"
     aus_umgebung = os.environ.get("POSTKUTSCHE_DOKUMENTE")
     if aus_umgebung:
         return Path(aus_umgebung).expanduser()
@@ -314,6 +317,38 @@ def _zuschneiden(quelle: Path, ziel: Path) -> Path:
         zugeschnitten.save(ziel, "JPEG", quality=88, optimize=True)
 
     return ziel
+
+
+def wiederfinden(pfad: Path | str | None) -> Path | None:
+    """Ein Bild suchen, dessen gespeicherter Pfad nicht mehr stimmt.
+
+    In der Ablage stehen absolute Pfade. Zieht POSTKutsche auf einen Stick
+    oder an einen anderen Rechner, zeigen sie ins Leere – die Dateien liegen
+    da, aber niemand findet sie, und in der Oberfläche fehlen die Bilder
+    wortlos.
+
+    Deshalb: Stimmt der Pfad nicht, wird derselbe Dateiname im aktuellen
+    Bilderordner gesucht. Die Namen sind eindeutig (Streuwert der Adresse
+    beziehungsweise Format und Zeitstempel), eine Verwechslung ist also
+    nicht zu befürchten. Findet sich nichts, kommt `None` – dann fehlt das
+    Bild wirklich.
+
+    Absichtlich keine Wanderung der Datenbank: Ein Pfad, der auf dem
+    Heimrechner stimmt und auf dem Stick nicht, soll auf beiden
+    funktionieren, ohne dass jemand vorher etwas umschreibt.
+    """
+    if not pfad:
+        return None
+    vorhanden = Path(pfad)
+    if vorhanden.exists():
+        return vorhanden
+    ersatz = ordner() / vorhanden.name
+    if ersatz.exists():
+        return ersatz
+    # Auch unter »Dokumente« nachsehen: Dort liegen die abgelegten Fassungen.
+    for gefunden in dokumentenordner().rglob(vorhanden.name):
+        return gefunden
+    return None
 
 
 def masse(pfad: Path | str) -> tuple[int, int] | None:

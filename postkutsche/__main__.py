@@ -50,6 +50,16 @@ def _zerleger() -> argparse.ArgumentParser:
     )
     einrichten.set_defaults(handlung=_einrichten)
 
+    # -- umziehen ---------------------------------------------------------
+    umziehen = unter.add_parser(
+        "umziehen",
+        help="alles in einen Ordner kopieren, der sich mitnehmen lässt")
+    umziehen.add_argument("ziel", help="Ordner, etwa /run/media/…/POSTKutsche")
+    umziehen.add_argument(
+        "--wirklich", action="store_true",
+        help="ohne diesen Schalter wird nur gezeigt, was geschähe")
+    umziehen.set_defaults(handlung=_umziehen)
+
     # -- projekt ----------------------------------------------------------
     projekt = unter.add_parser("projekt", help="Projekte anzeigen und verwalten")
     projekt_unter = projekt.add_subparsers(dest="projekt_befehl")
@@ -214,6 +224,70 @@ def _zerleger() -> argparse.ArgumentParser:
 
 
 # -- Handlungen ------------------------------------------------------------
+
+
+def _umziehen(ablage: Ablage, args: argparse.Namespace) -> int:
+    """Kopiert Ablage, Einstellungen und Dokumente unter einen Ordner.
+
+    **Kopiert, nicht verschoben.** Was am alten Ort liegt, bleibt liegen –
+    beim ersten Umzug will man vergleichen können, und eine Sicherung, die
+    von selbst entsteht, ist die beste.
+
+    Ohne `--wirklich` wird nur aufgezählt, was geschähe. Ein Befehl, der
+    ungefragt Gigabyte kopiert, weil man den Pfad vertippt hat, ist keiner.
+    """
+    import shutil
+
+    from . import bilder, konfiguration
+
+    ziel = Path(args.ziel).expanduser()
+    stuecke = [
+        ("einstellungen", konfiguration.ordner()),
+        ("ablage", ablage.pfad.parent),
+        ("dokumente", bilder.dokumentenordner() / bilder.SAMMELORDNER),
+    ]
+
+    print(f"Ziel: {ziel}")
+    gesamt = 0
+    for name, quelle in stuecke:
+        if not quelle.exists():
+            print(f"  {name:14} – nichts vorhanden ({quelle})")
+            continue
+        dateien = [d for d in quelle.rglob("*") if d.is_file()]
+        groesse = sum(d.stat().st_size for d in dateien)
+        gesamt += groesse
+        print(f"  {name:14} {len(dateien):4} Dateien, "
+              f"{groesse / 1024 / 1024:8.1f} MB   ← {quelle}")
+    print(f"  {'zusammen':14} {gesamt / 1024 / 1024:8.1f} MB")
+
+    if not args.wirklich:
+        print()
+        print("Nur angesehen. Mit »--wirklich« wird kopiert.")
+        return 0
+
+    for name, quelle in stuecke:
+        if not quelle.exists():
+            continue
+        shutil.copytree(quelle, ziel / name, dirs_exist_ok=True)
+        print(f"  kopiert: {name}")
+
+    # Das Startskript daneben, damit der Ordner für sich allein läuft.
+    skript = Path(__file__).parent.parent / "werkzeuge" / "postkutsche-tragbar.sh"
+    if skript.exists():
+        shutil.copy(skript, ziel / skript.name)
+        (ziel / skript.name).chmod(0o755)
+        print(f"  kopiert: {skript.name}")
+
+    # Zugangsdaten sind auch am neuen Ort schutzbedürftig.
+    zugaenge = ziel / "einstellungen" / "zugaenge.json"
+    if zugaenge.exists():
+        zugaenge.chmod(0o600)
+        print("  Rechte auf zugaenge.json gesetzt (600)")
+
+    print()
+    print(f"Fertig. Am alten Ort ist nichts gelöscht worden.")
+    print(f"Starten mit:  {ziel / 'postkutsche-tragbar.sh'} kalender")
+    return 0
 
 
 def _einrichten(ablage: Ablage, args: argparse.Namespace) -> int:

@@ -14,6 +14,7 @@ gestohlen, und merkt es im Oktober.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -212,7 +213,17 @@ class Projekt:
 
 
 def standard_pfad() -> Path:
-    """Wo die Ablage liegt, wenn nichts anderes gesagt wird."""
+    """Wo die Ablage liegt, wenn nichts anderes gesagt wird.
+
+    `POSTKUTSCHE_ORDNER` sticht alles: Steht die Variable, liegen Ablage,
+    Einstellungen und Dokumente unter diesem einen Ordner. Damit passt
+    POSTKutsche auf einen Stick und läuft am nächsten Rechner weiter, ohne
+    dass Pfade zu ändern wären – das Startskript setzt sie auf den Ordner,
+    in dem es selbst liegt.
+    """
+    aus_umgebung = os.environ.get("POSTKUTSCHE_ORDNER")
+    if aus_umgebung:
+        return Path(aus_umgebung) / "ablage" / "postkutsche.db"
     return Path.home() / ".local" / "share" / "postkutsche" / "postkutsche.db"
 
 

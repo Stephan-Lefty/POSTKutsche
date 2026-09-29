@@ -695,9 +695,18 @@ class Behandler(BaseHTTPRequestHandler):
         if zeile is None or not zeile[spalte]:
             return self._fehler("Zu dieser Fassung gibt es kein Bild.", 404)
 
-        datei = Path(zeile[spalte]).resolve()
-        erlaubt = bilder.ordner().resolve()
-        if not str(datei).startswith(str(erlaubt)) or not datei.is_file():
+        # Der gespeicherte Pfad ist absolut und stimmt nach einem Umzug auf
+        # einen Stick oder an einen anderen Rechner nicht mehr. `wiederfinden`
+        # sucht dann denselben Dateinamen im aktuellen Bilderordner.
+        gefunden = bilder.wiederfinden(zeile[spalte])
+        if gefunden is None:
+            return self._fehler("Das Bild liegt nicht mehr da.", 404)
+        datei = gefunden.resolve()
+        # Der Ausliefer-Riegel bleibt: Nur aus den eigenen Ordnern, damit
+        # ein manipulierter Pfad nicht das halbe Dateisystem öffnet.
+        erlaubt = [bilder.ordner().resolve(), bilder.dokumentenordner().resolve()]
+        if not any(str(datei).startswith(str(o)) for o in erlaubt) \
+                or not datei.is_file():
             return self._fehler("Das Bild liegt nicht mehr da.", 404)
 
         art = mimetypes.guess_type(datei.name)[0] or "application/octet-stream"
