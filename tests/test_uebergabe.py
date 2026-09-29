@@ -182,5 +182,29 @@ class Unterordner(unittest.TestCase):
                 gefunden = uebergabe.datentraeger_suchen("stephan")
         self.assertEqual([p.name for p in gefunden], ["Urlaub2026"])
 
+
+class Ordnerbild(unittest.TestCase):
+    """Der Ordner auf dem Datenträger trägt das Programmsymbol."""
+
+    def test_beim_mitnehmen_entsteht_eine_directory_datei(self):
+        with tempfile.TemporaryDirectory() as o:
+            wurzel = Path(o)
+            lokal, stick = wurzel / "lokal", wurzel / "stick"
+            (lokal / "ablage").mkdir(parents=True)
+            (lokal / "einstellungen").mkdir()
+            (lokal / "ablage" / "postkutsche.db").write_text("x", encoding="utf-8")
+            with mock.patch.dict(os.environ, {
+                    "POSTKUTSCHE_CONFIG": str(lokal / "einstellungen"),
+                    "POSTKUTSCHE_DOKUMENTE": str(lokal)}):
+                uebergabe.uebergeben(lokal / "ablage" / "postkutsche.db",
+                                     stick, "mitnehmen")
+            ordner = stick / uebergabe.UNTERORDNER
+            self.assertTrue((ordner / ".directory").exists())
+            self.assertTrue((ordner / ".postkutsche.png").exists())
+            # Relativ, nicht absolut: Ein fester Pfad zeigte am nächsten
+            # Rechner ins Leere.
+            self.assertIn("Icon=./.postkutsche.png",
+                          (ordner / ".directory").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     unittest.main()

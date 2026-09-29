@@ -182,6 +182,9 @@ def uebergeben(ablage_pfad: Path | str, ziel: Path | str, richtung: str,
                 f"»{name}« ließ sich nicht kopieren: {fehler}") from fehler
         kopiert.append(name)
 
+    if richtung == "mitnehmen":
+        _ordnerbild(nach["ablage"].parent)
+
     # Zugangsdaten sind auch am neuen Ort schutzbedürftig. Auf FAT bleibt
     # das wirkungslos - dort hilft nur ein anderes Dateisystem.
     zugaenge = nach["einstellungen"] / "zugaenge.json"
@@ -193,3 +196,33 @@ def uebergeben(ablage_pfad: Path | str, ziel: Path | str, richtung: str,
 
     return {"richtung": richtung, "kopiert": kopiert,
             "dateien": quelle["dateien"], "groesse": quelle["groesse"]}
+
+
+def _ordnerbild(wurzel: Path) -> None:
+    """Dem Ordner auf dem Datenträger das Programmsymbol geben.
+
+    Zwischen zwanzig gleich aussehenden Ordnern findet man den richtigen
+    schneller an einem Bild als an einem Namen. KDE und Dolphin lesen dafür
+    eine `.directory`, GNOME-Dateimanager ignorieren sie stillschweigend –
+    schaden tut sie also nirgends.
+
+    Der Verweis ist relativ: Ein absoluter Pfad zeigte am nächsten Rechner
+    ins Leere, und dann stünde dort ein leeres Symbol statt gar keines.
+    """
+    import shutil as sh
+
+    quelle = Path(__file__).parent.parent / "assets" / "icon-256.png"
+    if not quelle.exists():
+        return
+    try:
+        wurzel.mkdir(parents=True, exist_ok=True)
+        sh.copy(quelle, wurzel / ".postkutsche.png")
+        (wurzel / ".directory").write_text(
+            "[Desktop Entry]\nIcon=./.postkutsche.png\n"
+            "Name=POSTKutsche\nComment=Redaktionskalender – Arbeitsstand\n",
+            encoding="utf-8")
+    except OSError:
+        # Ein fehlendes Symbol ist kein Grund, die Übergabe scheitern zu
+        # lassen. Auf FAT ohne Rechte oder bei vollem Datenträger passiert
+        # das, und die Daten sind wichtiger als das Bild.
+        pass
