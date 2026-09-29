@@ -21,6 +21,8 @@ Oberfläche ändert.
 - [Eine Woche planen](#eine-woche-planen)
 - [Gelerntes durchsehen](#gelerntes-durchsehen)
 - [Veröffentlichen](#veröffentlichen)
+- [Mitnehmen und zurückholen](#mitnehmen-und-zurückholen)
+- [Wochen ein- und ausklappen](#wochen-ein--und-ausklappen)
 - [Wenn etwas klemmt](#wenn-etwas-klemmt)
 
 ## Der Kalender
@@ -328,6 +330,42 @@ Abgelegte Bilder landen unter
 nicht im Download-Ordner, weil ein Browser nicht bestimmen kann, wohin eine
 Datei geht – der Dienst läuft auf demselben Rechner und legt sie selbst hin.
 Die Woche steht vorn, damit man nach ein paar Monaten weiß, was weg kann.
+
+## Mitnehmen und zurückholen
+
+POSTKutsche passt auf einen Stick. In der linken Spalte unter »Zeichen«
+stehen zwei Knöpfe: **Auf den Stick** schreibt Ablage, Einstellungen und
+Dokumente auf einen angesteckten Datenträger, **Zurückholen** wieder herein.
+Der Datenträger wird selbst gefunden – er muss nur einen Ordner
+»POSTKutsche« tragen; wie er heißt, ist gleich.
+
+**Das ist keine Synchronisation, sondern eine Übergabe.** Zu jedem Zeitpunkt
+ist genau ein Ort der gültige. Zwei SQLite-Dateien lassen sich nicht
+zusammenführen: Wer an beiden Orten Beiträge anlegt, verliert die einer
+Seite, und kein Programm kann entscheiden welche. Deshalb steht in der Zeile
+über den Knöpfen, welche Seite den neueren Stand trägt, und wer eine neuere
+Fassung überschreiben will, wird gefragt.
+
+Kopiert wird, nicht verschoben – der alte Stand bleibt als Sicherung liegen.
+
+**Unterwegs arbeiten:** Im Ordner auf dem Datenträger liegt »POSTKutsche
+starten« zum Doppelklicken. Erst dann kommen die Daten vom Stick; solange
+nur der lokale Dienst läuft, schreibt der weiter lokal – das Anstecken allein
+ändert nichts.
+
+**Was nicht mitwandert, ist das Programm.** Auf dem anderen Rechner müssen
+Python, Firefox und die angemeldete Claude-Kommandozeile vorhanden sein, und
+POSTKutsche selbst kommt aus dem Repository. Wo es dort liegt, steht in
+`programm.txt` neben dem Startskript.
+
+## Wochen ein- und ausklappen
+
+Ein Klick auf den Wochenkopf im Kalender klappt die Woche zu. Offen ist
+zunächst nur die laufende; was von Hand umgestellt wurde, bleibt beim
+Neuladen erhalten. Je weniger Wochen offen sind, desto höher werden sie –
+bei einer einzigen nimmt sie fast den ganzen Bildschirm ein. Damit bleiben
+die Titel in den Kärtchen vollständig: Wer Platz braucht, klappt zu, statt
+dass das Programm Text wegnimmt.
 
 ## Wenn etwas klemmt
 

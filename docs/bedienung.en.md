@@ -20,6 +20,8 @@ interface changes. The interface itself is German only.
 - [Planning a week](#planning-a-week)
 - [Reviewing what was learned](#reviewing-what-was-learned)
 - [Publishing](#publishing)
+- [Taking it along and bringing it back](#taking-it-along-and-bringing-it-back)
+- [Folding weeks open and shut](#folding-weeks-open-and-shut)
 - [When something is stuck](#when-something-is-stuck)
 
 ## The calendar
@@ -319,6 +321,40 @@ Filed images end up under
 than into the download folder because a browser cannot decide where a file
 lands – the service runs on the same machine and files it itself. The week
 comes first in the name so that months later you can tell what can go.
+
+## Taking it along and bringing it back
+
+POSTKutsche fits on a USB stick. In the left column under »Zeichen« there
+are two buttons: **Auf den Stick** writes database, settings and documents
+to an attached drive, **Zurückholen** brings them back. The drive is found
+automatically — it only needs a folder called »POSTKutsche«; its own name
+doesn't matter.
+
+**This is not synchronisation, it is a handover.** At any moment exactly one
+place is the valid one. Two SQLite files cannot be merged: create posts in
+both places and one side's work is lost, and no program can decide which.
+That is why the line above the buttons says which side holds the newer
+state, and overwriting a newer one asks first.
+
+It copies, it doesn't move — the old state stays behind as a backup.
+
+**Working away from the desk:** the folder on the drive holds »POSTKutsche
+starten« to double-click. Only then does the data come from the stick; as
+long as just the local service runs, it keeps writing locally — plugging the
+stick in changes nothing by itself.
+
+**The program doesn't travel.** The other machine needs Python, Firefox and
+a signed-in Claude command line, and POSTKutsche itself comes from the
+repository. Where it lives there is noted in `programm.txt` next to the
+start script.
+
+## Folding weeks open and shut
+
+Clicking a week header in the calendar folds that week away. Only the
+current one is open to begin with; anything changed by hand survives a
+reload. The fewer weeks are open, the taller they get — a single one takes
+almost the whole screen. That keeps the titles on the cards complete:
+whoever needs room folds a week away instead of the program cutting text.
 
 ## When something is stuck
 

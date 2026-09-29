@@ -87,6 +87,35 @@ Rechner. Eine blaue Leiste im Kalender prüft die Seite im Netz und meldet
 sich, solange dort eine ältere Kalenderwoche steht – das deckt beides ab, den
 fehlenden Tipp und die nicht hochgeladene Datei.
 
+**POSTKutsche passt auf einen Stick** (`uebergabe.py`, `postkutsche umziehen`,
+`werkzeuge/postkutsche-tragbar.sh`). `POSTKUTSCHE_ORDNER` legt Ablage,
+Einstellungen und Dokumente unter ein Dach; das Startskript setzt die
+Variable auf seinen eigenen Fundort, damit der Einhängepfad gleich sein
+kann. Auf dem Datenträger liegt alles unter `POSTKutsche/`, damit er für
+anderes brauchbar bleibt – und daran wird er auch erkannt, nicht an seinem
+Namen.
+
+**Keine Synchronisation, eine Übergabe.** Zwei SQLite-Dateien lassen sich
+nicht zusammenführen; wer an zwei Orten arbeitet, verliert eine Seite. Also
+ist zu jedem Zeitpunkt genau ein Ort der gültige, die Oberfläche sagt
+welcher, und ein Überschreiben neuerer Arbeit fragt nach. Innerhalb von zwei
+Minuten gelten zwei Stände als gleich – sonst meldete die Zeile direkt nach
+dem Kopieren, die Zielseite sei neuer.
+
+Drei Dinge, die beim Bauen schiefgingen und nicht wieder aufzurollen sind:
+In der Ablage stehen **absolute Bildpfade**, die nach einem Umzug ins Leere
+zeigen – `bilder.wiederfinden` sucht dann den Dateinamen im aktuellen
+Ordner. Die **Feldcodes der Desktop-Norm** (`%k`) werden in Anführungszeichen
+nicht ersetzt, ein Doppelklick tat deshalb gar nichts; der Pfad steht jetzt
+fest und wird bei jedem Start nachgezogen. Und **das Programm wandert nicht
+mit** – nur die Daten. Wo der Quelltext liegt, steht in `programm.txt`.
+
+**Die Wochen im Kalender sind Klappfächer.** Offen ist nur die laufende;
+kommende werden beim Scrollen nachgeladen und wären sonst ebenfalls offen,
+womit die aufgeklappte Woche wieder schrumpfte. Die Zellenhöhe rechnet mit
+`--offene-wochen`, das JavaScript setzt sie. Damit bleiben die Titel
+vollständig: Wer Platz braucht, klappt zu, statt dass Text wegfällt.
+
 **Offen:** Das Archiv ist ungetestet im Betrieb – die erste Kachel entsteht
 erst mit KW 41. Der Merksatz kam bisher von Hand; ab dem nächsten Tipp
 verlangt ihn die Anweisung. Und die Projektpalette ist mit sieben Projekten
@@ -329,6 +358,7 @@ schlecht eingestellten Bildschirm sitzt, muss es trotzdem lesen können.
 | `grafik.py` | ein Gerüst, zwei Füllungen, quer und hoch |
 | `wochenformat.py` | Tipp und Produkt der Woche, von der Eingabe zum Beitrag |
 | `tippseite.py` | schreibt `Tipp-der-Woche.html` fort |
+| `uebergabe.py` | Arbeitsstand mitnehmen und zurückholen |
 | `farben.py` | die gemeinsame Palette, auch für andere Projekte |
 | `__main__.py` | Kommandozeile |
 
