@@ -298,12 +298,38 @@ def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
         meldungen.append(f"Die Tipp-Seite ließ sich nicht fortschreiben: {fehler}")
         return None
 
-    ziel = bilder.ablageordner(projekt.kennung, geplant) / "Tipp-der-Woche.html"
+    ziel = bilder.ablageordner(projekt.kennung, geplant) / Path(adresse).name
     ziel.write_text(neu, encoding="utf-8")
-    meldungen.append(
-        f"Noch hochzuladen: {ziel} – die Seite Tipp-der-Woche.html ist "
-        f"fortgeschrieben, liegt aber nur auf der Platte.")
+    meldungen.append(_hochladen(adresse, ziel, seite.get("bilder") or []))
     return ziel
+
+
+def _hochladen(adresse: str, datei: Path, bildliste: list[dict[str, str]]) -> str:
+    """Der Hinweis, was wohin gehört – mit Zielpfad, nicht nur »hochladen«.
+
+    Ohne Zielpfad sucht man beim zweiten Mal wieder, wohin die Grafik
+    gehörte. Die Pfade stehen nicht im Programm: Sie ergeben sich aus der
+    Adresse der Seite und aus den Bildadressen, die dort eingesetzt wurden.
+    """
+    from urllib.parse import urlsplit
+
+    ort = urlsplit(adresse)
+    wohin = ort.path.rsplit("/", 1)[0] or "/"
+    zeilen = [f"Noch hochzuladen auf {ort.netloc}:",
+              f"  {datei.name} → {wohin.rstrip('/')}/"]
+    gesehen = set()
+    for bild in bildliste:
+        for schluessel in ("adresse", "vorschau"):
+            wert = bild.get(schluessel)
+            if not wert:
+                continue
+            pfad = urlsplit(str(wert)).path
+            name, ordner = pfad.rsplit("/", 1)[-1], pfad.rsplit("/", 1)[0]
+            if name in gesehen:
+                continue
+            gesehen.add(name)
+            zeilen.append(f"  {name} → {ordner}/")
+    return " ".join(zeilen)
 
 
 def _inhalt_merken(ablage, projekt, art, quelle, grafikdaten):

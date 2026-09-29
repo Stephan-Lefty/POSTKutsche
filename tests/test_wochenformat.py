@@ -221,9 +221,6 @@ class Bildzuordnung(unittest.TestCase):
         self.assertNotIn("facebook", wochenformat.HOCHFORMAT_FUER)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class Vorgabeprojekt(unittest.TestCase):
     """Wer das Fenster »Produkt der Woche« öffnet, hat das Projekt schon gesagt."""
@@ -283,3 +280,37 @@ class FruehePruefung(unittest.TestCase):
                 wochenformat.produkt(a, "", "https://shop.example/t.html",
                                      "2026-10-01T08:00:00Z", [])
         abruf.assert_not_called()
+
+
+class Hochladehinweis(unittest.TestCase):
+    """Der Hinweis nennt Zielpfade, nicht nur »hochladen«."""
+
+    BILDER = [{"adresse": "https://shop.example/images/tipp/kw40.png",
+               "vorschau": "https://shop.example/images/tipp/kw40-klein.jpg"}]
+
+    def _text(self):
+        return wochenformat._hochladen(
+            "https://shop.example/Tipp-der-Woche.html",
+            Path("/irgendwo/Tipp-der-Woche.html"), self.BILDER)
+
+    def test_die_seite_gehoert_in_den_ordner_ihrer_adresse(self):
+        self.assertIn("Tipp-der-Woche.html → /", self._text())
+
+    def test_die_bilder_gehoeren_in_ihren_eigenen_ordner(self):
+        text = self._text()
+        self.assertIn("kw40.png → /images/tipp/", text)
+        self.assertIn("kw40-klein.jpg → /images/tipp/", text)
+
+    def test_der_rechner_wird_genannt(self):
+        # Wer mehrere Auftritte pflegt, lädt sonst auf den falschen.
+        self.assertIn("shop.example", self._text())
+
+    def test_jede_datei_nur_einmal(self):
+        doppelt = self.BILDER + self.BILDER
+        text = wochenformat._hochladen(
+            "https://shop.example/Tipp-der-Woche.html",
+            Path("/irgendwo/Tipp-der-Woche.html"), doppelt)
+        self.assertEqual(text.count("kw40.png"), 1)
+
+if __name__ == "__main__":
+    unittest.main()
