@@ -10,6 +10,29 @@ wurde.
 
 ### Als Nächstes
 
+- **Tipp der Woche und Produkt der Woche, mit eigener Grafik.** Beide Projekte
+  stehen seit dem 2026-09-29 (`tipp-woche`, `produkt-woche`). Sie bekommen
+  Unterschiedliches vorgesetzt: der Tipp ein Thema – etwa »Wie pflege ich im
+  Herbst Außentüren richtig?« –, das Produkt einen Link in den Shop. Daraus
+  sollen Text *und* Bild entstehen. Getrennt gehalten sind sie wegen des
+  Projektwissens: Es geht in jeden Entwurf seines Projekts, und eine Regel
+  über Türpflege hat in einem Produkttext nichts verloren.
+
+  Ein Muster im Hausstil ist gebaut: HTML mit Platzhaltern, von Firefox als
+  PNG ausgegeben, alles Veränderliche in einem Datensatz. Was fehlt, ist
+  nichts Programmiertes: die verdichtete Grotesk des Hausstils (hier steht nur
+  DejaVu Condensed), das Logo als Datei statt nachgezeichnet, und woher das
+  Stimmungsbild zum Tipp kommt – ein Produktfoto holt `bilder.py` schon, ein
+  Herbstbild hat niemand. Offen außerdem das Hochformat: Der Entwurf ist 3:2,
+  Instagram will 4:5, und ein Zuschnitt aus der Mitte zerschneidet dieses
+  Layout.
+- **Die Projektpalette ist aufgebraucht.** Mit sieben Projekten sind alle fünf
+  Farben aus `PROJEKTFARBEN` vergeben. Die beiden neuen haben Oliv und Türkis
+  bekommen; Oliv liegt nur 28° vom Gelb des ersten Shops, Türkis 20° vom
+  Blaugrün von DialOS. Ausgerechnet die beiden HaBeFa-Formate stehen damit
+  neben der Farbe des HaBeFa-Shops. Entweder die Palette erweitern – das ging
+  beim ersten Versuch schon einmal schief, zwei Töne lagen 29 auseinander –
+  oder die Kärtchen tragen ein Kürzel wie die Netzwerke.
 - **Die erste Woche mit dem neuen Seitenlesen planen.** Seit dem 2026-08-28
   wird der Fließtext der Produktseite gelesen statt nur der `og:description`,
   und Umleitungen werden verfolgt. Damit sollten deutlich weniger Rückfragen

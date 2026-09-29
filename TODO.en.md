@@ -9,6 +9,27 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
+- **Tip of the week and product of the week, each with its own graphic.** Both
+  projects exist since 2026-09-29 (`tipp-woche`, `produkt-woche`). They are fed
+  differently: the tip gets a subject — say »How do I care for exterior doors
+  in autumn?« —, the product gets a link into the shop. Text *and* image should
+  come out of that. They are kept apart because of project knowledge: it goes
+  into every draft of its project, and a rule about door care has no business
+  in a product text.
+
+  A sample in the house style is built: HTML with placeholders, rendered to PNG
+  by Firefox, everything variable in one record. What's missing isn't code: the
+  condensed grotesque of the house style (only DejaVu Condensed is installed
+  here), the logo as a file instead of redrawn, and where the mood image for a
+  tip comes from — `bilder.py` already fetches a product photo, an autumn
+  picture nobody has. Also open is portrait format: the draft is 3:2, Instagram
+  wants 4:5, and a centre crop cuts this layout apart.
+- **The project palette is used up.** With seven projects all five colours in
+  `PROJEKTFARBEN` are taken. The two new ones got olive and turquoise; olive
+  sits only 28° from the first shop's yellow, turquoise 20° from the teal of
+  DialOS. So of all things, the two HaBeFa formats stand next to the colour of
+  the HaBeFa shop. Either extend the palette — that went wrong once already,
+  two hues were 29 apart — or give the cards a short tag like the networks.
 - **DialOS has enough posts for one week.** Eight German posts are available,
   a week wants seven days. Plan them once and there is almost nothing left for
   four weeks – the cooling-off period blocks whatever has already run. Either
