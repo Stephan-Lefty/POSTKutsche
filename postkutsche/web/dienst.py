@@ -55,6 +55,56 @@ DENKER_STAND_GILT = 900
 _denker_stand: dict[str, dict[str, Any]] = {}
 _denker_sperre = threading.Lock()
 
+#: Wie lange der Stand der Tipp-Seite gilt. Länger als beim Denker: Eine
+#: Webseite ändert sich nicht im Minutentakt, und jeder Abruf geht ins Netz.
+TIPPSEITE_GILT = 3600
+
+_tippseite_stand: dict[str, dict[str, Any]] = {}
+_tippseite_sperre = threading.Lock()
+
+
+def tippseite_stand(kennung: str) -> dict[str, Any] | None:
+    """Was zuletzt auf der Tipp-Seite stand – oder None, wenn unbekannt."""
+    with _tippseite_sperre:
+        stand = _tippseite_stand.get(kennung)
+        if not stand or (time.monotonic() - stand["zeit"]) > TIPPSEITE_GILT:
+            return None
+        return dict(stand)
+
+
+def tippseite_nachsehen(kennung: str) -> dict[str, Any] | None:
+    """Die Seite abrufen und merken, welche Woche dort steht.
+
+    Geprüft wird die Wirklichkeit, nicht ein Kalender: Steht dort eine
+    ältere Woche, ist entweder kein Tipp geschrieben oder die Datei nicht
+    hochgeladen worden. Von außen sieht beides gleich aus, und beides
+    braucht denselben Hinweis.
+    """
+    from .. import konfiguration, tippseite as tippseite_modul
+    from ..quellen import abrufen
+
+    adresse = konfiguration.marke(kennung).get("tippseite")
+    if not adresse:
+        return None
+    try:
+        roh = abrufen.holen(adresse)
+        if isinstance(roh, bytes):
+            roh = roh.decode("utf-8", "replace")
+        woche = tippseite_modul.woche_auf_der_seite(roh)
+    except Exception:  # noqa: BLE001
+        # Antwortet die Seite nicht, wird nicht gewarnt. Ein Hinweis, der
+        # auch bei einer Netzstörung erscheint, wird bald übersehen.
+        woche = None
+    ergebnis = {"woche": woche, "adresse": adresse, "zeit": time.monotonic()}
+    with _tippseite_sperre:
+        _tippseite_stand[kennung] = ergebnis
+    return ergebnis
+
+
+def tippseite_vergessen() -> None:
+    with _tippseite_sperre:
+        _tippseite_stand.clear()
+
 
 def denker_stand(weg: str) -> dict[str, Any] | None:
     """Der letzte Prüfstand dieses Weges – oder None, wenn er nichts taugt.
@@ -356,6 +406,8 @@ class Behandler(BaseHTTPRequestHandler):
                 return self._datei(pfad[len("/static/"):])
             if pfad == "/api/projekte":
                 return self._projekte()
+            if pfad == "/api/tippseite":
+                return self._tippseite()
             if pfad == "/api/projektfarben":
                 from .. import farben as farbpalette
 
@@ -784,6 +836,33 @@ class Behandler(BaseHTTPRequestHandler):
             self._json({"id": beitrag, "geplant": geplant,
                         "lesbar": zeiten.lesbar(geplant),
                         "weg": weg, "meldung": meldung})
+
+    def _tippseite(self) -> None:
+        """Ob die Tipp-Seite die laufende Woche zeigt.
+
+        `aktuell: null` heißt »noch nicht nachgesehen« und darf nicht
+        warnen – dieselbe Regel wie bei der Denker-Leiste: Eine Warnung, die
+        sich Sekunden später selbst widerruft, lernt man zu übersehen.
+        """
+        kennung = wochenformat_modul.VORGABEPROJEKT[wochenformat_modul.TIPP]
+        _, laufend = zeiten.kalenderwoche(zeiten.jetzt_utc())
+        stand = tippseite_stand(kennung)
+        if stand is None:
+            threading.Thread(target=tippseite_nachsehen, args=(kennung,),
+                             daemon=True).start()
+            return self._json({"aktuell": None, "woche": laufend})
+        steht = stand.get("woche")
+        aktuell = None if steht is None else (steht >= laufend)
+        self._json({
+            "aktuell": aktuell,
+            "woche": laufend,
+            "steht": steht,
+            "abhilfe": (
+                f"Auf der Seite »Tipp der Woche« steht noch KW {steht}, "
+                f"laufend ist KW {laufend}. Entweder ist der Tipp noch nicht "
+                f"geschrieben, oder die Datei liegt noch unter »Dokumente« und "
+                f"ist nicht hochgeladen." if aktuell is False else ""),
+        })
 
     def _woche(self, rumpf: dict[str, Any], art: str) -> None:
         """»Tipp der Woche« und »Produkt der Woche« anlegen.

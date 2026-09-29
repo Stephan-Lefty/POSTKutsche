@@ -660,3 +660,11 @@ button { font: inherit; cursor: pointer; }
 .terminfeld:focus { outline: 2px solid var(--blau); outline-offset: 1px; }
 /* Ein erschienener Beitrag ist ein Beleg - sein Termin bleibt, wie er war. */
 .terminfeld:disabled { border-bottom-style: dotted; cursor: not-allowed; }
+
+/* Die zweite Leiste: Die Tipp-Seite zeigt eine alte Kalenderwoche.
+   Zurückhaltender als die rote Warnung - hier ist nichts kaputt, es
+   fehlt nur ein Arbeitsschritt. */
+.warnleiste.leise {
+  background: color-mix(in srgb, var(--blau) 10%, var(--flaeche));
+  border-bottom: 2px solid var(--blau);
+}

@@ -110,8 +110,13 @@ async function anfangen() {
   // Beim Start steht die Antwort noch nicht fest - der Dienst holt sie
   // nebenher. Deshalb gleich einmal fragen und dann in Ruhe weiter.
   denkerWachen();
+  tippseiteWachen();
   setTimeout(denkerWachen, 8000);
+  // Der erste Abruf stößt nur die Prüfung an; die Antwort steht ein paar
+  // Sekunden später fest.
+  setTimeout(tippseiteWachen, 9000);
   setInterval(denkerWachen, DENKER_NACHSEHEN);
+  setInterval(tippseiteWachen, DENKER_NACHSEHEN * 6);
 }
 
 // -- Wochenplanung ----------------------------------------------------------
@@ -544,6 +549,30 @@ const DENKER_NACHSEHEN = 5 * 60 * 1000;
  * Start steht die Antwort erst nach ein paar Sekunden fest, und eine
  * Warnung, die sich selbst widerruft, lernt man zu übersehen.
  */
+/** Wacht darüber, dass die Tipp-Seite die laufende Woche zeigt.
+ *
+ * Geprüft wird die Seite selbst, nicht ein Kalender: Der Hinweis deckt
+ * damit beides ab - den Tipp, der nicht geschrieben wurde, und die Datei,
+ * die geschrieben, aber nicht hochgeladen wurde. Genau der zweite Fall ist
+ * der, den man vergisst.
+ *
+ * `aktuell === null` heißt »noch nicht nachgesehen« und schweigt.
+ */
+async function tippseiteWachen() {
+  const leiste = $("#tippwarnung");
+  try {
+    const daten = await hole("/api/tippseite");
+    if (daten.aktuell === false) {
+      leiste.textContent = daten.abhilfe;
+      leiste.hidden = false;
+    } else {
+      leiste.hidden = true;
+    }
+  } catch (fehler) {
+    leiste.hidden = true;
+  }
+}
+
 async function denkerWachen() {
   const leiste = $("#denkerwarnung");
   try {

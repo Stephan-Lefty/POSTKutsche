@@ -76,6 +76,21 @@ def erneuern(seite: str, tipp: dict[str, Any], woche: int, montag) -> str:
     return _kopf_nachziehen(seite, tipp, woche, montag, datum)
 
 
+def woche_auf_der_seite(seite: str) -> int | None:
+    """Welche Kalenderwoche oben auf der Seite steht – oder nichts.
+
+    Damit lässt sich die Wirklichkeit prüfen statt eines Kalenders: Steht
+    dort eine ältere Woche, ist entweder kein Tipp geschrieben oder die
+    Datei nicht hochgeladen worden. Beides sieht von außen gleich aus, und
+    beides muss derselbe Hinweis abdecken.
+    """
+    gefunden = _bisheriger_tipp(seite)
+    try:
+        return int(gefunden["woche"]) if gefunden else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _bisheriger_tipp(seite: str) -> dict[str, str] | None:
     """Woche und Überschrift des Tipps, der gerade noch oben steht."""
     anfang = seite.find(AKTUELL_AUF)

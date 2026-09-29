@@ -15,6 +15,7 @@ widerruft, und die lernt man zu übersehen.
 from __future__ import annotations
 
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -176,3 +177,48 @@ class BeimStart(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TippseitenWache(unittest.TestCase):
+    """Wacht darüber, dass die Tipp-Seite die laufende Woche zeigt."""
+
+    def setUp(self):
+        dienst.tippseite_vergessen()
+        self.addCleanup(dienst.tippseite_vergessen)
+
+    def test_ohne_pruefung_ist_der_stand_unbekannt(self):
+        # »noch nicht nachgesehen« ist nicht »veraltet«.
+        self.assertIsNone(dienst.tippseite_stand("tipp-woche"))
+
+    def test_eine_geholte_woche_wird_gemerkt(self):
+        seite = ('<!-- ============ TIPP AKTUELL ============ -->'
+                 '<p><strong>Kalenderwoche 41</strong></p><h2>Thema</h2>'
+                 '<!-- ============ ENDE TIPP AKTUELL ============ -->')
+        with mock.patch.object(konfiguration, "marke",
+                               return_value={"tippseite": "https://x.example/t.html"}), \
+             mock.patch("postkutsche.quellen.abrufen.holen", return_value=seite):
+            dienst.tippseite_nachsehen("tipp-woche")
+        self.assertEqual(dienst.tippseite_stand("tipp-woche")["woche"], 41)
+
+    def test_ohne_eingetragene_adresse_wird_nicht_geprueft(self):
+        with mock.patch.object(konfiguration, "marke", return_value={}):
+            self.assertIsNone(dienst.tippseite_nachsehen("tipp-woche"))
+
+    def test_eine_stumme_seite_loest_keine_warnung_aus(self):
+        # Ein Hinweis, der auch bei einer Netzstörung erscheint, wird
+        # bald übersehen.
+        with mock.patch.object(konfiguration, "marke",
+                               return_value={"tippseite": "https://x.example/t.html"}), \
+             mock.patch("postkutsche.quellen.abrufen.holen",
+                        side_effect=OSError("kein Netz")):
+            stand = dienst.tippseite_nachsehen("tipp-woche")
+        self.assertIsNone(stand["woche"])
+
+    def test_der_stand_verfaellt(self):
+        with mock.patch.object(konfiguration, "marke",
+                               return_value={"tippseite": "https://x.example/t.html"}), \
+             mock.patch("postkutsche.quellen.abrufen.holen", return_value="<html></html>"):
+            dienst.tippseite_nachsehen("tipp-woche")
+        with mock.patch.object(dienst.time, "monotonic",
+                               return_value=time.monotonic() + dienst.TIPPSEITE_GILT + 1):
+            self.assertIsNone(dienst.tippseite_stand("tipp-woche"))
