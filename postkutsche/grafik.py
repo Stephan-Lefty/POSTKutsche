@@ -70,6 +70,14 @@ SCHRIFT_TIEF = "#13293f"
 #: nach vorn, und DejaVu bleibt der Rückfall.
 SCHRIFT = '"DejaVu Sans Condensed","Nimbus Sans Narrow",sans-serif'
 
+#: Die Kopffarben der drei Tippblöcke, nach Position vergeben.
+#:
+#: Sie stehen hier und kommen nicht vom Modell. Wer die Farbe erfinden lässt,
+#: bekommt jede Woche eine andere – und damit verliert die Reihe genau das,
+#: wofür das Gerüst gebaut ist: dass man sie wiedererkennt. Die drei sind
+#: gegeneinander und gegen den Nachtblau-Grund abgesetzt.
+BLOCKFARBEN = ["#1d5b5f", "#6b4420", "#3d3663"]
+
 #: So viele Merkmale trägt die Karte. Die Schriftgrößen sind darauf
 #: ausgelegt; mehr läuft unten heraus. Wer den Text schreiben lässt, muss
 #: das durchreichen - nicht die Grafik soll sich wehren, sondern der Text
@@ -436,11 +444,12 @@ def tipp_seite(daten: dict[str, Any], marke: dict[str, Any],
                hoch: bool = False) -> str:
     """»Tipp der Woche«: drei Blöcke, zwei Merkkästen."""
     bloecke = ""
-    for b in daten["bloecke"]:
+    for nummer, b in enumerate(daten["bloecke"]):
         punkte = "".join(f'<li>{_haken()}<span>{b_punkt}</span></li>'
                          for b_punkt in b["punkte"])
         kopf = html.escape(b["titel"]).replace("\n", "<br>")
-        bloecke += (f'<div class="block" style="--ton:{b["farbe"]}">'
+        ton = b.get("farbe") or BLOCKFARBEN[nummer % len(BLOCKFARBEN)]
+        bloecke += (f'<div class="block" style="--ton:{ton}">'
                     f'<div class="bkopf"><b>{kopf}</b>'
                     f'<i>{html.escape(b["unter"])}</i></div>'
                     f'<ul>{punkte}</ul></div>')
