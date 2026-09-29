@@ -33,6 +33,16 @@ HOCHFORMAT_FUER = {"instagram"}
 PRODUKT = "produkt"
 TIPP = "tipp"
 
+#: Zu welchem Projekt ein Format gehört, wenn nichts anderes gesagt wird.
+#:
+#: Beide Formate erscheinen wöchentlich im selben Laden – nach dem Projekt zu
+#: fragen hieße, eine Frage zu stellen, deren Antwort schon in der Überschrift
+#: des Fensters steht. Gibt es das Projekt nicht, bleibt die Auswahl sichtbar;
+#: wer ein zweites »Produkt der Woche« für einen anderen Laden anlegt,
+#: bekommt sie ebenfalls zurück, weil dann nicht mehr eindeutig ist, welches
+#: gemeint war.
+VORGABEPROJEKT = {PRODUKT: "produkt-woche", TIPP: "tipp-woche"}
+
 
 class WochenFehler(Exception):
     """Der Beitrag konnte nicht entstehen. Die Meldung ist für Menschen."""
@@ -45,7 +55,7 @@ def produkt(ablage, kennung: str, adresse: str, geplant: str,
     `geplant` ist der Sendezeitpunkt in UTC; bis wann das Angebot gilt, wird
     daraus gerechnet – Montag bis Sonntag, siehe `zeiten.wochenschluss`.
     """
-    projekt = _projekt(ablage, kennung)
+    projekt = _projekt(ablage, kennung, PRODUKT)
     try:
         seiteninhalt = seitenkarte.seite(adresse)
     except seitenkarte.AbrufFehler as fehler:
@@ -121,17 +131,23 @@ def tipp(ablage, kennung: str, thema: str, geplant: str, netze: list[str],
     niemand eines mit – ein Thema hat kein Foto. Fehlt es, bleibt die
     Fotospalte dunkel; das ist brauchbar, aber blass.
     """
-    projekt = _projekt(ablage, kennung)
+    projekt = _projekt(ablage, kennung, TIPP)
     if not thema.strip():
         raise WochenFehler("Ohne Thema gibt es nichts zu schreiben.")
     quelle = {"thema": thema.strip(), "hinweise": hinweise.strip()}
     return _bauen(ablage, projekt, TIPP, quelle, geplant, netze, bild_adresse)
 
 
-def _projekt(ablage, kennung: str):
+def _projekt(ablage, kennung: str, art: str = ""):
+    """Das Projekt – oder das vorgesehene, wenn keines genannt wurde."""
+    if not kennung and art:
+        kennung = VORGABEPROJEKT.get(art, "")
     projekt = ablage.projekt(kennung)
     if projekt is None:
-        raise WochenFehler(f"Kein Projekt »{kennung}«.")
+        raise WochenFehler(
+            f"Kein Projekt »{kennung}«. Für dieses Format ist "
+            f"»{VORGABEPROJEKT.get(art, '?')}« vorgesehen; anlegen mit "
+            f"»postkutsche projekt neu«.")
     return projekt
 
 

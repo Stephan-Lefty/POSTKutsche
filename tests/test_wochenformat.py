@@ -223,3 +223,34 @@ class Bildzuordnung(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Vorgabeprojekt(unittest.TestCase):
+    """Wer das Fenster »Produkt der Woche« öffnet, hat das Projekt schon gesagt."""
+
+    def setUp(self):
+        ordner = tempfile.TemporaryDirectory()
+        self.addCleanup(ordner.cleanup)
+        self.pfad = Path(ordner.name) / "probe.db"
+
+    def test_ohne_kennung_gilt_das_vorgesehene_projekt(self):
+        with ablage_modul.Ablage(self.pfad) as a:
+            a.projekt_anlegen("produkt-woche", "Produkt der Woche",
+                              "https://shop.example", "seitenkarte")
+            projekt = wochenformat._projekt(a, "", wochenformat.PRODUKT)
+        self.assertEqual(projekt.kennung, "produkt-woche")
+
+    def test_eine_genannte_kennung_sticht_die_vorgabe(self):
+        with ablage_modul.Ablage(self.pfad) as a:
+            a.projekt_anlegen("produkt-woche", "P", "https://a.example",
+                              "seitenkarte")
+            a.projekt_anlegen("anderer", "A", "https://b.example", "seitenkarte")
+            projekt = wochenformat._projekt(a, "anderer", wochenformat.PRODUKT)
+        self.assertEqual(projekt.kennung, "anderer")
+
+    def test_fehlt_das_projekt_sagt_die_meldung_welches(self):
+        with ablage_modul.Ablage(self.pfad) as a, \
+             self.assertRaises(wochenformat.WochenFehler) as fehler:
+            wochenformat._projekt(a, "", wochenformat.TIPP)
+        self.assertIn("tipp-woche", str(fehler.exception))
+        self.assertIn("projekt neu", str(fehler.exception))

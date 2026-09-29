@@ -607,7 +607,7 @@ function wochenformateVorbereiten() {
     kasten: "#produkt", knopf: "#produkt-auf", form: "#produkt-form",
     zu: "#p-zu", los: "#p-los", projekt: "#p-projekt", netze: "#p-netze",
     tag: "#p-tag", zeit: "#p-zeit", stand: "#p-stand",
-    weg: "/api/woche/produkt",
+    weg: "/api/woche/produkt", vorgabe: "produkt-woche",
     leeren: () => { $("#p-adresse").value = ""; },
     sammeln: () => ({ adresse: $("#p-adresse").value.trim() }),
   });
@@ -615,7 +615,7 @@ function wochenformateVorbereiten() {
     kasten: "#tipp", knopf: "#tipp-auf", form: "#tipp-form",
     zu: "#t-zu", los: "#t-los", projekt: "#t-projekt", netze: "#t-netze",
     tag: "#t-tag", zeit: "#t-zeit", stand: "#t-stand",
-    weg: "/api/woche/tipp",
+    weg: "/api/woche/tipp", vorgabe: "tipp-woche",
     leeren: () => {
       $("#t-thema").value = "";
       $("#t-hinweise").value = "";
@@ -641,6 +641,13 @@ function wochenfenster(f) {
       eintrag.textContent = p.name;
       auswahl.append(eintrag);
     });
+
+    // Gibt es das vorgesehene Projekt, ist die Frage beantwortet, bevor sie
+    // gestellt wird - das Fenster heißt schon so. Fehlt es, bleibt die
+    // Auswahl stehen, damit man nicht in einer Sackgasse sitzt.
+    const vorgesehen = stand.projekte.some((p) => p.kennung === f.vorgabe);
+    if (vorgesehen) auswahl.value = f.vorgabe;
+    auswahl.closest("label").hidden = vorgesehen;
 
     const netze = $(f.netze);
     netze.innerHTML = "";
