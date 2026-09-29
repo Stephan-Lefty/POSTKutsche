@@ -567,6 +567,7 @@ Dazu füllst du »seite« – denselben Tipp, aber ausführlich für eine Websei
     "absaetze": [
       "Ein Absatz, der beim Alltag anfängt und nicht bei der Technik.",
       {"ueber": "Eine Zwischenüberschrift"},
+      {"merksatz": "Die kurze Fassung: <strong>der Kern in einem Satz.</strong>"},
       "Weitere Absätze …"
     ]
   }
@@ -587,6 +588,10 @@ Für die Seite gilt:
   Verweise. Der Titel ist eine Aussage, keine Überschrift aus Stichworten.
 - Der Titel der Seite darf länger und griffiger sein als der auf der Grafik –
   dort zählen Zeichen, hier zählt, ob jemand weiterliest.
+- **Genau ein `{"merksatz": "…"}` etwa in der Mitte.** Neun Absätze am Stück
+  liest niemand zu Ende; der Merksatz unterbricht die Fläche und ist das, was
+  hängenbleibt, wenn jemand nur überfliegt. Dort steht die Kernaussage, keine
+  Zusammenfassung – ein Satz, den man weitererzählen könnte.
 """
 
 
