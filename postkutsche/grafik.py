@@ -274,6 +274,48 @@ h1 {{ position:absolute; left:430px; top:156px; width:640px;
 """
 
 
+def _hoch_css() -> str:
+    """Dasselbe Gerüst, auf eine Spalte gestellt.
+
+    Instagram verlangt Bildpflicht und zeigt 4:5. Das Querformat dorthin zu
+    schneiden ginge schief: Ein Zuschnitt aus der Mitte nähme genau die
+    Preisbox oder die rechte Kastenspalte weg. Die Bausteine bleiben
+    deshalb dieselben – Logofeld, Foto, Kasten, Aufruf, Kontakt –, nur liegen
+    sie untereinander statt nebeneinander.
+    """
+    return f"""
+body {{ width:{BREITE_HOCH}px; height:{HOEHE_HOCH}px; }}
+/* Das Logofeld läuft über die ganze Breite, die Schräge entfällt. */
+.logo {{ left:0; right:auto; width:{BREITE_HOCH}px; height:108px;
+  clip-path:none; justify-content:center; padding:0 40px; }}
+.logo img {{ width:auto; height:72px; }}
+/* Das Foto ist ein Band unter dem Logo, nicht eine Spalte daneben. */
+.foto {{ inset:108px auto auto 0; width:{BREITE_HOCH}px; height:360px; }}
+.blende {{ inset:auto auto 0 0; top:328px; width:{BREITE_HOCH}px; height:140px;
+  background:linear-gradient(180deg,{NACHT}00,{NACHT}); }}
+.schleier {{ inset:108px auto auto 0; width:{BREITE_HOCH}px; height:360px;
+  background:linear-gradient(180deg,{TIEFER}55 0%,{TIEFER}22 45%,{TIEFER}cc 100%); }}
+.stempel {{ left:0; top:168px; width:{BREITE_HOCH}px; }}
+.stempel svg {{ width:60px; height:60px; margin-bottom:2px; }}
+.stempel .t {{ font-size:66px; }}
+.stempel .w {{ font-size:34px; }}
+
+h1, .vorspann, .cta, .fuss {{ left:44px; }}
+h1 {{ top:492px; width:992px; }}
+.vorspann {{ width:992px; }}
+.kasten {{ left:44px; right:44px; width:auto; }}
+.kontakt {{ left:44px; right:44px; width:auto; bottom:36px; }}
+
+/* Was im Hochformat wegfällt – und warum.
+   Auf 1350 Pixeln ist nach Logo, Foto, Überschrift und Inhalt Schluss. Statt
+   alles zu verkleinern, bis nichts mehr lesbar ist, entfallen die Stücke, die
+   der Kontaktkasten ohnehin abdeckt: die Kurzvorstellung, die Merkmalszeile
+   und der Aufrufbalken. Letzterer sowieso – in einem Instagram-Bild ist
+   nichts anklickbar. */
+.kasten.ueber, .kasten.beachten, .kasten.wissen, .fuss, .cta {{ display:none; }}
+"""
+
+
 def _stempel(wort: str) -> str:
     """Der Schriftzug auf dem Foto, etwa »TIPP der Woche«.
 
@@ -292,19 +334,26 @@ def _stempel(wort: str) -> str:
 
 
 def _seite(eigenes_css: str, koerper: str, foto: str | None,
-           marke: dict[str, Any]) -> str:
-    """Rahmen plus Füllung. Der einzige Ort, an dem eine Seite entsteht."""
+           marke: dict[str, Any], hoch_css: str = "") -> str:
+    """Rahmen plus Füllung. Der einzige Ort, an dem eine Seite entsteht.
+
+    `hoch_css` kommt zuletzt und sticht deshalb alles davor – so beschreibt
+    jede Füllung ihr Querformat einmal und nennt nur die Abweichungen fürs
+    Hochformat, statt zwei vollständige Stilblätter zu führen.
+    """
     bild = f'<img class="foto" src="{Path(foto).name}" alt="">' if foto else \
         f'<div class="foto" style="background:{TIEFER}"></div>'
+    hoch = f"{_hoch_css()}{hoch_css}" if hoch_css else ""
     return (f'<!doctype html><meta charset="utf-8"><style>{_gerüst_css()}'
-            f'{eigenes_css}</style>\n{bild}\n<div class="blende"></div>\n'
+            f'{eigenes_css}{hoch}</style>\n{bild}\n<div class="blende"></div>\n'
             f'{_kopf(marke)}\n{koerper}\n{_kontakt(marke)}\n')
 
 
 # -- Die beiden Füllungen --------------------------------------------------
 
 
-def produkt_seite(daten: dict[str, Any], marke: dict[str, Any]) -> str:
+def produkt_seite(daten: dict[str, Any], marke: dict[str, Any],
+                  hoch: bool = False) -> str:
     """»Produkt der Woche«: weiße Karte mit Merkmalen und Preis."""
     merkmale = "".join(f'<li>{_haken("gross")}<span>{html.escape(m)}</span></li>'
                        for m in daten["merkmale"][:MERKMALE])
@@ -357,7 +406,7 @@ h1 .der {{ font-family:Georgia,serif; font-style:italic; font-size:56px;
     koerper = f"""<h1>PRODUKT<br><span class="der">der</span>WOCHE</h1>
 <div class="balken">TOP QUALITÄT – TOP PREIS!</div>
 <div class="vorspann">{html.escape(daten["unterzeile"])}</div>
-<div class="kasten"><b>ÜBER {html.escape(str(marke.get("name") or ""))}</b>
+<div class="kasten ueber"><b>ÜBER {html.escape(str(marke.get("name") or ""))}</b>
   <ul>{ueber}</ul></div>
 <div class="karte">
   <div class="mitte"><h2>{html.escape(daten["name"])}</h2><ul>{merkmale}</ul></div>
@@ -366,10 +415,22 @@ h1 .der {{ font-family:Georgia,serif; font-style:italic; font-size:56px;
 {_fuss(FUSS_PRODUKT)}
 <div class="cta">{_WARENKORB} JETZT BESTELLEN!</div>
 <div class="gueltig">{html.escape(daten["gueltig"])}</div>"""
-    return _seite(eigenes, koerper, daten.get("bild"), marke)
+    hoch_css = f"""
+h1 {{ font-size:84px; }}
+h1 .der {{ font-size:46px; }}
+.balken {{ left:44px; top:672px; font-size:26px; }}
+.vorspann {{ top:730px; font-size:27px; }}
+.karte {{ left:44px; right:44px; top:790px; height:300px; }}
+.mitte h2 {{ font-size:32px; }}
+.mitte li {{ font-size:20px; }}
+.preis {{ width:280px; }}
+.gueltig {{ left:44px; bottom:auto; top:1106px; font-size:19px; }}
+""" if hoch else ""
+    return _seite(eigenes, koerper, daten.get("bild"), marke, hoch_css)
 
 
-def tipp_seite(daten: dict[str, Any], marke: dict[str, Any]) -> str:
+def tipp_seite(daten: dict[str, Any], marke: dict[str, Any],
+               hoch: bool = False) -> str:
     """»Tipp der Woche«: drei Blöcke, zwei Merkkästen."""
     bloecke = ""
     for b in daten["bloecke"]:
@@ -416,7 +477,16 @@ h1 span {{ color:{GOLD}; }}
   <p>{html.escape(daten["wissen"])}</p></div>
 {_fuss(FUSS_TIPP)}
 <div class="cta">{_SPRECHBLASE} {html.escape(daten["cta"])}</div>"""
-    return _seite(eigenes, koerper, daten.get("bild"), marke)
+    hoch_css = """
+h1 { font-size:52px; }
+.vorspann { top:612px; font-size:22px; }
+.kasten.warum { left:44px; right:44px; top:700px; }
+.bloecke { left:44px; top:828px; width:992px; gap:16px; }
+.bkopf b { font-size:21px; }
+.bkopf i { font-size:14px; }
+.block li { font-size:15.5px; margin-bottom:10px; }
+""" if hoch else ""
+    return _seite(eigenes, koerper, daten.get("bild"), marke, hoch_css)
 
 
 _WARENKORB = ('<svg viewBox="0 0 48 48"><path d="M3 6h7l6 25h22l5-17H13" '
@@ -436,7 +506,8 @@ _INFO = (f'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" '
 # -- Ausgeben --------------------------------------------------------------
 
 
-def zeichnen(seite: str, ziel: Path, mitbringen: list[Path] | None = None) -> Path:
+def zeichnen(seite: str, ziel: Path, mitbringen: list[Path] | None = None,
+             hoch: bool = False) -> Path:
     """Die Seite als PNG ablegen und den Pfad zurückgeben.
 
     `mitbringen` sind Dateien, die die Seite braucht – Foto und Logo. Sie
@@ -458,8 +529,9 @@ def zeichnen(seite: str, ziel: Path, mitbringen: list[Path] | None = None) -> Pa
         # mit »is already running« ab, und das Bild entsteht nie.
         profil = arbeit / "profil"
         profil.mkdir()
+        breite, hoehe = (BREITE_HOCH, HOEHE_HOCH) if hoch else (BREITE, HOEHE)
         befehl = [BEFEHL, "--headless", "--profile", str(profil),
-                  f"--window-size={BREITE},{HOEHE}",
+                  f"--window-size={breite},{hoehe}",
                   "--screenshot", str(ziel), quelle.as_uri()]
         try:
             lauf = subprocess.run(befehl, capture_output=True, text=True,
