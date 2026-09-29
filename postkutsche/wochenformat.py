@@ -19,12 +19,13 @@ schlimmer als keine Anzeige. Welcher Preis gemeint ist, steht in
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from . import bilder, denker, grafik, konfiguration, netzwerke, zeiten
+from . import bilder, denker, grafik, konfiguration, netzwerke, tippseite, zeiten
 from .denker import vorlagen
-from .quellen import seitenkarte
+from .quellen import abrufen, seitenkarte
 
 #: Welches Bild welches Netzwerk bekommt. Instagram zeigt 4:5 und schneidet
 #: alles andere zu; die übrigen zeigen Querformat.
@@ -204,6 +205,11 @@ def _bauen(ablage, projekt, art: str, quelle: dict[str, Any], geplant: str,
         bild_quer, bild_hoch = _zeichnen(art, grafikdaten, marke, foto,
                                          projekt.kennung, geplant, meldungen)
 
+    seitendatei = None
+    if art == TIPP and grafikdaten and grafikdaten.get("_seite"):
+        seitendatei = _seite_ablegen(grafikdaten["_seite"], projekt, geplant,
+                                     meldungen)
+
     inhalt_id = _inhalt_merken(ablage, projekt, art, quelle, grafikdaten)
     beitrag = ablage.beitrag_anlegen(projekt.id, geplant, inhalt_id=inhalt_id)
     for netz, fassung in fassungen.items():
@@ -220,6 +226,7 @@ def _bauen(ablage, projekt, art: str, quelle: dict[str, Any], geplant: str,
         "bild": str(bild_quer) if bild_quer else None,
         "bild_hoch": str(bild_hoch) if bild_hoch else None,
         "alternativtext": grafik.alternativtext(art, grafikdaten) if grafikdaten else "",
+        "seite": str(seitendatei) if seitendatei else None,
         "meldung": " ".join(meldungen),
     }
 
@@ -257,6 +264,46 @@ def _zeichnen(art, grafikdaten, marke, foto, kennung, geplant, meldungen):
         meldungen.append(f"Grafik nicht gezeichnet: {fehler}")
         return None, None
     return quer, hoch
+
+
+def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
+                   meldungen: list[str]):
+    """Die Seite fortschreiben und in den Wochenordner legen.
+
+    Hochgeladen wird von Hand. Eine Datei, die man erst ansieht, ist
+    harmloser als eine, die sofort öffentlich ist – und beim ersten Lauf
+    will man sehen, was herauskommt.
+    """
+    # Wo die Seite steht, gehört dem Kunden und nicht dem Programm: Die
+    # Adresse kommt aus `marken.json` unter »tippseite«. Fehlt sie, wird
+    # keine Seite fortgeschrieben - dann ist das Format eben nur Grafik
+    # und Text.
+    adresse = konfiguration.marke(projekt.kennung).get("tippseite")
+    if not adresse:
+        return None
+    try:
+        roh = abrufen.holen(adresse)
+    except abrufen.AbrufFehler as fehler:
+        meldungen.append(f"Die Tipp-Seite ließ sich nicht holen: {fehler}")
+        return None
+    if isinstance(roh, bytes):
+        roh = roh.decode("utf-8", "replace")
+
+    ort = zeiten.nach_ortszeit(geplant)
+    jahr, woche, _ = ort.isocalendar()
+    montag = ort.date() - timedelta(days=ort.weekday())
+    try:
+        neu = tippseite.erneuern(roh, seite, woche, montag)
+    except tippseite.SeitenFehler as fehler:
+        meldungen.append(f"Die Tipp-Seite ließ sich nicht fortschreiben: {fehler}")
+        return None
+
+    ziel = bilder.ablageordner(projekt.kennung, geplant) / "Tipp-der-Woche.html"
+    ziel.write_text(neu, encoding="utf-8")
+    meldungen.append(
+        f"Noch hochzuladen: {ziel} – die Seite Tipp-der-Woche.html ist "
+        f"fortgeschrieben, liegt aber nur auf der Platte.")
+    return ziel
 
 
 def _inhalt_merken(ablage, projekt, art, quelle, grafikdaten):

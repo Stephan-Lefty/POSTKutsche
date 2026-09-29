@@ -556,7 +556,37 @@ Für die Grafik gilt:
 
 Für die Texte gilt zusätzlich: Der stärkste Aufhänger ist der verbreitete
 Fehler - das, was viele gut gemeint falsch machen. Damit beginnst du, nicht
-mit einer Aufzählung.\
+mit einer Aufzählung.
+
+Dazu füllst du »seite« – denselben Tipp, aber ausführlich für eine Webseite:
+
+  "seite": {
+    "titel": "Außentüren im Herbst: die halbe Stunde, die den Winter rettet",
+    "beschreibung": "ein Satz für Google, höchstens 150 Zeichen",
+    "kurz": "ein Satz fürs Archiv der Vorwochen",
+    "absaetze": [
+      "Ein Absatz, der beim Alltag anfängt und nicht bei der Technik.",
+      {"ueber": "Eine Zwischenüberschrift"},
+      "Weitere Absätze …"
+    ]
+  }
+
+Für die Seite gilt:
+
+- **Fünf bis acht Absätze, davon zwei bis drei Zwischenüberschriften.** Das
+  ist der Text, den man jemandem am Telefon erklären würde – mit
+  Vorgeschichte, einer Anleitung zum Nachmachen und dem Hinweis, wann es
+  nicht mehr selbst zu machen ist.
+- Der erste Absatz beginnt bei dem, was jemand bemerkt – »es zieht am Boden«,
+  »die Matte ist morgens feucht« –, nicht bei der Bauteilbezeichnung.
+- Eine Handlungsanweisung, die man wirklich ausführen kann: mit Werkzeug,
+  Reihenfolge und einem Merkmal, an dem man erkennt, ob es geklappt hat.
+- **Ein Absatz sagt, wo Selbermachen aufhört.** Bei Brand- und
+  Rauchschutztüren, bei Zulassungen, bei allem, was an der Statik hängt.
+- `<strong>` und `<em>` sind erlaubt, sonst keine Auszeichnung, keine
+  Verweise. Der Titel ist eine Aussage, keine Überschrift aus Stichworten.
+- Der Titel der Seite darf länger und griffiger sein als der auf der Grafik –
+  dort zählen Zeichen, hier zählt, ob jemand weiterliest.
 """
 
 
@@ -676,4 +706,14 @@ def wochenantwort_lesen(
             block["punkte"] = punkte
         if len(grafik.get("beachten") or []) != 4:
             raise AntwortFehler("Unter »beachten« gehören vier Punkte.")
+        seite = daten.get("seite")
+        if isinstance(seite, dict) and seite.get("absaetze"):
+            # Die Seite ist Kür: Fehlt sie, entsteht der Beitrag trotzdem und
+            # nur die HTML-Datei bleibt aus. Ist sie aber da, muss sie
+            # brauchbar sein - ein Titel ohne Text nützt niemandem.
+            if not str(seite.get("titel", "")).strip():
+                raise AntwortFehler("Der Seite fehlt der Titel.")
+            if not str(seite.get("kurz", "")).strip():
+                raise AntwortFehler("Der Seite fehlt die Kurzfassung fürs Archiv.")
+            grafik["_seite"] = seite
     return fassungen, grafik
