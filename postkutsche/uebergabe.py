@@ -227,6 +227,12 @@ def _startdatei(wurzel: Path) -> None:
         sh.copy(skript, ziel)
         ziel.chmod(0o755)
         _verknuepfung(wurzel, ziel)
+        # Wo das Programm liegt. Die Daten wandern mit, der Quelltext
+        # nicht – er gehört ins Repository und veraltet auf einem Stick
+        # beim nächsten »git pull«. Der Pfad hilft dem Startskript,
+        # POSTKutsche am anderen Rechner zu finden.
+        (wurzel / "programm.txt").write_text(
+            f"{Path(__file__).parent.parent}\n", encoding="utf-8")
     except OSError:
         # Wie beim Symbol: Die Daten sind wichtiger als die Bequemlichkeit.
         pass
