@@ -143,6 +143,11 @@ to `/tipp-archiv/` — with its own heading, its own description and its own
 canonical. At the same time the overview there is extended, listing every tip
 in chronological order; nothing is ever removed from it, that is its purpose.
 
+The archive page also carries the tab on the left-hand edge: it is taken from
+the overview page, which is fetched anyway. If it is not there, the page is
+written without it - it is never rebuilt, because colours, breakpoints and
+wording belong to the site, not to the program.
+
 At the foot of the tip page the four most recent weeks remain as a quick
 reference, in two columns, each with a thumbnail and two sentences. Whatever
 drops off there stays reachable in the archive. Where the archive lives

@@ -151,6 +151,11 @@ Beschreibung und eigenem Canonical. Gleichzeitig wird dort die Übersicht
 fortgeschrieben, in der alle Tipps chronologisch stehen; gelöscht wird in ihr
 nichts, das ist ihr Zweck.
 
+Den Reiter am linken Seitenrand bekommt die Archivseite mit: Er wird aus der
+Übersichtsseite übernommen, die ohnehin abgerufen wird. Steht er dort nicht,
+entsteht die Seite ohne ihn - nachgebaut wird er nicht, denn Farben,
+Haltepunkte und Text gehören zum Auftritt und nicht ins Programm.
+
 Unten auf der Tipp-Seite bleiben die vier jüngsten Wochen als Schnellzugriff
 stehen, zweispaltig, je mit Vorschaubild und zwei Sätzen. Wer dort
 herausfällt, bleibt im Archiv erreichbar. Wo das Archiv liegt, ergibt sich

@@ -110,6 +110,18 @@ UEBERSICHT = """<html><head>
     </div>
     <div class="clearfix">&nbsp;</div>
 <!-- ============ ENDE ARCHIVLISTE ============ -->
+<!-- ============ TIPP DER WOCHE - Seitenreiter links (Anfang) ============
+     Dieser Block darf unveraendert bleiben, auch wenn der Tipp wechselt.
+     ==================================================================== -->
+<style type="text/css">
+#tdwReiter{position:fixed;left:0;top:45%;display:none}
+</style>
+<div id="tdwReiter">
+	<a href="/Tipp-der-Woche.html" title="Tipp der Woche - jede Woche neu">
+    	<div class="tdwSchmal"><span>Tipp der Woche &raquo;</span></div>
+    </a>
+</div>
+<!-- ============ TIPP DER WOCHE - Seitenreiter links (Ende) ============ -->
 </body></html>"""
 
 TIPP = {
@@ -485,6 +497,48 @@ class Archivseite(unittest.TestCase):
     def test_ohne_marken_wird_nichts_geschnitten(self):
         with self.assertRaises(tippseite.SeitenFehler):
             tippseite.archivseite("<html>nichts</html>", self.alt, "/a/")
+
+    def test_ohne_reiter_bleibt_die_seite_wie_sie_war(self):
+        self.assertNotIn("tdwReiter", self.seite)
+
+
+class Seitenreiter(unittest.TestCase):
+    """Der Block am linken Rand, der zum aktuellen Tipp führt.
+
+    Auf der Tipp-Seite steht er nicht - dort ist man schon. Im Archiv
+    gehört er hin, sonst führt von dort nur der Fließtext zurück.
+    """
+
+    def setUp(self):
+        self.reiter = tippseite.seitenreiter(UEBERSICHT)
+        self.alt = tippseite.abgelaufener_tipp(SEITE)
+
+    def test_er_wird_samt_css_aus_der_seite_geholt(self):
+        # Übernommen statt nachgebaut: Farben, Haltepunkte und Text gehören
+        # dem Betreiber, nicht dem Programm.
+        self.assertIn("#tdwReiter{position:fixed", self.reiter)
+        self.assertIn('<div id="tdwReiter">', self.reiter)
+        self.assertTrue(self.reiter.endswith(tippseite.REITER_ZU))
+
+    def test_aus_einer_seite_ohne_reiter_kommt_nichts(self):
+        self.assertEqual(tippseite.seitenreiter(SEITE), "")
+        self.assertEqual(tippseite.seitenreiter("<html></html>"), "")
+
+    def test_er_landet_vor_dem_body_ende(self):
+        seite = tippseite.archivseite(SEITE, self.alt, "/a/", "/t.html",
+                                      self.reiter)
+        self.assertIn("tdwReiter", seite)
+        self.assertLess(seite.find("tdwReiter"), seite.find("</body>"))
+        self.assertEqual(seite.count("</body>"), 1)
+
+    def test_er_kommt_kein_zweites_mal_hinein(self):
+        # Läuft der Archivlauf zweimal über dieselbe Seite, stünde der
+        # Reiter sonst doppelt - und mit ihm sein CSS.
+        einmal = tippseite.archivseite(SEITE, self.alt, "/a/", "/t.html",
+                                       self.reiter)
+        zweimal = tippseite.archivseite(einmal, self.alt, "/a/", "/t.html",
+                                        self.reiter)
+        self.assertEqual(zweimal.count('<div id="tdwReiter">'), 1)
 
     def test_ohne_ueberschrift_wird_abgebrochen(self):
         with self.assertRaises(tippseite.SeitenFehler):

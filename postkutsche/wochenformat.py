@@ -348,27 +348,40 @@ def _archiv_ablegen(roh: str, archiv: str, tippadresse: str, woche: int,
     # der laufende Tipp im Archiv, obwohl er noch oben steht.
     if not alt or str(alt.get("woche")) == str(woche):
         return fertig
+
+    # Die Übersicht zuerst holen: Aus ihr kommt der Seitenreiter für die
+    # Archivseite. Auf der Tipp-Seite steht er nicht - dort ist man schon.
+    bestand = None
+    try:
+        bestand = abrufen.holen(archiv)
+        if isinstance(bestand, bytes):
+            bestand = bestand.decode("utf-8", "replace")
+    except abrufen.AbrufFehler as fehler:
+        meldungen.append(f"Die Archivübersicht war nicht erreichbar: {fehler}")
+
     name = tippseite.archivname(alt)
     try:
         datei = ordner / name
         datei.write_text(
-            tippseite.archivseite(roh, alt, archiv, tippadresse),
+            tippseite.archivseite(roh, alt, archiv, tippadresse,
+                                  tippseite.seitenreiter(bestand or "")),
             encoding="utf-8")
         fertig.append((datei, archiv))
     except tippseite.SeitenFehler as fehler:
         meldungen.append(f"Keine Archivseite für KW {alt.get('woche')}: {fehler}")
         return fertig
 
+    if bestand is None:
+        meldungen.append(f"Die Übersicht wurde nicht fortgeschrieben. "
+                         f"{name} liegt trotzdem bereit.")
+        return fertig
     try:
-        bestand = abrufen.holen(archiv)
-        if isinstance(bestand, bytes):
-            bestand = bestand.decode("utf-8", "replace")
         datei = ordner / "index.html"
         datei.write_text(
             tippseite.uebersicht_erneuern(bestand, alt, archiv),
             encoding="utf-8")
         fertig.append((datei, archiv))
-    except (abrufen.AbrufFehler, tippseite.SeitenFehler) as fehler:
+    except tippseite.SeitenFehler as fehler:
         meldungen.append(
             f"Die Archivübersicht ließ sich nicht fortschreiben: {fehler}. "
             f"{name} liegt trotzdem bereit.")

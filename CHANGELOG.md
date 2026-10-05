@@ -18,6 +18,10 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   Tipp-Seite stehen weiterhin die jüngsten Wochen, jetzt zweispaltig und mit
   zwei Sätzen Anriss; darunter führt ein Verweis ins Archiv.
 
+  Den Reiter am linken Seitenrand erbt die Archivseite aus der Übersicht, die
+  ohnehin abgerufen wird. Nachgebaut wird er nicht: Farben, Haltepunkte und
+  Text gehören zum Auftritt, nicht ins Programm.
+
   Die Kurzfassung für den Anriss wird aus der `meta description` der Seite
   zurückgelesen. Wenn ein Tipp abläuft, sind die Daten, aus denen er entstand,
   längst weg – sie dort abzuholen ist der einzige Weg ohne doppelte Pflege.

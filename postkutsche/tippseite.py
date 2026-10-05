@@ -53,6 +53,12 @@ ARCHIV_ZU = "<!-- ============ ENDE TIPP ARCHIV ============ -->"
 LISTE_AUF = "<!-- ============ ARCHIVLISTE  (montags oben erweitern) ============ -->"
 LISTE_ZU = "<!-- ============ ENDE ARCHIVLISTE ============ -->"
 
+#: Der Reiter am linken Seitenrand, der auf den aktuellen Tipp führt. Er
+#: steht auf den Seiten des Auftritts und wird von dort übernommen, nicht
+#: hier nachgebaut: Farben, Haltepunkte und Text gehören dem Betreiber.
+REITER_AUF = "<!-- ============ TIPP DER WOCHE - Seitenreiter links (Anfang)"
+REITER_ZU = "<!-- ============ TIPP DER WOCHE - Seitenreiter links (Ende) ============ -->"
+
 #: So viele Wochen stehen unten auf der Tipp-Seite. Steht auch so auf der
 #: Seite: »höchstens die letzten vier«. Mehr sind es nur in der Übersicht –
 #: dort wird nichts entfernt.
@@ -516,8 +522,24 @@ def _archiveintraege(seite: str) -> list[str]:
     return [e for e in eintraege if "Kalenderwoche" in e]
 
 
+def seitenreiter(seite: str) -> str:
+    """Den Reiter am linken Rand aus einer Seite holen – oder nichts.
+
+    Er steht mitsamt seinem CSS zwischen zwei Marken. Übernommen statt
+    nachgebaut: Wer ihn im Programm nachbildet, hat Farben, Haltepunkte und
+    Text an zwei Stellen zu pflegen, und beim nächsten Umbau der Seite
+    stimmt die Kopie nicht mehr.
+    """
+    anfang = seite.find(REITER_AUF)
+    ende = seite.find(REITER_ZU)
+    if anfang < 0 or ende < anfang:
+        return ""
+    return seite[anfang:ende + len(REITER_ZU)]
+
+
 def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
-                tippadresse: str = "/Tipp-der-Woche.html") -> str:
+                tippadresse: str = "/Tipp-der-Woche.html",
+                reiter: str = "") -> str:
     """Aus dem ablaufenden Tipp eine Seite machen, die bleibt.
 
     Gebaut wird aus der Tipp-Seite selbst, solange der alte Tipp noch oben
@@ -529,6 +551,11 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
     die eigene Adresse, die Überschrift, die Einleitung (aus »jede Woche
     neu« wird »dieser Beitrag stammt aus KW …«) und das Archiv unten, das
     zu Rückverweisen wird.
+
+    `reiter` ist der Block am linken Seitenrand, der auf den aktuellen Tipp
+    führt. Auf der Tipp-Seite selbst steht er nicht – dort ist man schon –,
+    im Archiv gehört er hin. `seitenreiter()` holt ihn aus einer Seite, die
+    ihn trägt.
     """
     for marke in (AKTUELL_AUF, AKTUELL_ZU, ARCHIV_AUF, ARCHIV_ZU):
         if marke not in seite:
@@ -599,7 +626,7 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
     block = block.replace("&middot; ab Montag,", "&middot;", 1)
     seite = seite[:anfang] + block + seite[ende:]
 
-    return _ersetzen(seite, ARCHIV_AUF, ARCHIV_ZU, f"""
+    seite = _ersetzen(seite, ARCHIV_AUF, ARCHIV_ZU, f"""
     <div class="row">
     \t<div class="col-xs-12">
         \t<div class="border-top">&nbsp;</div>
@@ -612,6 +639,13 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
         </div>
     </div>
 """)
+
+    # Der Reiter kommt ans Ende, direkt vor </body>. Er liegt fest am
+    # Fensterrand, deshalb ist seine Stelle im Quelltext gleichgültig - und
+    # am Ende steht er niemandem im Weg, der oben etwas ändert.
+    if reiter and REITER_AUF not in seite and "</body>" in seite:
+        seite = seite.replace("</body>", f"{reiter}\n  </body>", 1)
+    return seite
 
 
 def uebersicht_erneuern(uebersicht: str, eintrag: dict[str, str],

@@ -400,6 +400,19 @@ class ArchivAblegen(unittest.TestCase):
                          ["2026-KW40-vor-dem-winter.html"])
         self.assertTrue(any("Archivübersicht" in m for m in self.meldungen))
 
+    def test_der_seitenreiter_kommt_aus_der_uebersicht(self):
+        # Auf der Tipp-Seite steht er nicht - dort ist man schon. Geholt
+        # wird er aus der Übersicht, die ohnehin abgerufen wird; so steht
+        # er nicht im Programm und bleibt beim Betreiber.
+        self._lauf()
+        text = (self.ordner / "2026-KW40-vor-dem-winter.html").read_text("utf-8")
+        self.assertIn('<div id="tdwReiter">', text)
+
+    def test_ohne_uebersicht_entsteht_die_seite_ohne_reiter(self):
+        self._lauf(bestand=None)
+        text = (self.ordner / "2026-KW40-vor-dem-winter.html").read_text("utf-8")
+        self.assertNotIn("tdwReiter", text)
+
     def test_eine_seite_ohne_marken_meldet_sich_und_bricht_nicht_ab(self):
         fertig = self._lauf(seite="<html>nichts</html>")
         self.assertEqual(fertig, [])
