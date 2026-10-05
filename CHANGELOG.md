@@ -11,6 +11,31 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Hinzugefügt
 
+- **Das Tipp-Archiv bekommt eigene Seiten** (2026-10-05). Jeder ablaufende
+  Tipp wird zu einer eigenen Seite unter `/tipp-archiv/` – mit eigenem Titel,
+  eigener Beschreibung und eigenem Canonical. Daneben entsteht eine
+  chronologische Übersicht, in der nichts gelöscht wird. Unten auf der
+  Tipp-Seite stehen weiterhin die jüngsten Wochen, jetzt zweispaltig und mit
+  zwei Sätzen Anriss; darunter führt ein Verweis ins Archiv.
+
+  Die Kurzfassung für den Anriss wird aus der `meta description` der Seite
+  zurückgelesen. Wenn ein Tipp abläuft, sind die Daten, aus denen er entstand,
+  längst weg – sie dort abzuholen ist der einzige Weg ohne doppelte Pflege.
+
+### Geändert
+
+- **Aus Archivkacheln werden Archivseiten** (2026-10-05). Bisher öffnete ein
+  Archiveintrag die Grafik der Woche in einem neuen Reiter, und nach fünf
+  Wochen verschwand der Tipp. Das war sparsam zu pflegen und für Google
+  wertlos: Was nicht mehr da ist, kann nicht gefunden werden. Der Einwand
+  gegen Unterseiten – »die niemand mehr durchsieht« – ist erledigt, weil die
+  Seiten jetzt von selbst entstehen.
+
+  Der Schnellzugriff auf der Tipp-Seite fasst noch vier statt fünf Wochen.
+  Wer herausfällt, bleibt im Archiv stehen. Das Vorschaubild sitzt neben dem
+  Anriss statt darüber: Die Grafiken sind querformatig und nähmen sonst halbe
+  Seitenbreite ein.
+
 - **Tipp und Produkt der Woche** (2026-09-29). Zwei wöchentliche Formate, die
   aus einer einzigen Eingabe Text *und* Grafik liefern: beim Produkt aus einem
   Verweis in den Shop, beim Tipp aus einem Thema. Die Grafik entsteht im

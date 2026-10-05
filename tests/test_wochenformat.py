@@ -9,15 +9,18 @@ Beitrag nicht verhindert.
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
+from unittest.mock import patch
 
 from postkutsche import ablage as ablage_modul
 from postkutsche import denker, grafik, wochenformat
-from postkutsche.quellen import seitenkarte
+from postkutsche.quellen import abrufen, seitenkarte
+from tests import test_tippseite
 
 # Eine Produktseite, wie sie wirklich aussieht: Merkmale über dem Preis, der
 # ausgezeichnete Preis im itemprop-Feld, darunter ein Empfehlungsschieber mit
@@ -311,6 +314,96 @@ class Hochladehinweis(unittest.TestCase):
             "https://shop.example/Tipp-der-Woche.html",
             Path("/irgendwo/Tipp-der-Woche.html"), doppelt)
         self.assertEqual(text.count("kw40.png"), 1)
+
+    def test_die_archivdateien_stehen_mit_ihrem_ordner_dabei(self):
+        # Sie liegen woanders als die Tipp-Seite. Ohne Zielpfad landen sie
+        # im Stammverzeichnis, und die Verweise gehen ins Leere.
+        text = wochenformat._hochladen(
+            "https://shop.example/Tipp-der-Woche.html",
+            Path("/irgendwo/Tipp-der-Woche.html"), self.BILDER,
+            [(Path("/irgendwo/2026-KW40-thema.html"),
+              "https://shop.example/tipp-archiv/"),
+             (Path("/irgendwo/index.html"),
+              "https://shop.example/tipp-archiv/")])
+        self.assertIn("2026-KW40-thema.html → /tipp-archiv/", text)
+        self.assertIn("index.html → /tipp-archiv/", text)
+
+
+class Archivadresse(unittest.TestCase):
+    """Wo die Archivseiten liegen, wenn es niemand sagt."""
+
+    def test_sie_liegen_neben_der_tippseite(self):
+        self.assertEqual(
+            wochenformat._archivadresse({}, "https://shop.example/Tipp-der-Woche.html"),
+            "https://shop.example/tipp-archiv/")
+
+    def test_ein_unterordner_bleibt_erhalten(self):
+        self.assertEqual(
+            wochenformat._archivadresse(
+                {}, "https://shop.example/service/Tipp-der-Woche.html"),
+            "https://shop.example/service/tipp-archiv/")
+
+    def test_was_in_der_marke_steht_sticht(self):
+        # Raten muss das Programm nur, solange niemand etwas sagt.
+        self.assertEqual(
+            wochenformat._archivadresse({"tipparchiv": "https://x.example/alt/"},
+                                        "https://shop.example/Tipp-der-Woche.html"),
+            "https://x.example/alt/")
+
+
+class ArchivAblegen(unittest.TestCase):
+    """Archivseite und Übersicht sind Kür – der Tipp entsteht immer."""
+
+    SEITE = test_tippseite.SEITE
+    ARCHIV = "https://shop.example/tipp-archiv/"
+
+    def setUp(self):
+        self.ordner = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.ordner, True)
+        self.meldungen = []
+
+    def _lauf(self, seite=None, bestand=test_tippseite.UEBERSICHT):
+        def holen(_adresse):
+            if bestand is None:
+                raise abrufen.AbrufFehler("nicht erreichbar")
+            return bestand
+        with patch.object(wochenformat.abrufen, "holen", holen):
+            return wochenformat._archiv_ablegen(
+                seite or self.SEITE, self.ARCHIV,
+                "https://shop.example/Tipp-der-Woche.html", 41,
+                self.ordner, self.meldungen)
+
+    def test_es_entstehen_archivseite_und_uebersicht(self):
+        fertig = self._lauf()
+        namen = sorted(p.name for p, _ in fertig)
+        self.assertEqual(namen, ["2026-KW40-vor-dem-winter.html", "index.html"])
+
+    def test_die_archivseite_traegt_den_alten_tipp(self):
+        self._lauf()
+        text = (self.ordner / "2026-KW40-vor-dem-winter.html").read_text("utf-8")
+        self.assertIn("Alter Text.", text)
+        self.assertIn("<h1>Vor dem Winter: Türdichtungen prüfen</h1>", text)
+
+    def test_dieselbe_woche_wird_nicht_archiviert(self):
+        # Sonst stünde der laufende Tipp im Archiv, obwohl er oben steht.
+        with patch.object(wochenformat.abrufen, "holen",
+                          lambda _a: test_tippseite.UEBERSICHT):
+            fertig = wochenformat._archiv_ablegen(
+                self.SEITE, self.ARCHIV, "https://shop.example/t.html", 40,
+                self.ordner, self.meldungen)
+        self.assertEqual(fertig, [])
+
+    def test_ohne_erreichbare_uebersicht_bleibt_die_archivseite(self):
+        # Einen Eintrag kann man nachtragen, eine Woche ohne Tipp nicht.
+        fertig = self._lauf(bestand=None)
+        self.assertEqual([p.name for p, _ in fertig],
+                         ["2026-KW40-vor-dem-winter.html"])
+        self.assertTrue(any("Archivübersicht" in m for m in self.meldungen))
+
+    def test_eine_seite_ohne_marken_meldet_sich_und_bricht_nicht_ab(self):
+        fertig = self._lauf(seite="<html>nichts</html>")
+        self.assertEqual(fertig, [])
+
 
 if __name__ == "__main__":
     unittest.main()

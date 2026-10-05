@@ -3,6 +3,52 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
+## Hier war Schluss (Stand 2026-10-05)
+
+739 Tests. Das Tipp-Archiv hat jetzt zwei Ebenen, und damit ist eine
+Entscheidung vom 2026-09-29 umgedreht.
+
+**Aus Kacheln wurden Seiten.** Bisher war ein Archiveintrag eine Kachel, die
+die Grafik der Woche in einem neuen Reiter öffnete – ausdrücklich »ohne dass
+Unterseiten entstehen, die niemand mehr durchsieht«. Das stimmt für Seiten,
+die jemand von Hand pflegen muss. Es stimmt nicht mehr, seit sie von selbst
+entstehen, und der Preis war hoch: Nach fünf Wochen verschwand ein Tipp
+spurlos, und was nicht da ist, kann Google nicht finden. Jeder ablaufende
+Tipp bekommt jetzt eine Seite unter `/tipp-archiv/` mit eigenem Titel,
+eigener Beschreibung und eigenem Canonical; daneben steht eine Übersicht, in
+der nichts gelöscht wird.
+
+**Der Schnellzugriff fasst vier statt fünf Wochen**, zweispaltig, je mit
+Vorschaubild und zwei Sätzen Anriss. Das Bild sitzt *neben* dem Anriss, nicht
+darüber: Die Grafiken sind querformatig und nehmen über die volle
+Spaltenbreite halbe Seitenbreite ein – am 2026-10-05 am lebenden Objekt
+gesehen, der Teaser erschlug den Tipp, zu dem er gehörte.
+
+**Die Kurzfassung kommt aus der `meta description` zurück.** Wenn ein Tipp
+abläuft, sind die Daten, aus denen er entstand, längst weg; auf der Seite
+steht sie noch, weil `_kopf_nachziehen` sie dort hinterlassen hat. Sie wird
+großgeschrieben zurückgelesen – sie stand hinter »Diese Woche:« und fängt
+sonst klein an, mitten im Archiv einen Absatz.
+
+**Zwei Dinge, die der Trockenlauf gegen die echte Seite zeigte** und die
+Unit-Tests nicht gefunden hätten: genau diese Kleinschreibung, und dass der
+Dateiname aus dem Titel *vor* dem Doppelpunkt gebildet werden muss. Die
+Überschriften sind zweiteilig – »Außentüren im Herbst: die halbe Stunde, die
+den Winter rettet«. Wer die ersten Wörter nimmt, bekommt
+`aussentueren-im-herbst-die`.
+
+**Die Reihenfolge im Aufrufer ist nicht beliebig.** `_archiv_ablegen` läuft
+*vor* `erneuern` – danach steht der alte Tipp nicht mehr oben, und die
+Archivseite ließe sich nicht mehr daraus schneiden. Archivseite und Übersicht
+sind beide Kür: Scheitert eine, entsteht der Tipp trotzdem. Einen
+Archiveintrag kann man nachtragen, eine Woche ohne Tipp nicht.
+
+**Nicht migriert:** Archiveinträge im alten Kachelformat findet
+`_archiveintraege` nicht mehr; beim ersten Lauf nach der Umstellung wären sie
+verloren. Auf der einzigen echten Seite war das kein Thema – dort stand das
+neue Format schon, von Hand gebaut. Eine zweite Seite im alten Format gibt es
+nicht.
+
 ## Hier war Schluss (Stand 2026-09-29)
 
 686 Tests. Neu sind zwei wöchentliche Formate mit eigener Grafik: »Produkt
@@ -80,6 +126,8 @@ ersetzt statt archiviert, sonst steht dieselbe KW zweimal auf der Seite.
 Kurzfassungen: Die Grafik trägt den Tipp schon, sie noch einmal in Worte zu
 fassen hieße, dasselbe zweimal zu pflegen. Damit bleibt ein alter Tipp
 lesbar, ohne dass Unterseiten entstehen, die niemand mehr durchsieht.
+*(Überholt am 2026-10-05 – siehe oben: Die Unterseiten entstehen jetzt von
+selbst, und ohne sie verschwand der Tipp nach fünf Wochen.)*
 
 **Hochgeladen wird von Hand**, wie bei Facebook und Instagram. Die fertige
 Seite und die Grafiken liegen im Wochenordner; die Meldung nennt Zielpfad und
@@ -117,7 +165,9 @@ womit die aufgeklappte Woche wieder schrumpfte. Die Zellenhöhe rechnet mit
 vollständig: Wer Platz braucht, klappt zu, statt dass Text wegfällt.
 
 **Offen:** Das Archiv ist ungetestet im Betrieb – die erste Kachel entsteht
-erst mit KW 41. Der Merksatz kam bisher von Hand; ab dem nächsten Tipp
+erst mit KW 41. *(Dazu kam es nicht: Der Eintrag für KW 40 wurde am
+2026-10-05 von Hand gebaut, und dabei fiel auf, dass das Format nicht mehr
+passt – siehe oben.)* Der Merksatz kam bisher von Hand; ab dem nächsten Tipp
 verlangt ihn die Anweisung. Und die Projektpalette ist mit sieben Projekten
 aufgebraucht: `tipp-woche` und `produkt-woche` liegen farblich nah am
 HaBeFa-Shop.

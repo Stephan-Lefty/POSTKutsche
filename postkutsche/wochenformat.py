@@ -266,9 +266,31 @@ def _zeichnen(art, grafikdaten, marke, foto, kennung, geplant, meldungen):
     return quer, hoch
 
 
+def _archivadresse(marke: dict[str, Any], tippadresse: str) -> str:
+    """Wo die Archivseiten liegen – aus `marken.json` oder abgeleitet.
+
+    Abgeleitet heißt: neben der Tipp-Seite, im Ordner `tipp-archiv`. Wer es
+    anders will, trägt »tipparchiv« ein; dann muss nichts geraten werden.
+    """
+    from urllib.parse import urlsplit, urlunsplit
+
+    eigen = marke.get("tipparchiv")
+    if eigen:
+        return str(eigen)
+    ort = urlsplit(tippadresse)
+    stamm = ort.path.rsplit("/", 1)[0]
+    return urlunsplit((ort.scheme, ort.netloc,
+                       f"{stamm}/{tippseite.ARCHIV_ORDNER}/", "", ""))
+
+
 def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
                    meldungen: list[str]):
     """Die Seite fortschreiben und in den Wochenordner legen.
+
+    Es entstehen bis zu drei Dateien: die Tipp-Seite, die Archivseite des
+    ablaufenden Tipps und die fortgeschriebene Übersicht. Die beiden
+    letzten nur, wenn es etwas zu archivieren gibt – beim allerersten Tipp
+    steht oben nichts, was ablaufen könnte.
 
     Hochgeladen wird von Hand. Eine Datei, die man erst ansieht, ist
     harmloser als eine, die sofort öffentlich ist – und beim ersten Lauf
@@ -278,7 +300,8 @@ def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
     # Adresse kommt aus `marken.json` unter »tippseite«. Fehlt sie, wird
     # keine Seite fortgeschrieben - dann ist das Format eben nur Grafik
     # und Text.
-    adresse = konfiguration.marke(projekt.kennung).get("tippseite")
+    marke = konfiguration.marke(projekt.kennung)
+    adresse = marke.get("tippseite")
     if not adresse:
         return None
     try:
@@ -292,19 +315,68 @@ def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
     ort = zeiten.nach_ortszeit(geplant)
     jahr, woche, _ = ort.isocalendar()
     montag = ort.date() - timedelta(days=ort.weekday())
+    archiv = _archivadresse(marke, adresse)
+    ordner = bilder.ablageordner(projekt.kennung, geplant)
+
+    # Zuerst das Archiv: Dafür muss der alte Tipp noch oben stehen. Nach
+    # `erneuern` ist er dort weg.
+    nebenbei = _archiv_ablegen(roh, archiv, adresse, woche, ordner, meldungen)
+
     try:
-        neu = tippseite.erneuern(roh, seite, woche, montag)
+        neu = tippseite.erneuern(roh, seite, woche, montag, archiv)
     except tippseite.SeitenFehler as fehler:
         meldungen.append(f"Die Tipp-Seite ließ sich nicht fortschreiben: {fehler}")
         return None
 
-    ziel = bilder.ablageordner(projekt.kennung, geplant) / Path(adresse).name
+    ziel = ordner / Path(adresse).name
     ziel.write_text(neu, encoding="utf-8")
-    meldungen.append(_hochladen(adresse, ziel, seite.get("bilder") or []))
+    meldungen.append(_hochladen(adresse, ziel, seite.get("bilder") or [],
+                                nebenbei))
     return ziel
 
 
-def _hochladen(adresse: str, datei: Path, bildliste: list[dict[str, str]]) -> str:
+def _archiv_ablegen(roh: str, archiv: str, tippadresse: str, woche: int,
+                    ordner: Path, meldungen: list[str]) -> list[tuple[Path, str]]:
+    """Archivseite und Übersicht schreiben – beide sind Kür.
+
+    Scheitert eines von beiden, entsteht der Tipp trotzdem. Einen
+    Archiveintrag kann man nachtragen; eine Woche ohne Tipp nicht.
+    """
+    fertig: list[tuple[Path, str]] = []
+    alt = tippseite.abgelaufener_tipp(roh)
+    # Wird in derselben Woche nachgebessert, läuft nichts ab - sonst stünde
+    # der laufende Tipp im Archiv, obwohl er noch oben steht.
+    if not alt or str(alt.get("woche")) == str(woche):
+        return fertig
+    name = tippseite.archivname(alt)
+    try:
+        datei = ordner / name
+        datei.write_text(
+            tippseite.archivseite(roh, alt, archiv, tippadresse),
+            encoding="utf-8")
+        fertig.append((datei, archiv))
+    except tippseite.SeitenFehler as fehler:
+        meldungen.append(f"Keine Archivseite für KW {alt.get('woche')}: {fehler}")
+        return fertig
+
+    try:
+        bestand = abrufen.holen(archiv)
+        if isinstance(bestand, bytes):
+            bestand = bestand.decode("utf-8", "replace")
+        datei = ordner / "index.html"
+        datei.write_text(
+            tippseite.uebersicht_erneuern(bestand, alt, archiv),
+            encoding="utf-8")
+        fertig.append((datei, archiv))
+    except (abrufen.AbrufFehler, tippseite.SeitenFehler) as fehler:
+        meldungen.append(
+            f"Die Archivübersicht ließ sich nicht fortschreiben: {fehler}. "
+            f"{name} liegt trotzdem bereit.")
+    return fertig
+
+
+def _hochladen(adresse: str, datei: Path, bildliste: list[dict[str, str]],
+               nebenbei: list[tuple[Path, str]] | None = None) -> str:
     """Der Hinweis, was wohin gehört – mit Zielpfad, nicht nur »hochladen«.
 
     Ohne Zielpfad sucht man beim zweiten Mal wieder, wohin die Grafik
@@ -317,6 +389,8 @@ def _hochladen(adresse: str, datei: Path, bildliste: list[dict[str, str]]) -> st
     wohin = ort.path.rsplit("/", 1)[0] or "/"
     zeilen = [f"Noch hochzuladen auf {ort.netloc}:",
               f"  {datei.name} → {wohin.rstrip('/')}/"]
+    for pfad, ziel in nebenbei or []:
+        zeilen.append(f"  {pfad.name} → {urlsplit(ziel).path}")
     gesehen = set()
     for bild in bildliste:
         for schluessel in ("adresse", "vorschau"):

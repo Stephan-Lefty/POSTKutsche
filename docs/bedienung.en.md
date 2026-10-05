@@ -131,22 +131,39 @@ is missing, the selector comes back so nobody ends up stuck.
 **The tip also updates the web page.** If `marken.json` holds an address under
 »tippseite«, a finished HTML file is written as well: the new tip at length,
 the graphic of the week clickable in the text, a pulled-out key sentence,
-matching articles as boxes with a picture — and the previous tip moves into
-the archive of past weeks as a tile. Title, the description for Google and
-both date fields are carried along.
+matching articles as boxes with a picture. Title, the description for Google
+and both date fields are carried along.
 
 A scaled-down copy of each graphic is made; the small one is shown, a click
 opens the full one in a new tab. Without Pillow that is skipped and both point
 at the same file.
+
+**The expiring tip gets a page of its own.** It does not disappear but moves
+to `/tipp-archiv/` — with its own heading, its own description and its own
+canonical. At the same time the overview there is extended, listing every tip
+in chronological order; nothing is ever removed from it, that is its purpose.
+
+At the foot of the tip page the four most recent weeks remain as a quick
+reference, in two columns, each with a thumbnail and two sentences. Whatever
+drops off there stays reachable in the archive. Where the archive lives
+follows from the address of the tip page — in the `tipp-archiv` folder beside
+it. If you want it elsewhere, put an address under »tipparchiv« in
+`marken.json`.
 
 Uploading is by hand. After creating the post it says what goes where:
 
 ```
 Noch hochzuladen auf www.beispiel.example:
   Tipp-der-Woche.html → /
-  2026-KW40-thema.png → /images/tipp/
-  2026-KW40-thema-klein.jpg → /images/tipp/
+  2026-KW40-thema.html → /tipp-archiv/
+  index.html → /tipp-archiv/
+  2026-KW41-thema.png → /images/tipp/
+  2026-KW41-thema-klein.jpg → /images/tipp/
 ```
+
+If the archive fails — because the overview does not answer just then — the
+tip is still created and the message says so. An archive entry can be added
+later; a week without a tip cannot.
 
 **Publishing happens by hand**, as with every other post: copy the text, file
 the image, put it into the network, come back and tick it off.

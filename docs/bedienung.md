@@ -138,22 +138,39 @@ Sackgasse sitzt.
 **Der Tipp schreibt auch die Webseite fort.** Steht in `marken.json` unter
 »tippseite« eine Adresse, entsteht zusätzlich eine fertige HTML-Datei: der
 neue Tipp ausführlich, die Grafik der Woche anklickbar im Text, ein
-hervorgehobener Merksatz, passende Artikel als Kästchen mit Bild – und der
-bisherige Tipp wandert als Kachel ins Archiv der Vorwochen. Titel,
+hervorgehobener Merksatz, passende Artikel als Kästchen mit Bild. Titel,
 Beschreibung für Google und beide Datumsangaben werden mitgezogen.
 
 Von den Grafiken entsteht eine verkleinerte Fassung; gezeigt wird die kleine,
 ein Klick öffnet die große in einem neuen Reiter. Ohne Pillow entfällt das,
 dann steht beides auf derselben Datei.
 
+**Der ablaufende Tipp bekommt eine eigene Seite.** Er verschwindet nicht,
+sondern zieht nach `/tipp-archiv/` um – mit eigener Überschrift, eigener
+Beschreibung und eigenem Canonical. Gleichzeitig wird dort die Übersicht
+fortgeschrieben, in der alle Tipps chronologisch stehen; gelöscht wird in ihr
+nichts, das ist ihr Zweck.
+
+Unten auf der Tipp-Seite bleiben die vier jüngsten Wochen als Schnellzugriff
+stehen, zweispaltig, je mit Vorschaubild und zwei Sätzen. Wer dort
+herausfällt, bleibt im Archiv erreichbar. Wo das Archiv liegt, ergibt sich
+aus der Adresse der Tipp-Seite – im Ordner `tipp-archiv` daneben. Wer es
+anders will, trägt in `marken.json` unter »tipparchiv« eine Adresse ein.
+
 Hochgeladen wird von Hand. Nach dem Anlegen steht dabei, was wohin gehört:
 
 ```
 Noch hochzuladen auf www.beispiel.example:
   Tipp-der-Woche.html → /
-  2026-KW40-thema.png → /images/tipp/
-  2026-KW40-thema-klein.jpg → /images/tipp/
+  2026-KW40-thema.html → /tipp-archiv/
+  index.html → /tipp-archiv/
+  2026-KW41-thema.png → /images/tipp/
+  2026-KW41-thema-klein.jpg → /images/tipp/
 ```
+
+Scheitert das Archiv – weil die Übersicht gerade nicht antwortet –, entsteht
+der Tipp trotzdem, und es steht in der Meldung. Einen Archiveintrag kann man
+nachtragen, eine Woche ohne Tipp nicht.
 
 **Veröffentlicht wird von Hand**, wie bei allen anderen Beiträgen auch: Text
 kopieren, Bild ablegen, im Netzwerk einstellen, zurückkommen und abhaken.

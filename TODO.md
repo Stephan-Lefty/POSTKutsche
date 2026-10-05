@@ -104,6 +104,14 @@ wurde.
 
 ## Erledigt
 
+- **Das Tipp-Archiv bekommt eigene Seiten** (2026-10-05): Jeder ablaufende
+  Tipp zieht nach `/tipp-archiv/` um, mit eigenem Titel, eigener Beschreibung
+  und eigenem Canonical; daneben entsteht eine chronologische Übersicht, in
+  der nichts gelöscht wird. Unten auf der Tipp-Seite stehen noch vier statt
+  fünf Wochen, zweispaltig und mit zwei Sätzen Anriss. Damit ist die
+  Entscheidung vom 2026-09-29 gegen Unterseiten umgedreht – sie galt, solange
+  jemand sie von Hand hätte pflegen müssen.
+
 - **Tipp und Produkt der Woche** (2026-09-29): Zwei wöchentliche Formate mit
   eigener Grafik im Hausstil. Beim Produkt genügt ein Verweis in den Shop,
   beim Tipp ein Thema; Text, Querformat, Hochformat für Instagram und ein

@@ -92,6 +92,14 @@ aren't deleted, they move down — with the date they were done.
 
 ## Done
 
+- **The tip archive gets pages of its own** (2026-10-05): every expiring tip
+  moves to `/tipp-archiv/` with its own title, description and canonical;
+  beside it a chronological overview is kept, from which nothing is ever
+  removed. The foot of the tip page now holds four weeks instead of five, in
+  two columns and with two sentences of lead-in. This reverses the decision of
+  2026-09-29 against sub-pages — it held while somebody would have had to
+  maintain them by hand.
+
 - **Tip and product of the week** (2026-09-29): two weekly formats with their
   own graphic in the house style. The product needs only a link into the shop,
   the tip only a subject; text, landscape, portrait for Instagram and an
