@@ -88,6 +88,18 @@ class Wochenformate(unittest.TestCase):
         self.assertIn("Herbstpflege von Außentüren", anweisung)
         self.assertIn("Genau drei Blöcke", anweisung)
 
+    def test_keine_dienstleistung_wird_versprochen(self):
+        # Am 2026-10-05 stand in der Einleitung der Tipp-Seite »Wir bauen
+        # seit Jahren Türen und Tore ein, nehmen Aufmaß«. Der Betreiber ist
+        # ein Onlineshop und tut beides nicht. Wer eine Leistung verspricht,
+        # die es nicht gibt, bekommt Anfragen, die niemand bedienen kann.
+        for art, quelle in (("produkt", Wochenformate.QUELLE),
+                            ("tipp", {"thema": "Türpflege"})):
+            with self.subTest(art=art):
+                anweisung = vorlagen.wochenanweisung(art, quelle, ["facebook"])
+                self.assertIn("Leistungen, die dir nicht genannt wurden", anweisung)
+                self.assertIn("eine Fachfirma", anweisung)
+
     def test_nach_bildern_wird_nicht_gefragt(self):
         # Am 2026-09-29 im ersten echten Durchlauf: Instagram fragte nach
         # einem Bild, obwohl die Grafik gerade erst entsteht. Eine offene

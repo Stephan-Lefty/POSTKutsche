@@ -24,6 +24,14 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **Erfundene Dienstleistungen** (2026-10-05). Die Anweisung verbot zwar
+  Versprechen zu Verfügbarkeit und Eignung, sagte aber nichts dazu, ob der
+  Absender montiert, Aufmaß nimmt oder vor Ort kommt. Beim ersten Betreiber -
+  einem reinen Versandhandel - stand prompt »wir bauen ein, nehmen Aufmaß« im
+  Text. Wo Selbermachen aufhört, heißt es jetzt »eine Fachfirma«, nicht
+  »wir«. Weil beide Längengrenzen der Anweisung eng sind, wurde die Regel mit
+  der verwandten zusammengezogen statt angebaut.
+
 - **Die Grafik im Tipp stand links statt mittig** (2026-10-05). `img-responsive`
   setzt `display:block`, und auf einem Blockelement wirkt das `text-center`
   des Absatzes nicht mehr. An der fertigen Seite gemessen: 15 px Rand links,
