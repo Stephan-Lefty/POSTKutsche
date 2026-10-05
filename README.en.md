@@ -30,6 +30,24 @@ and out come one or two posts a day. For shops that is the actual way of
 working, because no product there is ever "new", it gets picked. Blogs work the
 same way: a post from March is no worse in September.
 
+**It draws the picture, too.** Two weekly formats turn a single input into
+text *and* graphic: »Produkt der Woche« (product of the week) needs a link
+into the shop, »Tipp der Woche« (tip of the week) a subject. Out come a
+landscape graphic for Facebook and LinkedIn, a portrait one for Instagram –
+laid out for the format, not cropped to it – and an alternative text for
+anyone using a screen reader. Both formats share one frame: seen side by side
+they are recognisably from the same sender before a word is read. The price
+comes exclusively from the product page's markup, never from its body text;
+if it is missing, no post is created. An advert with a wrong price is worse
+than no advert.
+
+**The tip updates your web page as well.** The same run produces a finished
+HTML file for your own site – the tip at length, the graphic clickable in the
+text, matching articles as boxes. The expiring tip moves onto an archive page
+of its own, with its own title and canonical, and is listed in a chronological
+overview from which nothing ever disappears. Uploading is by hand, and the
+message afterwards names the target path and the host.
+
 **You decide who writes.** Claude Code via the existing subscription, any
 service in the OpenAI shape – Ollama on your own machine, ChatGPT, OpenRouter
 –, the Anthropic API with your own key, or nobody at all: with »by hand« the
@@ -84,6 +102,11 @@ pip install -e ".[bilder]"      # crop images to 4:5 (Pillow)
 pip install -e ".[schluessel]"  # tokens in the keyring instead of a file
 pip install -e ".[alles]"       # both
 ```
+
+**The weekly graphics need Firefox.** They are drawn with HTML and CSS and
+rendered headlessly – no extra package, but the browser has to be installed.
+Without it the post is still created, only without its image and with a note
+saying so.
 
 The whole way – deciding who writes the texts, setting up accounts, running
 it continuously under systemd – is described in the

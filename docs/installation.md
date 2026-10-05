@@ -34,8 +34,14 @@ Zwei Dinge sind Kür und lassen sich nachrüsten:
 
 | Paket | Wofür | Ohne es |
 |---|---|---|
-| Pillow | Bilder auf 4:5 zuschneiden | das unveränderte Bild von der Website wird genommen – es sieht auf dem Handy schlechter aus |
+| Pillow | Bilder auf 4:5 zuschneiden, verkleinerte Fassungen der Wochengrafiken | das unveränderte Bild von der Website wird genommen – es sieht auf dem Handy schlechter aus |
 | keyring | Zugangstoken im Schlüsselbund | die Token landen in `~/.config/postkutsche/zugaenge.json` mit Rechten 600 |
+
+**Firefox**, wenn »Tipp der Woche« und »Produkt der Woche« genutzt werden
+sollen. Die Grafiken werden mit HTML und CSS gezeichnet und im Kopflosbetrieb
+ausgegeben; dafür wird kein Paket nachinstalliert, wohl aber der Browser
+gebraucht. Fehlt er, entstehen Beitrag und Texte trotzdem – nur ohne Bild und
+mit einer Meldung, die das sagt.
 
 Wer die Texte schreibt, entscheidest du in Schritt 4 – Claude Code, ein
 Dienst im Netz, ein Modell auf dem eigenen Rechner oder du selbst. Für den

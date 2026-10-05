@@ -32,6 +32,25 @@ daraus entstehen ein bis zwei Beiträge je Tag. Bei Shops ist das der eigentlich
 Arbeitsweg, denn dort ist kein Produkt »neu«, es wird ausgewählt. Bei Blogs geht
 es genauso: Ein Beitrag vom März ist im September nicht schlechter geworden.
 
+**Es malt auch das Bild dazu.** Zwei wöchentliche Formate liefern aus einer
+einzigen Eingabe Text *und* Grafik: »Produkt der Woche« braucht einen Verweis
+in den Shop, »Tipp der Woche« ein Thema. Heraus kommen eine Querformat-Grafik
+für Facebook und LinkedIn, eine im Hochformat für Instagram – keine
+zugeschnittene, sondern eine eigens angeordnete – und ein Alternativtext für
+alle, die einen Vorleser benutzen. Beide Formate teilen dasselbe Gerüst: Wer
+sie nebeneinander sieht, erkennt denselben Absender, bevor er ein Wort liest.
+Der Preis kommt dabei ausschließlich aus der Auszeichnung der Produktseite,
+nie aus dem Fließtext; fehlt er, entsteht kein Beitrag. Eine Anzeige mit
+falschem Preis ist schlimmer als keine.
+
+**Der Tipp schreibt die Webseite mit.** Aus demselben Lauf entsteht eine
+fertige HTML-Datei für die eigene Seite – der Tipp ausführlich, die Grafik
+anklickbar im Text, passende Artikel als Kästchen. Der ablaufende Tipp zieht
+dabei auf eine eigene Archivseite um, mit eigenem Titel und eigenem Canonical,
+und wird in eine chronologische Übersicht eingetragen, aus der nichts
+verschwindet. Hochgeladen wird von Hand, und der Hinweis danach nennt
+Zielpfad und Rechner.
+
 **Du entscheidest, wer schreibt.** Claude Code über das vorhandene Abo, jeder
 Dienst in der OpenAI-Form – Ollama auf dem eigenen Rechner, ChatGPT,
 OpenRouter –, die Anthropic-Schnittstelle mit eigenem Schlüssel, oder gar
@@ -87,6 +106,11 @@ pip install -e ".[bilder]"      # Bilder auf 4:5 beschneiden (Pillow)
 pip install -e ".[schluessel]"  # Token im Schlüsselbund statt in einer Datei
 pip install -e ".[alles]"       # beides
 ```
+
+**Für die Wochengrafiken wird Firefox gebraucht.** Gezeichnet wird mit HTML
+und CSS, ausgegeben im Kopflosbetrieb – kein zusätzliches Paket, aber der
+Browser muss installiert sein. Fehlt er, entsteht der Beitrag trotzdem, nur
+ohne Bild und mit einer Meldung dazu.
 
 Den ganzen Weg – festlegen, wer die Texte schreibt, Konten einrichten,
 Dauerbetrieb über systemd – beschreibt die

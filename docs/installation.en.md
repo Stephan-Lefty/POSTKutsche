@@ -33,8 +33,14 @@ Two things are optional and can be added later:
 
 | Package | What for | Without it |
 |---|---|---|
-| Pillow | crop images to 4:5 | the unmodified image from the website is used – it looks worse on a phone |
+| Pillow | crop images to 4:5, scaled-down copies of the weekly graphics | the unmodified image from the website is used – it looks worse on a phone |
 | keyring | access tokens in the keyring | tokens go into `~/.config/postkutsche/zugaenge.json` with mode 600 |
+
+**Firefox**, if you want to use »Tipp der Woche« and »Produkt der Woche«. The
+graphics are drawn with HTML and CSS and rendered headlessly; no package is
+installed for it, but the browser has to be there. Without it the post and
+its texts are still created – only without the image, and with a message
+saying so.
 
 Who writes the texts is your decision in step 4 – Claude Code, a service on
 the net, a model on your own machine, or you. Continuous operation needs

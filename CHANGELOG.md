@@ -24,6 +24,12 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Geändert
 
+- **Firefox steht jetzt in den Voraussetzungen** (2026-10-05). Ohne ihn
+  entstehen keine Wochengrafiken – das stand bisher nur in den Notizen zum
+  Quelltext, nicht dort, wo jemand nachsieht, der POSTKutsche einrichtet.
+  Die beiden Wochenformate fehlten überhaupt in der Übersicht; sie sind
+  nachgetragen, deutsch wie englisch.
+
 - **Aus Archivkacheln werden Archivseiten** (2026-10-05). Bisher öffnete ein
   Archiveintrag die Grafik der Woche in einem neuen Reiter, und nach fünf
   Wochen verschwand der Tipp. Das war sparsam zu pflegen und für Google
