@@ -22,6 +22,13 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
   zurückgelesen. Wenn ein Tipp abläuft, sind die Daten, aus denen er entstand,
   längst weg – sie dort abzuholen ist der einzige Weg ohne doppelte Pflege.
 
+### Behoben
+
+- **Die Grafik im Tipp stand links statt mittig** (2026-10-05). `img-responsive`
+  setzt `display:block`, und auf einem Blockelement wirkt das `text-center`
+  des Absatzes nicht mehr. An der fertigen Seite gemessen: 15 px Rand links,
+  515 px rechts. Es fehlte `center-block` daneben.
+
 ### Geändert
 
 - **Firefox steht jetzt in den Voraussetzungen** (2026-10-05). Ohne ihn

@@ -301,6 +301,11 @@ def _bild(bild: dict[str, str]) -> str:
 
     `alt` ist Pflicht. Fehlt es, bleibt das Attribut leer statt zu raten –
     eine falsche Beschreibung ist schlimmer als keine.
+
+    `center-block` muss neben `img-responsive` stehen. Letzteres setzt
+    `display:block`, und auf einem Blockelement wirkt das `text-center` des
+    Absatzes nicht mehr – am 2026-10-05 an der fertigen Seite gemessen: 15 px
+    Rand links, 515 px rechts.
     """
     if not bild.get("adresse"):
         return ""
@@ -311,7 +316,7 @@ def _bild(bild: dict[str, str]) -> str:
     stueck = f"""            <p class="text-center">
             \t<a href="{ziel}" target="_blank" rel="noopener">
                 \t<img src="{zeigen}"
-                         class="img-responsive"
+                         class="img-responsive center-block"
                          alt="{html.escape(str(bild.get("alt") or ""), quote=True)}" />
                 </a>
             </p>

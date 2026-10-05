@@ -320,6 +320,15 @@ class ArchivMitGrafiken(unittest.TestCase):
         self.assertIn("Türdichtungen prüfen", eintrag)
         self.assertNotIn('<div class="col-xs-5">', eintrag)
 
+    def test_das_bild_im_text_steht_mittig(self):
+        # img-responsive setzt display:block, und auf einem Blockelement
+        # wirkt das text-center des Absatzes nicht. Am 2026-10-05 an der
+        # fertigen Seite gemessen: 15 px Rand links, 515 px rechts.
+        mit = dict(TIPP, bilder=[{"adresse": "https://a.example/neu.png",
+                                  "alt": "Neu"}])
+        neu = tippseite.erneuern(SEITE, mit, 41, MONTAG)
+        self.assertIn('class="img-responsive center-block"', neu)
+
     def test_das_bild_im_text_ist_anklickbar_und_volle_breite(self):
         mit = dict(TIPP, bilder=[{"adresse": "https://a.example/neu.png",
                                   "alt": "Neu", "unterschrift": "Die Woche"}])
