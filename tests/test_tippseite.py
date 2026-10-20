@@ -297,6 +297,50 @@ class Verweise(unittest.TestCase):
         self.assertNotIn("<script>", neu)
 
 
+class Weiterlesen(unittest.TestCase):
+    """Verweise auf eigene Ratgeberseiten – abgesetzt, nicht im Fließtext."""
+
+    ZWEI = [{"text": "Brandschutztüren", "adresse": "https://a.example/bs.html"},
+            {"text": "Rauchschutztüren", "adresse": "https://a.example/rs.html"}]
+
+    def test_sie_stehen_unter_dem_text(self):
+        neu = tippseite.erneuern(SEITE, dict(TIPP, weiterlesen=self.ZWEI),
+                                 41, MONTAG)
+        aktuell = neu[neu.find(tippseite.AKTUELL_AUF):
+                      neu.find(tippseite.AKTUELL_ZU)]
+        self.assertIn('href="https://a.example/bs.html"', aktuell)
+        self.assertIn("Mehr dazu auf unseren Seiten über", aktuell)
+        # Nach dem letzten Absatz, nicht mittendrin.
+        self.assertLess(aktuell.find("<strong>Betonung</strong>"),
+                        aktuell.find("Mehr dazu auf unseren Seiten"))
+
+    def test_zwei_werden_mit_und_verbunden(self):
+        neu = tippseite.erneuern(SEITE, dict(TIPP, weiterlesen=self.ZWEI),
+                                 41, MONTAG)
+        self.assertIn("</a> und <a href=", neu)
+
+    def test_ohne_eintraege_entsteht_kein_absatz(self):
+        neu = tippseite.erneuern(SEITE, TIPP, 41, MONTAG)
+        self.assertNotIn("Mehr dazu auf unseren Seiten", neu)
+
+    def test_ein_eintrag_ohne_adresse_wird_uebergangen(self):
+        neu = tippseite.erneuern(
+            SEITE, dict(TIPP, weiterlesen=[{"text": "ohne Ziel"}]), 41, MONTAG)
+        self.assertNotIn("Mehr dazu auf unseren Seiten", neu)
+
+    def test_anfuehrungszeichen_brechen_nichts_auf(self):
+        boese = [{"text": "x", "adresse": 'https://a.example/"><script>'}]
+        neu = tippseite.erneuern(SEITE, dict(TIPP, weiterlesen=boese), 41, MONTAG)
+        self.assertNotIn("<script>", neu)
+
+    def test_im_fliesstext_bleiben_verweise_verboten(self):
+        # Die Regel gilt weiter: Ein Ratgeber mit Shoplinks mitten im Satz
+        # liest sich wie eine Anzeige mit Ratgeberanstrich.
+        mit = dict(TIPP, absaetze=['Sieh <a href="https://a.example/x">hier</a>.'])
+        neu = tippseite.erneuern(SEITE, mit, 41, MONTAG)
+        self.assertNotIn('<a href="https://a.example/x">', neu)
+
+
 class ArchivMitGrafiken(unittest.TestCase):
     """Die Grafik der Woche wandert als Vorschaubild mit."""
 

@@ -279,6 +279,32 @@ def _verweise(eintraege: list[dict[str, str]]) -> str:
 {zeilen}"""
 
 
+def _weiterlesen(eintraege: list[dict[str, str]]) -> str:
+    """Verweise auf eigene Seiten, als eigener Absatz unter dem Text.
+
+    Im Fließtext sind Verweise verboten – ein Ratgeber mit Shoplinks mitten
+    im Satz liest sich wie eine Anzeige. Für die eigenen Ratgeberseiten gilt
+    das nicht: Wer den Tipp zu Ende gelesen hat, sucht oft genau dort
+    weiter, und ohne Verweis findet er sie nicht. Deshalb ein abgesetzter
+    Absatz statt gar nichts.
+
+    Die Adressen gibt der Betreiber vor; erfunden wird hier nichts.
+    """
+    brauchbar = [e for e in eintraege if e.get("adresse") and e.get("text")]
+    if not brauchbar:
+        return ""
+    teile = []
+    for e in brauchbar:
+        ziel = html.escape(str(e["adresse"]), quote=True)
+        teile.append(f'<a href="{ziel}">{html.escape(str(e["text"]))}</a>')
+    if len(teile) == 1:
+        liste = teile[0]
+    else:
+        liste = ", ".join(teile[:-1]) + " und " + teile[-1]
+    return (f'            <p>\n            \t<small>Mehr dazu auf unseren Seiten '
+            f'über {liste}.</small>\n            </p>\n')
+
+
 def _merksatz(text: str) -> str:
     """Ein abgesetzter Kasten mitten im Text.
 
@@ -341,7 +367,9 @@ def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
     # werden, aber erst, nachdem der Einstieg gesagt hat, worum es geht.
     for bild in reversed(tipp.get("bilder") or []):
         stuecke.insert(1, _bild(bild))
-    text = "".join(stuecke) + _verweise(tipp.get("verweise") or [])
+    text = ("".join(stuecke)
+            + _weiterlesen(tipp.get("weiterlesen") or [])
+            + _verweise(tipp.get("verweise") or []))
     bilder = ""
     # Alles über die volle Breite - so breit wie der erste Absatz.
     breite = "col-xs-12"

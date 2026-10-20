@@ -587,7 +587,8 @@ Für die Seite gilt:
 - **Ein Absatz sagt, wo Selbermachen aufhört.** Bei Brand- und
   Rauchschutztüren, bei Zulassungen, bei allem, was an der Statik hängt.
 - `<strong>` und `<em>` sind erlaubt, sonst keine Auszeichnung, keine
-  Verweise. Der Titel ist eine Aussage, keine Überschrift aus Stichworten.
+  Verweise **im Fließtext**. Der Titel ist eine Aussage, keine Überschrift
+  aus Stichworten.
 - Der Titel der Seite darf länger und griffiger sein als der auf der Grafik –
   dort zählen Zeichen, hier zählt, ob jemand weiterliest.
 - **Genau ein `{"merksatz": "…"}` etwa in der Mitte.** Neun Absätze am Stück
