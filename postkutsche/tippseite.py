@@ -49,6 +49,31 @@ AKTUELL_ZU = "<!-- ============ ENDE TIPP AKTUELL ============ -->"
 ARCHIV_AUF = "<!-- ============ TIPP ARCHIV ============ -->"
 ARCHIV_ZU = "<!-- ============ ENDE TIPP ARCHIV ============ -->"
 
+#: Dasselbe für das »Produkt der Woche«. Beide Formate laufen durch dieses
+#: Modul; die Marken unterscheiden sich nur im Wort, damit im Quelltext der
+#: Seite steht, was dort tatsächlich gepflegt wird.
+WOERTER = ("TIPP", "PRODUKT")
+
+
+def marken(seite: str) -> tuple[str, str, str, str]:
+    """Welche vier Marken diese Seite trägt – Tipp oder Produkt.
+
+    Abgeleitet aus der Datei und nicht aus einer Einstellung: Eine Einstellung
+    wäre eine zweite Angabe über dieselbe Sache, und die beiden laufen
+    irgendwann auseinander. Was in der Seite steht, gilt.
+
+    Steht keine der beiden Marken drin, wird »TIPP« angenommen. Dann meldet
+    `erneuern` gleich darauf, welche Marke fehlt – das ist die hilfreichere
+    Fehlermeldung als eine von hier.
+    """
+    for wort in WOERTER:
+        if f"<!-- ============ {wort} AKTUELL" in seite:
+            return (f"<!-- ============ {wort} AKTUELL",
+                    f"<!-- ============ ENDE {wort} AKTUELL ============ -->",
+                    f"<!-- ============ {wort} ARCHIV ============ -->",
+                    f"<!-- ============ ENDE {wort} ARCHIV ============ -->")
+    return AKTUELL_AUF, AKTUELL_ZU, ARCHIV_AUF, ARCHIV_ZU
+
 #: In der Übersichtsseite `/tipp-archiv/index.html`.
 LISTE_AUF = "<!-- ============ ARCHIVLISTE  (montags oben erweitern) ============ -->"
 LISTE_ZU = "<!-- ============ ENDE ARCHIVLISTE ============ -->"
@@ -89,11 +114,16 @@ def erneuern(seite: str, tipp: dict[str, Any], woche: int, montag,
     es `archivseite()`. Dieses Modul schreibt Text, es schreibt keine
     Dateien; wohin etwas gehört, weiß der Aufrufer.
     """
-    for marke in (AKTUELL_AUF, AKTUELL_ZU, ARCHIV_AUF, ARCHIV_ZU):
+    aktuell_auf, aktuell_zu, archiv_auf, archiv_zu = marken(seite)
+    for marke in (aktuell_auf, aktuell_zu):
         if marke not in seite:
             raise SeitenFehler(
                 f"In der Seite fehlt die Marke »{marke[:40]}…«. Ohne sie ist "
                 "nicht zu erkennen, welcher Teil ersetzt werden soll.")
+    # Der Archivblock ist Kür: In der ersten Woche eines Formats steht dort
+    # nichts, und ein Schnellzugriff ohne Einträge sieht unfertig aus. Fehlt
+    # er, bleibt die Seite eben ohne – archiviert wird trotzdem.
+    mit_archiv = archiv_auf in seite and archiv_zu in seite
 
     bisher = _bisheriger_tipp(seite)
     # Wird innerhalb derselben Woche nachgebessert, wird ersetzt und nicht
@@ -103,10 +133,11 @@ def erneuern(seite: str, tipp: dict[str, Any], woche: int, montag,
         bisher = None
     datum = f"{montag.day}. {MONATE[montag.month - 1]} {montag.year}"
 
-    seite = _ersetzen(seite, AKTUELL_AUF, AKTUELL_ZU,
+    seite = _ersetzen(seite, aktuell_auf, aktuell_zu,
                       _aktuell(tipp, woche, datum))
-    seite = _ersetzen(seite, ARCHIV_AUF, ARCHIV_ZU,
-                      _archiv(seite, bisher, archiv))
+    if mit_archiv:
+        seite = _ersetzen(seite, archiv_auf, archiv_zu,
+                          _archiv(seite, bisher, archiv))
     return _kopf_nachziehen(seite, tipp, woche, montag, datum)
 
 
@@ -144,8 +175,9 @@ def _bisheriger_tipp(seite: str) -> dict[str, str] | None:
     einzige Weg, ohne sie ein zweites Mal pflegen zu müssen – wenn der
     Tipp abläuft, sind die Daten, aus denen er entstand, längst weg.
     """
-    anfang = seite.find(AKTUELL_AUF)
-    ende = seite.find(AKTUELL_ZU)
+    aktuell_auf, aktuell_zu, _, _ = marken(seite)
+    anfang = seite.find(aktuell_auf)
+    ende = seite.find(aktuell_zu)
     if anfang < 0 or ende < 0:
         return None
     block = seite[anfang:ende]
@@ -585,7 +617,8 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
     im Archiv gehört er hin. `seitenreiter()` holt ihn aus einer Seite, die
     ihn trägt.
     """
-    for marke in (AKTUELL_AUF, AKTUELL_ZU, ARCHIV_AUF, ARCHIV_ZU):
+    aktuell_auf, aktuell_zu, archiv_auf, archiv_zu = marken(seite)
+    for marke in (aktuell_auf, aktuell_zu):
         if marke not in seite:
             raise SeitenFehler(
                 f"In der Seite fehlt die Marke »{marke[:40]}…«. Ohne sie "
@@ -598,7 +631,7 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
     eigene = _archivadresse(archiv, eintrag)
 
     # Die Montagsanleitung gehört auf die lebende Seite, nicht ins Archiv.
-    seite = re.sub(r"<!--\s*=+\s*\n\s*TIPP DER WOCHE.*?=+\s*-->\s*", "",
+    seite = re.sub(r"<!--\s*=+\s*\n\s*(TIPP|PRODUKT) DER WOCHE.*?=+\s*-->\s*", "",
                    seite, flags=re.S)
 
     seite = re.sub(
@@ -619,7 +652,7 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
     # lebenden Seite die Werbung fürs Lesezeichen. Im Archiv gehört dorthin,
     # woher der Beitrag stammt und wo der aktuelle steht.
     kopf = re.search(r"<h1[^>]*>.*?</h1>", seite, re.S)
-    anfang = seite.find(AKTUELL_AUF)
+    anfang = seite.find(aktuell_auf)
     if not kopf or anfang < 0 or kopf.end() > anfang:
         raise SeitenFehler(
             "Zwischen Überschrift und Tippblock ist die Seite nicht so "
@@ -647,14 +680,17 @@ def archivseite(seite: str, eintrag: dict[str, str], archiv: str,
              + seite[kopf.end():schluss] + hinweis + seite[anfang:])
 
     # Im Tippblock steht die Überschrift jetzt doppelt - oben als H1.
-    anfang = seite.find(AKTUELL_AUF)
-    ende = seite.find(AKTUELL_ZU)
+    anfang = seite.find(aktuell_auf)
+    ende = seite.find(aktuell_zu)
     block = seite[anfang:ende]
     block = re.sub(r"[ \t]*<h2[^>]*>.*?</h2>\n?", "", block, count=1, flags=re.S)
     block = block.replace("&middot; ab Montag,", "&middot;", 1)
     seite = seite[:anfang] + block + seite[ende:]
 
-    seite = _ersetzen(seite, ARCHIV_AUF, ARCHIV_ZU, f"""
+    if archiv_auf not in seite or archiv_zu not in seite:
+        # Kein Archivblock auf der Seite, also auch keiner im Ausschnitt.
+        return seite
+    seite = _ersetzen(seite, archiv_auf, archiv_zu, f"""
     <div class="row">
     \t<div class="col-xs-12">
         \t<div class="border-top">&nbsp;</div>

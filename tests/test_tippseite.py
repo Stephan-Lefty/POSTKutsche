@@ -630,3 +630,106 @@ class Uebersicht(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+#: Dieselbe Seite als »Produkt der Woche« – andere Marken, sonst gleich
+#: gebaut. In der Startwoche eines Formats fehlt der Archivblock: Ein
+#: Schnellzugriff ohne Einträge sieht unfertig aus.
+PRODUKTSEITE = """<html><head>
+<title>Produkt der Woche | Laden.example</title>
+<meta name="description" content="Jede Woche ein Artikel. Diese Woche: Ein Beschlag." />
+<meta name="date" content="2026-10-19" />
+<link rel="canonical" href="https://a.example/Produkt-der-Woche.html" />
+</head><body>
+<!-- ==================================================================
+     PRODUKT DER WOCHE  -  ANLEITUNG FUER DAS MONTAGS-UPDATE
+     ==================================================================
+     Hier steht, was montags zu tun ist.
+     ================================================================== -->
+
+    <div class="page-header">
+        <h1>Produkt der Woche von Laden.example</h1>
+    </div>
+
+<!-- ============ PRODUKT AKTUELL  (jeden Montag ersetzen) ============ -->
+    <div class="row"><div class="col-xs-12">
+        <p class="noMargin"><small><strong>Kalenderwoche 43</strong> &middot; ab Montag, 19. Oktober 2026</small></p>
+        <h2>Ein Beschlag aus dem Sortiment</h2>
+    </div></div>
+<!-- ============ ENDE PRODUKT AKTUELL ============ -->
+
+    <div class="row"><div class="col-xs-12"><p>Fuss.</p></div></div>
+</body></html>
+"""
+
+
+class MarkenErkennen(unittest.TestCase):
+    """Welche Marken eine Seite trägt, steht in der Seite."""
+
+    def test_tippseite_bleibt_tipp(self):
+        self.assertEqual(tippseite.marken(SEITE)[0], tippseite.AKTUELL_AUF)
+
+    def test_produktseite_wird_erkannt(self):
+        auf, zu, archiv_auf, archiv_zu = tippseite.marken(PRODUKTSEITE)
+        self.assertIn("PRODUKT AKTUELL", auf)
+        self.assertIn("ENDE PRODUKT AKTUELL", zu)
+        self.assertIn("PRODUKT ARCHIV", archiv_auf)
+        self.assertIn("ENDE PRODUKT ARCHIV", archiv_zu)
+
+    def test_ohne_marke_wird_tipp_angenommen(self):
+        # Dann meldet erneuern() gleich darauf, welche Marke fehlt - das ist
+        # die hilfreichere Fehlermeldung.
+        self.assertEqual(tippseite.marken("<html></html>")[0],
+                         tippseite.AKTUELL_AUF)
+
+
+class ProduktseiteFortschreiben(unittest.TestCase):
+    """Dasselbe Modul schreibt auch die Produktseite fort."""
+
+    def setUp(self):
+        self.produkt = {
+            "titel": "Ein anderer Beschlag",
+            "absaetze": ["Darum geht es diese Woche."],
+            "kurz": "Kurzfassung fürs Archiv.",
+            "beschreibung": "Diese Woche: ein anderer Beschlag.",
+        }
+
+    def test_der_neue_eintrag_steht_oben(self):
+        neu = tippseite.erneuern(PRODUKTSEITE, self.produkt, 44,
+                                 date(2026, 10, 26), "/produkt-archiv/")
+        self.assertIn("Ein anderer Beschlag", neu)
+        self.assertIn("Kalenderwoche 44", neu)
+        self.assertNotIn("Ein Beschlag aus dem Sortiment", neu)
+
+    def test_die_marken_bleiben_stehen(self):
+        neu = tippseite.erneuern(PRODUKTSEITE, self.produkt, 44,
+                                 date(2026, 10, 26), "/produkt-archiv/")
+        self.assertIn("<!-- ============ PRODUKT AKTUELL", neu)
+        self.assertIn("<!-- ============ ENDE PRODUKT AKTUELL ============ -->", neu)
+        # Die Tipp-Marken haben auf dieser Seite nichts verloren.
+        self.assertNotIn("TIPP AKTUELL", neu)
+
+    def test_ohne_archivblock_geht_es_trotzdem(self):
+        # Die Startwoche hat keinen. Früher brach das Fortschreiben ab.
+        self.assertNotIn("PRODUKT ARCHIV", PRODUKTSEITE)
+        neu = tippseite.erneuern(PRODUKTSEITE, self.produkt, 44,
+                                 date(2026, 10, 26), "/produkt-archiv/")
+        self.assertNotIn("PRODUKT ARCHIV", neu)
+
+    def test_der_kopf_wird_nachgezogen(self):
+        neu = tippseite.erneuern(PRODUKTSEITE, self.produkt, 44,
+                                 date(2026, 10, 26), "/produkt-archiv/")
+        self.assertIn("2026-10-26", neu)
+        self.assertIn("Ein anderer Beschlag", neu.split("</head>")[0])
+
+    def test_der_ablaufende_eintrag_ist_lesbar(self):
+        bisher = tippseite.abgelaufener_tipp(PRODUKTSEITE)
+        self.assertEqual(bisher["woche"], "43")
+        self.assertEqual(bisher["titel"], "Ein Beschlag aus dem Sortiment")
+
+    def test_archivseite_ohne_archivblock(self):
+        eintrag = tippseite.abgelaufener_tipp(PRODUKTSEITE)
+        aus = tippseite.archivseite(PRODUKTSEITE, eintrag, "/produkt-archiv/")
+        self.assertIn("Ein Beschlag aus dem Sortiment", aus)
+        # Die Montagsanleitung gehört nicht ins Archiv.
+        self.assertNotIn("ANLEITUNG FUER DAS MONTAGS-UPDATE", aus)
