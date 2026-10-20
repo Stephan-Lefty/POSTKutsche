@@ -733,3 +733,72 @@ class ProduktseiteFortschreiben(unittest.TestCase):
         self.assertIn("Ein Beschlag aus dem Sortiment", aus)
         # Die Montagsanleitung gehört nicht ins Archiv.
         self.assertNotIn("ANLEITUNG FUER DAS MONTAGS-UPDATE", aus)
+
+
+class ProduktblockBauen(unittest.TestCase):
+    """Der Produktblock: Bild, Absatz, Eckdaten, Preis, Knopf."""
+
+    def setUp(self):
+        self.produkt = {
+            "titel": "Bodentreppe für enge Flure",
+            "absaetze": ["Ein Absatz, der sagt, wofür das Stück gedacht ist."],
+            "eckdaten": ["Zugelassen für den Innenbereich",
+                         "Maßbereich 605 bis 1020 mm",
+                         "Obentürschließer ist dabei"],
+            "kurz": "Kurzfassung.",
+            "adresse": "https://a.example/shop/artikel/x_1.html",
+            "foto": "https://a.example/bild.jpg",
+            "preis": "4.519,83 €",
+            "preis_alt": "5.500,83 €",
+            "ersparnis": "981,00 €",
+            "gueltig": "Angebot gültig bis So 08.11.2026, 23:59 Uhr",
+        }
+
+    def _bauen(self, **anders):
+        return tippseite.erneuern(PRODUKTSEITE, {**self.produkt, **anders},
+                                  45, date(2026, 11, 2), "/produkt-archiv/")
+
+    def test_die_eckdaten_stehen_als_liste(self):
+        neu = self._bauen()
+        self.assertIn("<li>Zugelassen für den Innenbereich</li>", neu)
+        self.assertIn("<li>Obentürschließer ist dabei</li>", neu)
+
+    def test_preis_und_ersparnis(self):
+        neu = self._bauen()
+        self.assertIn("4.519,83 €", neu)
+        self.assertIn("<s style=\"color:#777;\">5.500,83 €</s>", neu)
+        self.assertIn("Sie sparen 981,00 €", neu)
+        self.assertIn("Angebot gültig bis So 08.11.2026", neu)
+
+    def test_der_knopf_zeigt_auf_den_shop(self):
+        neu = self._bauen()
+        self.assertIn('href="https://a.example/shop/artikel/x_1.html"', neu)
+        self.assertIn("Hier bestellen", neu)
+
+    def test_ohne_preis_bleibt_der_knopf(self):
+        # Ein leerer Preiskasten sähe aus wie ein Versehen - der Knopf nicht.
+        neu = self._bauen(preis="", preis_alt="", ersparnis="")
+        self.assertNotIn("Sie sparen", neu)
+        self.assertIn("Hier bestellen", neu)
+
+    def test_ohne_foto_nimmt_der_text_die_volle_breite(self):
+        neu = self._bauen(foto="")
+        self.assertNotIn("col-sm-7", neu.split("ENDE PRODUKT AKTUELL")[0])
+
+    def test_der_tipp_bleibt_unberuehrt(self):
+        # Dieselbe Funktion, andere Seite: Der Tipp darf keinen Preisblock
+        # bekommen, nur weil das Produkt einen hat.
+        neu = tippseite.erneuern(
+            SEITE, {"titel": "Ein Tipp", "absaetze": ["Text."],
+                    "kurz": "Kurz.", "beschreibung": "B."},
+            45, date(2026, 11, 2))
+        self.assertNotIn("Hier bestellen", neu)
+        self.assertNotIn("Sie sparen", neu)
+
+    def test_der_kopf_nennt_das_richtige_format(self):
+        # Vorher trug die Produktseite »Tipp der Woche« im Browserreiter.
+        neu = self._bauen()
+        kopf = neu.split("</head>")[0]
+        self.assertIn("<title>Produkt der Woche - Bodentreppe", kopf)
+        self.assertNotIn("Tipp der Woche -", kopf)
+        self.assertIn("Jede Woche ein Artikel aus dem Sortiment", kopf)

@@ -133,8 +133,8 @@ def erneuern(seite: str, tipp: dict[str, Any], woche: int, montag,
         bisher = None
     datum = f"{montag.day}. {MONATE[montag.month - 1]} {montag.year}"
 
-    seite = _ersetzen(seite, aktuell_auf, aktuell_zu,
-                      _aktuell(tipp, woche, datum))
+    bauer = _aktuell_produkt if "PRODUKT AKTUELL" in aktuell_auf else _aktuell
+    seite = _ersetzen(seite, aktuell_auf, aktuell_zu, bauer(tipp, woche, datum))
     if mit_archiv:
         seite = _ersetzen(seite, archiv_auf, archiv_zu,
                           _archiv(seite, bisher, archiv))
@@ -390,6 +390,97 @@ def _bild(bild: dict[str, str]) -> str:
                    f'{html.escape(str(bild["unterschrift"]))} '
                    f'<em>(zum Vergrößern anklicken)</em></small></p>\n')
     return stueck
+
+
+def _aktuell_produkt(produkt: dict[str, Any], woche: int, datum: str) -> str:
+    """Der Block mit dem Produkt dieser Woche – Bild, Eckdaten, Preis, Knopf.
+
+    Bewusst anders gebaut als der Tipp: **Diese Seite ist kurz.** Die
+    ausführlichen Angaben stehen im Shop, und dorthin soll der Leser. Alles
+    Wesentliche steht deshalb über der Falz – Bild links, rechts ein Absatz,
+    drei Eckdaten und der Knopf.
+
+    Preis, Bild und Bestelladresse kommen vom Aufrufer, nicht vom Modell:
+    Eine Zahl, die abgeschrieben wird, ist eine Zahl, die irgendwann falsch
+    abgeschrieben wird.
+    """
+    ziel = html.escape(str(produkt.get("adresse") or ""), quote=True)
+    foto = html.escape(str(produkt.get("foto") or ""), quote=True)
+    titel = html.escape(str(produkt["titel"]))
+
+    bildteil = ""
+    if foto:
+        bildteil = f"""    	<div class="col-xs-12 col-sm-5">
+        	<a href="{foto}" target="_blank" rel="noopener">
+            	<img src="{foto}" class="img-responsive center-block"
+                     alt="{titel}" />
+            </a>
+        </div>
+"""
+    textbreite = "col-xs-12 col-sm-7" if foto else "col-xs-12"
+
+    punkte = "".join(
+        f"            	<li>{_mit_auszeichnung(str(e))}</li>\n"
+        for e in (produkt.get("eckdaten") or []))
+    if punkte:
+        punkte = f'            <ul>\n{punkte}            </ul>\n'
+
+    # Der Preisblock: ohne Preis kein Block. Ein leerer Kasten mit Knopf
+    # sähe aus, als hätte jemand vergessen, den Preis einzutragen.
+    preisblock = ""
+    if produkt.get("preis"):
+        alt_preis = ""
+        if produkt.get("preis_alt"):
+            alt_preis = (f'                    &nbsp;<s style="color:#777;">'
+                         f'{html.escape(str(produkt["preis_alt"]))}</s>\n')
+        ersparnis = ""
+        if produkt.get("ersparnis"):
+            ersparnis = (
+                '                    &nbsp;<span style="background:#FDBE00; color:#333; '
+                'font-weight:700; padding:2px 8px; border-radius:3px; white-space:nowrap;">'
+                f'Sie sparen {html.escape(str(produkt["ersparnis"]))}</span>\n')
+        gueltig = ""
+        if produkt.get("gueltig"):
+            gueltig = (f'                <p class="noMargin" style="margin-bottom:12px;">'
+                       f'<small>{html.escape(str(produkt["gueltig"]))}</small></p>\n')
+        preisblock = f"""            <div style="background:#EDF1F3; border:1px solid #d5d5d5; padding:14px 16px; margin:18px 0;">
+            	<p class="noMargin">
+                	<span style="font-size:26px; font-weight:700; color:#1E4D7A;">{html.escape(str(produkt["preis"]))}</span>
+{alt_preis}{ersparnis}                </p>
+{gueltig}                <p class="noMargin">
+                	<a href="{ziel}"
+                       style="display:inline-block; background:#FDBE00; border:1px solid #e0a900; color:#333; font-weight:700; font-size:20px; padding:14px 30px; border-radius:4px; text-decoration:none;">
+                	Hier bestellen &raquo;
+                    </a>
+                </p>
+            </div>
+"""
+    elif ziel:
+        preisblock = f"""            <p>
+            	<a href="{ziel}"
+                   style="display:inline-block; background:#FDBE00; border:1px solid #e0a900; color:#333; font-weight:700; font-size:20px; padding:14px 30px; border-radius:4px; text-decoration:none;">
+            	Hier bestellen &raquo;
+                </a>
+            </p>
+"""
+
+    absaetze = "".join(_stueck(s) for s in produkt["absaetze"])
+    return f"""
+    <div class="row">
+    	<div class="col-xs-12">
+        	<div class="border-top">&nbsp;</div>
+            <p class="noMargin"><small><strong>Kalenderwoche {woche}</strong> &middot; ab Montag, {html.escape(datum)}</small></p>
+            <h2>{titel}</h2>
+        </div>
+    </div>
+
+    <div class="row">
+{bildteil}    	<div class="{textbreite}">
+        	<div class="clearfix visible-xs">&nbsp;</div>
+{absaetze}{punkte}{preisblock}        </div>
+    </div>
+
+"""
 
 
 def _aktuell(tipp: dict[str, Any], woche: int, datum: str) -> str:
@@ -792,16 +883,21 @@ def _kopf_nachziehen(seite: str, tipp: dict[str, Any], woche: int,
     Bearbeiten von Hand zuerst.
     """
     kurz = tipp.get("beschreibung") or tipp["kurz"]
+    # Wie das Format heißt, steht in der Seite - sonst trüge die
+    # Produktseite »Tipp der Woche« im Browserreiter und bei Google.
+    ist_produkt = "PRODUKT AKTUELL" in marken(seite)[0]
+    name = "Produkt der Woche" if ist_produkt else "Tipp der Woche"
+    vorspann = ("Jede Woche ein Artikel aus dem Sortiment. Diese Woche: "
+                if ist_produkt else
+                "Jede Woche ein neuer Praxistipp. Diese Woche: ")
     seite = re.sub(
         r"<title>.*?</title>",
-        f"<title>Tipp der Woche - {html.escape(tipp['titel'])}"
+        f"<title>{name} - {html.escape(tipp['titel'])}"
         f"{_titelanhang(seite)}</title>",
         seite, count=1, flags=re.S)
     seite = re.sub(
         r'(<meta\s+name="description"\s+content=")[^"]*(")',
-        lambda m: m.group(1) + html.escape(
-            f"Jede Woche ein neuer Praxistipp. Diese Woche: {kurz}",
-            quote=True) + m.group(2),
+        lambda m: m.group(1) + html.escape(vorspann + kurz, quote=True) + m.group(2),
         seite, count=1)
     seite = re.sub(
         r'(<meta\s+name="date"\s+content=")[^"]*(")',

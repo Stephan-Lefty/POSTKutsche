@@ -513,7 +513,37 @@ Für die Grafik gilt:
 - Der »name« ist der Produktname ohne Werbezusätze: Hersteller und
   Typbezeichnung, sonst nichts. Nicht der Seitentitel - der ist meist ein
   ganzer Werbesatz.
-- Die »unterzeile« nennt die Warengattung und einen kurzen Aufruf.\
+- Die »unterzeile« nennt die Warengattung und einen kurzen Aufruf.
+
+Dazu füllst du »seite« für die Webseite »Produkt der Woche«:
+
+  "seite": {{
+    "titel": "Bodentreppe für enge Flure: wenn die Luke zu klein geplant ist",
+    "beschreibung": "ein Satz für Google, höchstens 150 Zeichen",
+    "kurz": "ein Satz fürs Archiv der Vorwochen",
+    "absaetze": ["Ein einziger Absatz, höchstens vier Sätze."],
+    "eckdaten": ["Drei Stichpunkte", "…", "…"]
+  }}
+
+**Diese Seite ist kurz - das ist ihr Zweck.** Die ausführlichen Angaben
+stehen im Shop, und dorthin soll der Leser. Auf der Seite stehen ein Bild,
+drei Eckdaten und der Bestellknopf; Preis, Bild und Adresse setzt das
+Programm selbst ein, die gehören nicht in deine Antwort.
+
+- **Genau ein Absatz, höchstens vier Sätze.** Er sagt, wofür das Stück
+  gedacht ist und warum es diese Woche gezeigt wird - nicht, was es alles
+  kann. Wer mehr wissen will, klickt.
+- **Genau drei Eckdaten**, je höchstens 100 Zeichen. Das sind die Angaben,
+  an denen jemand erkennt, ob das Stück für ihn passt: Zulassung oder
+  Einsatzzweck, Maßbereich, das Wichtigste aus dem Lieferumfang. Nicht
+  dieselben vier wie auf der Grafik abschreiben - dort zählen Zeichen, hier
+  zählt die Entscheidung.
+- `<strong>` und `<em>` sind erlaubt, sonst keine Auszeichnung und keine
+  Verweise.
+- Kein Preis im Text und keine Ersparnis: Beides steht im Preisblock
+  darunter, den das Programm baut. Zweimal genannt, laufen sie auseinander.
+- Der Titel ist eine Aussage über den Einsatz, kein Werbesatz und keine
+  Typbezeichnung.\
 """
 
 TIPPREGELN = """\
@@ -701,6 +731,7 @@ def wochenantwort_lesen(
         grafik["merkmale"] = merkmale
         if not str(grafik.get("name", "")).strip():
             raise AntwortFehler("Der Grafik fehlt der »name«.")
+        grafik.update(_seitenteil(daten, eckdaten=True))
     else:
         bloecke = grafik.get("bloecke") or []
         if len(bloecke) != 3:
@@ -714,14 +745,33 @@ def wochenantwort_lesen(
             block["punkte"] = punkte
         if len(grafik.get("beachten") or []) != 4:
             raise AntwortFehler("Unter »beachten« gehören vier Punkte.")
-        seite = daten.get("seite")
-        if isinstance(seite, dict) and seite.get("absaetze"):
-            # Die Seite ist Kür: Fehlt sie, entsteht der Beitrag trotzdem und
-            # nur die HTML-Datei bleibt aus. Ist sie aber da, muss sie
-            # brauchbar sein - ein Titel ohne Text nützt niemandem.
-            if not str(seite.get("titel", "")).strip():
-                raise AntwortFehler("Der Seite fehlt der Titel.")
-            if not str(seite.get("kurz", "")).strip():
-                raise AntwortFehler("Der Seite fehlt die Kurzfassung fürs Archiv.")
-            grafik["_seite"] = seite
+        grafik.update(_seitenteil(daten))
     return fassungen, grafik
+
+
+def _seitenteil(daten: dict[str, Any], eckdaten: bool = False) -> dict[str, Any]:
+    """Die Angaben für die Webseite – oder nichts, wenn sie fehlen.
+
+    Die Seite ist Kür: Fehlt sie, entsteht der Beitrag trotzdem und nur die
+    HTML-Datei bleibt aus. Ist sie aber da, muss sie brauchbar sein – ein
+    Titel ohne Text nützt niemandem.
+
+    Beim Produkt gehören drei Eckdaten dazu. Sie sind der Grund, warum die
+    Seite überhaupt gelesen wird: An ihnen erkennt jemand, ob das Stück für
+    ihn passt, ohne erst in den Shop zu klicken.
+    """
+    seite = daten.get("seite")
+    if not isinstance(seite, dict) or not seite.get("absaetze"):
+        return {}
+    if not str(seite.get("titel", "")).strip():
+        raise AntwortFehler("Der Seite fehlt der Titel.")
+    if not str(seite.get("kurz", "")).strip():
+        raise AntwortFehler("Der Seite fehlt die Kurzfassung fürs Archiv.")
+    if eckdaten:
+        punkte = [str(e).strip() for e in (seite.get("eckdaten") or []) if str(e).strip()]
+        if len(punkte) != 3:
+            raise AntwortFehler(
+                f"Die Produktseite braucht genau drei Eckdaten, bekommen sind "
+                f"{len(punkte)}.")
+        seite = {**seite, "eckdaten": punkte}
+    return {"_seite": seite}

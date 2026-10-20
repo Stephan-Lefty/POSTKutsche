@@ -206,9 +206,16 @@ def _bauen(ablage, projekt, art: str, quelle: dict[str, Any], geplant: str,
                                          projekt.kennung, geplant, meldungen)
 
     seitendatei = None
-    if art == TIPP and grafikdaten and grafikdaten.get("_seite"):
-        seitendatei = _seite_ablegen(grafikdaten["_seite"], projekt, geplant,
-                                     meldungen)
+    if grafikdaten and grafikdaten.get("_seite"):
+        seite = grafikdaten["_seite"]
+        if art == PRODUKT:
+            # Preis, Bild und Bestelladresse kommen aus der Produktseite und
+            # aus der Rechnung, nicht aus dem Modell - dieselbe Trennung wie
+            # bei den Grafikfeldern.
+            seite = {**seite, "adresse": quelle.get("adresse", ""),
+                     "foto": bild_adresse or "", **(feste_felder or {})}
+        seitendatei = _seite_ablegen(seite, projekt, geplant, meldungen,
+                                     art=art)
 
     inhalt_id = _inhalt_merken(ablage, projekt, art, quelle, grafikdaten)
     beitrag = ablage.beitrag_anlegen(projekt.id, geplant, inhalt_id=inhalt_id)
@@ -284,7 +291,7 @@ def _archivadresse(marke: dict[str, Any], tippadresse: str) -> str:
 
 
 def _seite_ablegen(seite: dict[str, Any], projekt, geplant: str,
-                   meldungen: list[str]):
+                   meldungen: list[str], art: str = TIPP):
     """Die Seite fortschreiben und in den Wochenordner legen.
 
     Es entstehen bis zu drei Dateien: die Tipp-Seite, die Archivseite des
