@@ -38,7 +38,8 @@ ClaudeFehler = DenkerFehler
 ClaudeFehlt = DenkerFehlt
 
 __all__ = ["kommando", "offen", "anthropisch", "hand", "vorlagen", "netz",
-           "schreiben", "nachbessern", "verfuegbar", "waehlen", "wege", "nicht_da",
+           "schreiben", "nachbessern", "verfuegbar", "probieren", "waehlen",
+           "wege", "nicht_da",
            "DenkerFehler", "DenkerFehlt", "ClaudeFehler", "ClaudeFehlt",
            "AntwortFehler", "BLOG", "PRODUKT",
            "KOMMANDO", "OFFEN", "ANTHROPISCH", "HAND"]
@@ -125,8 +126,25 @@ def _einstellungen_fuer(weg: str,
 
 def verfuegbar(weg: str | None = None, projekt: Any = None) -> bool:
     """Ob dieser Weg gerade benutzbar ist."""
+    return probieren(weg, projekt)[0]
+
+
+def probieren(weg: str | None = None,
+              projekt: Any = None) -> tuple[bool, str]:
+    """Ob der Weg antwortet – und wenn nicht, warum nicht.
+
+    Den Grund mitzuliefern ist der ganze Zweck. `nicht_da` nennt nur die
+    Abhilfe für den Weg, und das ist zu wenig: Am 2026-10-29 stand eine
+    Viertelstunde »Claude Code antwortet nicht. Installiert?« auf dem
+    Schirm, während Claude Code installiert war und »OAuth session expired«
+    meldete. Die Auskunft war da, sie wurde nur unterwegs weggeworfen.
+    """
     weg, einstellungen = _bestimmen(weg, None, projekt)
-    return WEGE[weg].erreichbar(einstellungen)
+    try:
+        WEGE[weg].antwortet(einstellungen)
+    except DenkerFehler as fehler:
+        return False, str(fehler)
+    return True, ""
 
 
 def nicht_da(weg: str) -> str:

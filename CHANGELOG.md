@@ -28,6 +28,32 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 
+- **»Antwortet nicht« sagt jetzt, warum** (2026-10-29). Eine Dreiviertelstunde
+  stand in der Oberfläche »Claude Code antwortet nicht. Installiert?«, während
+  Claude Code installiert war und »Failed to authenticate: OAuth session
+  expired« meldete. Die Auskunft war da – sie wurde in `erreichbar`
+  verschluckt, das nur ja oder nein zurückgibt. Jede Probe heißt jetzt
+  `antwortet`, wirft mit dem Grund, und `erreichbar` ist nur noch die Hülle
+  darum. Der Grund steht in der Leiste, auf der Konsole beim Start und bei
+  `denker pruefen` – vor der Abhilfe, denn die ist drei Zeilen lang und
+  niemand liest bis zum Ende.
+
+  Dabei fiel noch etwas auf: Bei abgelaufener Anmeldung endet `claude -p` mit
+  Rückgabewert **0** und meldet den Fehler nur im Hüllobjekt. Wer allein auf
+  den Rückgabewert sieht, hält das für eine Antwort. Jetzt mit Test in der
+  Form, die wirklich zurückkommt.
+
+- **Ein Satz ist kein Zugangsschlüssel** (2026-10-29). `denker schluessel`
+  nahm 113 Zeichen Fließtext an und meldete »Hinterlegt«; danach hieß es
+  »Zugang: hinterlegt« *und* »antwortet nicht«. Der Grund war die
+  Reihenfolge: `claude setup-token` braucht selbst eine angemeldete Sitzung
+  und gibt abgemeldet gar keinen Zugang aus. Die Eingabe wird jetzt auf ihre
+  Form geprüft – Leerzeichen, Länge, bei `kommando` der Anfang `sk-ant-oat` –
+  und sonst abgewiesen. `--trotzdem` setzt das außer Kraft, falls sich der
+  Namensraum beim Anbieter ändert; ein Werkzeug, das nach einer Umstellung
+  beim Anbieter gar nichts mehr annimmt, wäre schlimmer. Der Hinweis nennt
+  jetzt beide Befehle in der richtigen Reihenfolge.
+
 - **Erfundene Dienstleistungen** (2026-10-05). Die Anweisung verbot zwar
   Versprechen zu Verfügbarkeit und Eignung, sagte aber nichts dazu, ob der
   Absender montiert, Aufmaß nimmt oder vor Ort kommt. Beim ersten Betreiber -

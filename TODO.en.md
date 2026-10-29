@@ -9,6 +9,13 @@ aren't deleted, they move down — with the date they were done.
 
 ### Next up
 
+- **Aborted connections fill the journal.** If the browser closes the
+  connection while the service is reading the 132 category pages, two nested
+  `BrokenPipeError` tracebacks land in the log – one from sending the
+  response, one from sending the error about it. The service survives, but
+  anyone looking for a cause later finds those first. A `BrokenPipeError`
+  isn't a fault, it's a reader who left; it belongs in the log as one line,
+  not as a traceback.
 - **The project palette is used up.** With seven projects all five colours in
   `PROJEKTFARBEN` are taken. The two new ones got olive and turquoise; olive
   sits only 28° from the first shop's yellow, turquoise 20° from the teal of

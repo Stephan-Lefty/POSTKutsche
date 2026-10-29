@@ -146,6 +146,40 @@ class Netzwerke(Basis):
         self.assertIn("Pflicht", self.rufe("netzwerke").ausgabe)
 
 
+class SchluesselForm(unittest.TestCase):
+    """Was offensichtlich kein Zugangsschlüssel ist, wird abgewiesen.
+
+    Am 2026-10-29 landeten 113 Zeichen Fließtext im Schlüsselbund: »claude
+    setup-token« gibt ohne Anmeldung gar keinen Schlüssel aus, und es gab
+    keinen Einspruch. Danach meldete »denker pruefen« brav »Zugang:
+    hinterlegt« und »antwortet nicht« – eine Dreiviertelstunde lang.
+    """
+
+    def _pruefen(self, schluessel: str, weg: str = "kommando") -> str:
+        from postkutsche.__main__ import _schluessel_pruefen
+        return _schluessel_pruefen(weg, schluessel)
+
+    def test_ein_satz_ist_kein_schluessel(self):
+        beanstandung = self._pruefen("Langlebigen Zugang anlegen mit claude "
+                                     "setup-token und dann weiter so")
+        self.assertIn("Leerzeichen", beanstandung)
+
+    def test_zu_kurz_faellt_auf(self):
+        self.assertIn("Zeichen", self._pruefen("sk-ant-oat-kurz"))
+
+    def test_ein_api_schluessel_gehoert_zum_anderen_weg(self):
+        beanstandung = self._pruefen("sk-ant-api03-" + "x" * 80)
+        self.assertIn("anthropisch", beanstandung)
+
+    def test_ein_echter_zugang_geht_durch(self):
+        self.assertEqual(self._pruefen("sk-ant-oat01-" + "x" * 95), "")
+
+    def test_andere_wege_haben_andere_schluessel(self):
+        # Ollama, OpenRouter, DeepSeek – jeder mit eigenem Namensraum. Hier
+        # auf »sk-ant-oat« zu bestehen wäre falsch.
+        self.assertEqual(self._pruefen("hf_" + "y" * 40, weg="offen"), "")
+
+
 class OhneBefehl(Basis):
     def test_zeigt_hilfe_und_meldet_fehler(self):
         aus = io.StringIO()

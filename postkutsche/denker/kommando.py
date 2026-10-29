@@ -53,22 +53,30 @@ def vorhanden() -> bool:
 PROBEZEIT = 60
 
 
-def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
-    """Ob Claude Code antwortet – geprüft mit einer winzigen Anfrage.
+def antwortet(einstellungen: dict[str, Any] | None = None) -> None:
+    """Fragt Claude Code wirklich. Geht es nicht, wirft sie mit dem Grund.
 
     Der Suchpfad allein genügt nicht: Eine abgelaufene Anmeldung merkt man
     ihm nicht an, und dann meldet »denker pruefen« »Antwortet«, ohne je
     gefragt zu haben. Die anderen Wege fragen auch nach.
     """
     if not vorhanden():
-        return False
-    try:
-        _aufrufen(
-            'Antworte genau mit: {"fassungen": {}}',
-            (einstellungen or {}).get("modell"),
-            zeitlimit=PROBEZEIT,
-            schluessel=(einstellungen or {}).get("schluessel"),
+        raise DenkerFehlt(
+            "»claude« ist nicht im Suchpfad. Claude Code installieren: "
+            "npm install -g @anthropic-ai/claude-code"
         )
+    _aufrufen(
+        'Antworte genau mit: {"fassungen": {}}',
+        (einstellungen or {}).get("modell"),
+        zeitlimit=PROBEZEIT,
+        schluessel=(einstellungen or {}).get("schluessel"),
+    )
+
+
+def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
+    """Ob Claude Code antwortet – für Aufrufer, denen ja oder nein genügt."""
+    try:
+        antwortet(einstellungen)
     except DenkerFehler:
         return False
     return True

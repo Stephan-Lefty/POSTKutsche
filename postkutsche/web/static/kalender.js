@@ -697,9 +697,12 @@ async function denkerWachen() {
   try {
     const daten = await hole("/api/denker");
     if (daten.geht === false) {
-      // Nur die Abhilfe: Sie nennt schon selbst, wer nicht antwortet. Den
-      // Namen davorzusetzen ergäbe »X antwortet nicht. X antwortet nicht.«
-      leiste.textContent = daten.abhilfe;
+      // Erst der Grund von dem, der nicht antwortet, dann unsere Abhilfe.
+      // Die Abhilfe nennt schon selbst, wer nicht antwortet – den Namen
+      // davorzusetzen ergäbe »X antwortet nicht. X antwortet nicht.«
+      leiste.textContent = daten.grund
+        ? `${daten.grund} – ${daten.abhilfe}`
+        : daten.abhilfe;
       leiste.hidden = false;
     } else {
       leiste.hidden = true;

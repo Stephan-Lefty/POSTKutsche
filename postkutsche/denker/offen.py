@@ -59,11 +59,16 @@ def nachbessern(
     return vorlagen.antwort_lesen(text, [netzwerk])[netzwerk]
 
 
+def antwortet(einstellungen: dict[str, Any] | None = None) -> None:
+    """Fragt den Dienst wirklich. Geht es nicht, wirft sie mit dem Grund."""
+    _aufrufen("Antworte genau mit: {\"fassungen\": {}}", einstellungen or {},
+              hoechstens=32)
+
+
 def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
     """Ob der Dienst antwortet. Für »denker pruefen« und die Oberfläche."""
     try:
-        _aufrufen("Antworte genau mit: {\"fassungen\": {}}", einstellungen or {},
-                  hoechstens=32)
+        antwortet(einstellungen)
     except DenkerFehler:
         return False
     return True

@@ -418,6 +418,42 @@ class Aufruf(unittest.TestCase):
         self.assertIn("angemeldet", str(f.exception))
         self.assertIn("/login", str(f.exception))
 
+    def test_abgelaufene_anmeldung_auch_bei_rueckgabewert_null(self):
+        # Am 2026-10-29 nachgemessen: Bei abgelaufener Anmeldung endet
+        # »claude -p« mit **0** und meldet den Fehler nur im Hüllobjekt. Wer
+        # allein auf den Rückgabewert sieht, hält das für eine Antwort.
+        huelle = json.dumps({
+            "is_error": True,
+            "terminal_reason": "api_error",
+            "result": "Failed to authenticate: OAuth session expired "
+                      "and could not be refreshed",
+        })
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(0, stdout=huelle)):
+            with self.assertRaises(kommando.ClaudeFehler) as f:
+                kommando.fassungen(INHALT, ["mastodon"])
+        self.assertIn("angemeldet", str(f.exception))
+
+    def test_antwortet_nennt_den_grund(self):
+        # `erreichbar` gibt nur ja oder nein – der Grund käme nie heraus.
+        huelle = json.dumps({
+            "is_error": True,
+            "result": "Failed to authenticate: OAuth session expired",
+        })
+        with mock.patch("shutil.which", return_value="/x/claude"), \
+             mock.patch("subprocess.run", return_value=_lauf(0, stdout=huelle)):
+            with self.assertRaises(kommando.ClaudeFehler) as f:
+                kommando.antwortet()
+        self.assertIn("OAuth session expired", str(f.exception))
+
+    def test_antwortet_ohne_claude_sagt_was_fehlt(self):
+        with mock.patch("shutil.which", return_value=None), \
+             mock.patch("subprocess.run") as lauf:
+            with self.assertRaises(kommando.ClaudeFehlt) as f:
+                kommando.antwortet()
+        lauf.assert_not_called()
+        self.assertIn("Suchpfad", str(f.exception))
+
     def test_grund_steht_vorn_und_nicht_das_rohe_json(self):
         # Der Grund darf nicht der Kürzung auf 300 Zeichen zum Opfer fallen.
         huelle = json.dumps({

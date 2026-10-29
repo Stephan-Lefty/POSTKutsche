@@ -125,12 +125,18 @@ def denker_stand(weg: str) -> dict[str, Any] | None:
 
 
 def denker_nachsehen(weg: str, einstellungen: dict[str, Any]) -> bool:
-    """Prüft den Weg wirklich und merkt sich das Ergebnis."""
+    """Prüft den Weg wirklich und merkt sich Ergebnis *und* Grund."""
     from .. import denker
 
-    geht = denker.WEGE[weg].erreichbar(einstellungen)
+    try:
+        denker.WEGE[weg].antwortet(einstellungen)
+    except denker.DenkerFehler as fehler:
+        geht, grund = False, str(fehler)
+    else:
+        geht, grund = True, ""
     with _denker_sperre:
-        _denker_stand[weg] = {"zeit": time.monotonic(), "geht": geht}
+        _denker_stand[weg] = {"zeit": time.monotonic(), "geht": geht,
+                              "grund": grund}
     return geht
 
 
@@ -765,6 +771,10 @@ class Behandler(BaseHTTPRequestHandler):
             # None heißt »noch nicht geprüft« und darf nicht als »geht nicht«
             # gelesen werden - die Oberfläche unterscheidet das.
             "geht": True if weg == denker.HAND else (stand or {}).get("geht"),
+            # Der Grund kommt von dem, der nicht antwortet, die Abhilfe von
+            # uns. Beides gehört in die Leiste: »OAuth session expired« sagt,
+            # was los ist, »claude auth login« sagt, was zu tun ist.
+            "grund": (stand or {}).get("grund") or "",
             "abhilfe": denker.nicht_da(weg),
         })
 
@@ -1392,7 +1402,9 @@ def _denker_beim_start(melden=sagen) -> None:
         if denker_nachsehen(weg, einstellungen):
             melden(f"Es schreibt: {denker.NAMEN[weg]} – antwortet.")
         else:
-            melden(f"Es schreibt: {denker.NAMEN[weg]} – antwortet NICHT.")
+            grund = (denker_stand(weg) or {}).get("grund") or ""
+            melden(f"Es schreibt: {denker.NAMEN[weg]} – antwortet NICHT."
+                   + (f" {grund}" if grund else ""))
             melden(denker.nicht_da(weg))
     except Exception as fehler:  # noqa: BLE001
         melden(f"Wer schreibt, ließ sich nicht feststellen: {fehler}")

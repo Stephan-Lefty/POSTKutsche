@@ -67,6 +67,11 @@ def nachbessern(
     )
 
 
+def antwortet(einstellungen: dict[str, Any] | None = None) -> None:
+    """Wirft nie. Dieser Weg hängt an nichts."""
+    return None
+
+
 def erreichbar(einstellungen: dict[str, Any] | None = None) -> bool:
     """Immer. Dieser Weg hängt an nichts."""
     return True

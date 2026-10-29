@@ -10,6 +10,13 @@ wurde.
 
 ### Als Nächstes
 
+- **Abgebrochene Verbindungen füllen das Journal.** Schließt der Browser die
+  Verbindung, während der Dienst die 132 Kategorieseiten liest, stehen zwei
+  verschachtelte `BrokenPipeError`-Rückverfolgungen im Protokoll – eine vom
+  Senden der Antwort, eine vom Senden der Fehlermeldung darüber. Der Dienst
+  übersteht es, aber wer später nach einer Ursache sucht, findet erst einmal
+  das. Ein `BrokenPipeError` ist kein Fehler, sondern ein Leser, der gegangen
+  ist; er gehört als eine Zeile ins Protokoll, nicht als Rückverfolgung.
 - **Die Projektpalette ist aufgebraucht.** Mit sieben Projekten sind alle fünf
   Farben aus `PROJEKTFARBEN` vergeben. Die beiden neuen haben Oliv und Türkis
   bekommen; Oliv liegt nur 28° vom Gelb des ersten Shops, Türkis 20° vom

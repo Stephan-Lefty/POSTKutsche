@@ -3,6 +3,42 @@
 Landkarte des Repositorys. Ergänzt [README.md](README.md) und
 [TODO.md](TODO.md), wiederholt sie nicht.
 
+## Hier war Schluss (Stand 2026-10-29)
+
+789 Tests. Ein Tag, an dem nichts gebaut werden musste und doch zwei Dinge
+fällig waren – beide an derselben Meldung.
+
+**Der Grund gehört zur Meldung.** »Claude Code antwortet nicht. Installiert?«
+stand eine Dreiviertelstunde auf dem Schirm, während Claude Code installiert
+war und »Failed to authenticate: OAuth session expired« meldete. Die Auskunft
+war nicht verloren, sie wurde weggeworfen: `erreichbar` gibt ja oder nein
+zurück, und `nicht_da` kennt nur den Weg, nicht den Fall. Jede Probe heißt
+jetzt `antwortet` und wirft mit dem Grund; `erreichbar` ist die Hülle darum,
+`denker.probieren` gibt `(geht, grund)`. Der Prüfstand im Dienst merkt sich
+den Grund mit, `/api/denker` liefert ihn, die Leiste setzt ihn **vor** die
+Abhilfe. Umgekehrt liest es niemand: Die Abhilfe ist drei Zeilen lang.
+
+**`claude -p` endet bei abgelaufener Anmeldung mit Rückgabewert 0.** Am
+2026-09-28 war es noch die 1; heute nachgemessen kam 0 mit `is_error: true`
+und dem Grund in `result`. `_auspacken` fing das schon ab – aber nur, weil
+dort auf `is_error` geprüft wird und nicht auf den Rückgabewert. Jetzt mit
+einem Test in genau dieser Form.
+
+**Ein Satz landete im Schlüsselbund.** `denker schluessel` nahm 113 Zeichen
+Fließtext an und meldete »Hinterlegt«; danach stand »Zugang: hinterlegt« und
+»antwortet nicht« gleichzeitig da. Ursache war die Reihenfolge, die auch in
+der Doku falsch stand: **`claude auth login` kommt vor `claude setup-token`**
+– setup-token braucht selbst eine Sitzung und gibt abgemeldet gar nichts aus.
+Die Form wird jetzt geprüft (Leerzeichen, Länge, bei `kommando` der Anfang
+`sk-ant-oat`), mit `--trotzdem` als Ausweg: Ein Werkzeug, das nach einer
+Umstellung beim Anbieter nichts mehr annimmt, wäre schlimmer als ein falsch
+hinterlegter Schlüssel.
+
+**Nebenbei gesehen, nicht angefasst:** Bricht der Browser die Verbindung ab,
+während der Dienst die 132 Kategorieseiten liest, stehen zwei verschachtelte
+`BrokenPipeError`-Rückverfolgungen im Journal. Der Dienst übersteht es; wer
+dort nach einem Fehler sucht, findet erst einmal das.
+
 ## Hier war Schluss (Stand 2026-10-05)
 
 739 Tests. Das Tipp-Archiv hat jetzt zwei Ebenen, und damit ist eine

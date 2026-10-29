@@ -210,6 +210,8 @@ def _zerleger() -> argparse.ArgumentParser:
     dks = dk_unter.add_parser("schluessel", help="Zugangsschlüssel hinterlegen")
     dks.add_argument("weg",
                      choices=[denker.KOMMANDO, denker.OFFEN, denker.ANTHROPISCH])
+    dks.add_argument("--trotzdem", action="store_true",
+                     help="auch hinterlegen, wenn die Form unüblich aussieht")
     dks.set_defaults(handlung=_denker_schluessel)
 
     dkp = dk_unter.add_parser("pruefen", help="antwortet der gewählte Weg?")
@@ -631,15 +633,57 @@ def _denker_schluessel(ablage: Ablage, args: argparse.Namespace) -> int:
     # der Verlaufsdatei der Shell stehen bleibt.
     kennung = f"denker-{args.weg}"
     if args.weg == denker.KOMMANDO:
-        print("Langlebigen Zugang anlegen mit: claude setup-token")
+        print("Anmelden mit »claude auth login«, danach »claude setup-token« "
+              "– der gibt den Schlüssel aus, der hier hineingehört.")
     schluessel = getpass.getpass(
         f"Schlüssel für »{args.weg}« (Eingabe bleibt unsichtbar): ")
-    if not schluessel.strip():
+    schluessel = schluessel.strip()
+    if not schluessel:
         print("Nichts eingegeben, nichts gespeichert.", file=sys.stderr)
         return 1
-    ort = zugaenge.setzen(kennung, schluessel.strip())
+
+    beanstandung = _schluessel_pruefen(args.weg, schluessel)
+    if beanstandung and not args.trotzdem:
+        print(beanstandung, file=sys.stderr)
+        print("Soll es trotzdem hinterlegt werden: --trotzdem anhängen.",
+              file=sys.stderr)
+        return 1
+    if beanstandung:
+        print(f"Hinweis: {beanstandung}")
+
+    ort = zugaenge.setzen(kennung, schluessel)
     print(f"Hinterlegt in: {ort}")
+    print("Nachsehen, ob es geht: postkutsche denker pruefen")
     return 0
+
+
+#: Woran ein Zugang von »claude setup-token« zu erkennen ist. Nur zur
+#: Warnung, nicht als Gesetz: Ein Namensraum, der sich beim Anbieter ändert,
+#: darf nicht dazu führen, dass hier gar nichts mehr hinterlegt werden kann.
+OAT_ANFANG = "sk-ant-oat"
+
+
+def _schluessel_pruefen(weg: str, schluessel: str) -> str:
+    """Was an dieser Eingabe offensichtlich kein Schlüssel ist.
+
+    Leerer Text zurück heißt: sieht aus wie ein Schlüssel. Der Anlass ist
+    echt – am 2026-10-29 landeten 113 Zeichen Fließtext im Schlüsselbund,
+    weil »claude setup-token« ohne Anmeldung gar keinen Schlüssel ausgibt
+    und niemand widersprach. Danach hieß es eine Dreiviertelstunde »Zugang:
+    hinterlegt« und »antwortet nicht«.
+    """
+    if any(zeichen.isspace() for zeichen in schluessel):
+        return ("Darin stehen Leerzeichen oder Zeilenumbrüche – ein "
+                "Zugangsschlüssel hat keine. Sieht aus wie ein Satz oder "
+                "wie eine mitkopierte Meldung.")
+    if len(schluessel) < 20:
+        return (f"Nur {len(schluessel)} Zeichen – Zugangsschlüssel sind "
+                "deutlich länger.")
+    if weg == denker.KOMMANDO and not schluessel.startswith(OAT_ANFANG):
+        return (f"Beginnt nicht mit »{OAT_ANFANG}«. So fängt der Zugang von "
+                "»claude setup-token« an; ein Schlüssel der Anthropic-"
+                "Schnittstelle (sk-ant-api…) gehört zum Weg »anthropisch«.")
+    return ""
 
 
 def _denker_pruefen(ablage: Ablage, args: argparse.Namespace) -> int:
@@ -662,10 +706,17 @@ def _denker_pruefen(ablage: Ablage, args: argparse.Namespace) -> int:
         print("Zugang: hinterlegt" if einstellungen.get("schluessel")
               else "Zugang: keiner – es gilt die Anmeldung auf der Maschine")
 
-    if denker.verfuegbar(weg, projekt):
+    geht, grund = denker.probieren(weg, projekt)
+    if geht:
         print("\nAntwortet.")
         return 0
-    print(f"\nAntwortet nicht. {denker.nicht_da(weg)}", file=sys.stderr)
+    # Erst der Grund, dann die Abhilfe. Umgekehrt liest niemand weiter: Die
+    # Abhilfe ist drei Zeilen lang, der Grund steht dann dahinter.
+    if grund:
+        print(f"\nAntwortet nicht: {grund}", file=sys.stderr)
+    else:
+        print("\nAntwortet nicht.", file=sys.stderr)
+    print(denker.nicht_da(weg), file=sys.stderr)
     return 1
 
 

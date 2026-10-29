@@ -297,5 +297,46 @@ class DieWeicheStellt(unittest.TestCase):
         self.assertIn("claude code", denker.nicht_da(denker.KOMMANDO).lower())
 
 
+class GrundNennen(unittest.TestCase):
+    """`probieren` liefert den Grund, `verfuegbar` nur ja oder nein.
+
+    Der Anlass: Am 2026-10-29 war Claude Code installiert und meldete »OAuth
+    session expired« – auf dem Schirm stand »Installiert?«. Die Auskunft war
+    da, sie wurde in `erreichbar` verschluckt.
+    """
+
+    def _mit_weg(self, weg: str):
+        return mock.patch.object(konfiguration, "denker_lesen",
+                                 lambda: {"weg": weg})
+
+    def test_probieren_gibt_den_grund_weiter(self):
+        from postkutsche import denker
+        with self._mit_weg(denker.KOMMANDO), \
+             mock.patch.object(
+                 denker.kommando, "antwortet",
+                 side_effect=denker.DenkerFehler("OAuth session expired")):
+            geht, grund = denker.probieren()
+        self.assertFalse(geht)
+        self.assertIn("OAuth session expired", grund)
+
+    def test_wer_antwortet_hat_keinen_grund(self):
+        from postkutsche import denker
+        with self._mit_weg(denker.KOMMANDO), \
+             mock.patch.object(denker.kommando, "antwortet", return_value=None):
+            self.assertEqual(denker.probieren(), (True, ""))
+
+    def test_verfuegbar_bleibt_ein_ja_oder_nein(self):
+        from postkutsche import denker
+        with self._mit_weg(denker.KOMMANDO), \
+             mock.patch.object(denker.kommando, "antwortet",
+                               side_effect=denker.DenkerFehler("egal")):
+            self.assertIs(denker.verfuegbar(), False)
+
+    def test_von_hand_antwortet_ohne_zu_fragen(self):
+        from postkutsche import denker
+        with self._mit_weg(denker.HAND):
+            self.assertEqual(denker.probieren(), (True, ""))
+
+
 if __name__ == "__main__":
     unittest.main()

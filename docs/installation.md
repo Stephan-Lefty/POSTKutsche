@@ -188,8 +188,14 @@ paar Tage von Hand anmelden geht nicht, wenn POSTKutsche unter systemd läuft.
 Dafür gibt es einen Zugang, der ein Jahr gilt. Einmal anlegen:
 
 ```
+claude auth login
 claude setup-token
 ```
+
+**Die Reihenfolge ist nicht beliebig.** `claude setup-token` braucht selbst
+eine angemeldete Sitzung; abgemeldet gibt es gar keinen Zugang aus. Wer
+dann trotzdem etwas in den Schlüsselbund legt, hat am Ende »Zugang:
+hinterlegt« und »antwortet nicht« gleichzeitig auf dem Schirm.
 
 Der ausgegebene Zugang gehört nicht in die systemd-Einheit und nicht in eine
 Umgebungsvariable in `~/.profile` – beides steht im Klartext auf der Platte.
@@ -205,6 +211,13 @@ Die Eingabe bleibt unsichtbar und landet nicht im Verlauf der Shell.
 Beim Aufruf reicht POSTKutsche den Zugang als `CLAUDE_CODE_OAUTH_TOKEN` an
 den Kindprozess weiter – über die Umgebung, nicht über die Befehlszeile: Was
 dort steht, liest jeder mit `ps`.
+
+Ein Zugang von `claude setup-token` beginnt mit `sk-ant-oat`, ist rund
+hundert Zeichen lang und enthält keine Leerzeichen. Sieht die Eingabe anders
+aus, wird sie abgewiesen statt gespeichert; `--trotzdem` setzt das außer
+Kraft, falls sich der Namensraum beim Anbieter einmal ändert. Ein Schlüssel
+der Anthropic-Schnittstelle (`sk-ant-api…`) gehört nicht hierher, sondern
+zum Weg `anthropisch`.
 
 Ist kein Zugang hinterlegt, gilt weiter die Anmeldung auf der Maschine.
 

@@ -185,8 +185,14 @@ signing in by hand every few days doesn't work when POSTKutsche runs under
 systemd. There is a token for that, valid for a year. Create it once:
 
 ```
+claude auth login
 claude setup-token
 ```
+
+**The order matters.** `claude setup-token` needs a signed-in session
+itself; signed out it prints no token at all. Store something anyway and
+you end up with "token stored" and "doesn't answer" on screen at the same
+time.
 
 The token it prints does not belong in the systemd unit, nor in an
 environment variable in `~/.profile` – both sit on disk in plain text.
@@ -201,6 +207,13 @@ Input stays invisible and doesn't end up in the shell history. On each call
 POSTKutsche hands the token to the child process as `CLAUDE_CODE_OAUTH_TOKEN`
 – through the environment, not the command line: whatever stands there,
 anyone can read with `ps`.
+
+A token from `claude setup-token` starts with `sk-ant-oat`, runs about a
+hundred characters and contains no spaces. If the input looks different it
+is refused rather than stored; `--trotzdem` overrides that, in case the
+provider's namespace ever changes. A key for the Anthropic API
+(`sk-ant-api…`) does not belong here – it belongs to the route
+`anthropisch`.
 
 With no token stored, the sign-in on the machine keeps applying.
 
